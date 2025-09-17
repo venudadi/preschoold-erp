@@ -1,23 +1,77 @@
 import axios from 'axios';
 
 // Create an instance of axios with a base URL
-// This means you don't have to type 'http://localhost:5001' every time
 const api = axios.create({
-    baseURL: 'http://localhost:5001/api', // Your backend server URL
+    baseURL: 'http://localhost:5001/api',
 });
 
-// This is an interceptor. It's a powerful feature that runs on every single
-// request made by this api instance. It automatically adds the authorization
-// token to the header, so we don't have to do it in every function.
+// Request interceptor to add authorization and security headers
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
+        const sessionToken = localStorage.getItem('sessionToken');
+        const csrfToken = localStorage.getItem('csrfToken');
+
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
+        
+        if (sessionToken) {
+            config.headers['X-Session-Token'] = sessionToken;
+        }
+
+        // Add CSRF token for non-GET requests
+        if (config.method !== 'get' && csrfToken) {
+            config.headers['X-CSRF-Token'] = csrfToken;
+        }
+
         return config;
     },
     (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// Response interceptor to handle token refresh
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        // If the error is 401 and we haven't tried to refresh the token yet
+        if (error.response.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                // Attempt to refresh the token
+                const refreshToken = localStorage.getItem('refreshToken');
+                const response = await axios.post('/api/auth/refresh-token', {
+                    refreshToken
+                });
+
+                const { token, sessionToken, csrfToken } = response.data;
+
+                // Update stored tokens
+                localStorage.setItem('token', token);
+                localStorage.setItem('sessionToken', sessionToken);
+                localStorage.setItem('csrfToken', csrfToken);
+
+                // Retry the original request
+                originalRequest.headers['Authorization'] = `Bearer ${token}`;
+                originalRequest.headers['X-Session-Token'] = sessionToken;
+                if (originalRequest.method !== 'get') {
+                    originalRequest.headers['X-CSRF-Token'] = csrfToken;
+                }
+
+                return axios(originalRequest);
+            } catch (error) {
+                // If refresh fails, log out the user
+                localStorage.clear();
+                window.location.href = '/login';
+                return Promise.reject(error);
+            }
+        }
+
         return Promise.reject(error);
     }
 );
@@ -398,6 +452,39 @@ export const getAnalyticsCenterComparison = async () => {
         } else { 
             throw new Error('An unexpected error occurred.'); 
         }
+    }
+};
+
+// --- DOCUMENT MANAGEMENT FUNCTIONS ---
+
+export const uploadDocument = async (formData) => {
+    try {
+        const response = await api.post('/documents/upload', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || new Error('Could not upload document');
+    }
+};
+
+export const getDocuments = async () => {
+    try {
+        const response = await api.get('/documents');
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || new Error('Could not fetch documents');
+    }
+};
+
+export const deleteDocument = async (documentId) => {
+    try {
+        const response = await api.delete(`/documents/${documentId}`);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || new Error('Could not delete document');
     }
 };
 

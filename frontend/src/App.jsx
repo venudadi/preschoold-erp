@@ -6,9 +6,10 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import ChildrenManagementPage from './pages/ChildrenManagementPage.jsx';
 import ClassroomManagementPage from './pages/ClassroomManagementPage.jsx';
-import EnquiryManagementPage from './pages/EnquiryManagementPage.jsx'; // <-- ADD THIS IMPORT
-import BillingManagementPage from './pages/BillingManagementPage.jsx'; // <-- ADD THIS IMPORT
-import SettingsPage from './pages/SettingsPage.jsx'; // <-- ADD THIS IMPORT
+import EnquiryManagementPage from './pages/EnquiryManagementPage.jsx';
+import BillingManagementPage from './pages/BillingManagementPage.jsx';
+import SettingsPage from './pages/SettingsPage.jsx';
+import DocumentManagementPage from './pages/DocumentManagementPage.jsx';
 import { Typography } from '@mui/material';
 
 function App() {
@@ -34,7 +35,8 @@ function App() {
           <Route path="enquiries" element={<EnquiryManagementPage />} /> {/* <-- ADD THIS ROUTE */}
           <Route path="billing" element={<BillingManagementPage />} /> {/* <-- ADD THIS ROUTE */}
           <Route path="reports" element={<Typography variant="h4">Reports Page (Coming Soon)</Typography>} />
-          <Route path="settings" element={<SettingsPage />} /> {/* <-- ADD THIS ROUTE */}
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="documents" element={<DocumentManagementPage />} />
         </Route>
       </Routes>
     </Router>
