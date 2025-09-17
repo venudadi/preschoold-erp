@@ -23,17 +23,21 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import QuestionAnswerIcon from '@mui/icons-material/QuestionAnswer';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import SettingsIcon from '@mui/icons-material/Settings';
+import FolderIcon from '@mui/icons-material/Folder';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
 
 const navItems = [
     { text: 'Dashboard', icon: <HomeIcon />, path: '/dashboard' },
     { text: 'Children', icon: <PeopleIcon />, path: '/children' },
     { text: 'Classrooms', icon: <ClassIcon />, path: '/classrooms' },
-    { text: 'Enquiries', icon: <QuestionAnswerIcon />, path: '/enquiries' }, // <-- ADDED
-    { text: 'Billing', icon: <MonetizationOnIcon />, path: '/billing' }, // <-- ADDED
+    { text: 'Attendance', icon: <HowToRegIcon />, path: '/attendance' },
+    { text: 'Enquiries', icon: <QuestionAnswerIcon />, path: '/enquiries' },
+    { text: 'Billing', icon: <MonetizationOnIcon />, path: '/billing' },
     { text: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
-    { text: 'Settings', icon: <SettingsIcon />, path: '/settings' }, // <-- ADDED
+    { text: 'Documents', icon: <FolderIcon />, path: '/documents' },
+    { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
 
 const DashboardLayout = () => {

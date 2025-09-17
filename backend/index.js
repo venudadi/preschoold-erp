@@ -12,6 +12,9 @@ import admissionRoutes from './admissionRoutes.js';
 import invoiceRoutes from './invoiceRoutes.js';
 import centerRoutes from './centerRoutes.js';
 import analyticsRoutes from './analyticsRoutes.js';
+import attendanceRoutes from './attendanceRoutes.js';
+import staffRoutes from './staffRoutes.js';
+import documentRoutes from './documentRoutes.js';
 const app = express();
 const PORT = process.env.PORT || 5001;
 
@@ -28,6 +31,9 @@ app.use('/api/admissions', admissionRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/centers', centerRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/staff', staffRoutes);
+app.use('/api/documents', documentRoutes);
 // --- SERVER LISTENER ---
 app.listen(PORT, () => {
   console.log(`✅ Server is running on port ${PORT}`);
