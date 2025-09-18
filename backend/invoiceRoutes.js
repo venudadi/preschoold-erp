@@ -5,7 +5,8 @@ import { protect } from './authMiddleware.js';
 import PDFDocument from 'pdfkit';
 import path from 'path';
 import fs from 'fs';
-import { numberToWords } from 'number-to-words';
+import pkg from 'number-to-words';
+const { numberToWords } = pkg;
 
 const router = express.Router();
 
