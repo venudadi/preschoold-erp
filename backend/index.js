@@ -3,6 +3,16 @@ import express from 'express';
 import cors from 'cors';
 import pool from './db.js';
 
+// Add error handling for unhandled rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
 // --- IMPORT ROUTES (Each one should only be listed once) ---
 import authRoutes from './authRoutes.js';
 import adminRoutes from './adminRoutes.js';
@@ -15,6 +25,9 @@ import analyticsRoutes from './analyticsRoutes.js';
 import attendanceRoutes from './attendanceRoutes.js';
 import staffRoutes from './staffRoutes.js';
 import documentRoutes from './documentRoutes.js';
+import feeStructureRoutes from './feeStructureRoutes.js';
+import studentRoutes from './studentRoutes.js';
+import exitRoutes from './exitRoutes.js';
 const app = express();
 const PORT = process.env.PORT || 5001;
 
@@ -23,7 +36,7 @@ app.use(cors());
 app.use(express.json());
 
 // --- ROUTES (Each one should only be listed once) ---
-app.use('/api', authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/settings', settingsRoutes);
@@ -34,6 +47,9 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/fee-structures', feeStructureRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/exits', exitRoutes);
 // --- SERVER LISTENER ---
 app.listen(PORT, () => {
   console.log(`✅ Server is running on port ${PORT}`);

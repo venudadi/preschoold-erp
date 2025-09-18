@@ -1,9 +1,15 @@
 import axios from 'axios';
+import { useMemo } from 'react';
 
 // Create an instance of axios with a base URL
 const api = axios.create({
     baseURL: 'http://localhost:5001/api',
 });
+
+// Custom hook for using the API instance
+export const useApi = () => {
+    return useMemo(() => api, []);
+};
 
 // Request interceptor to add authorization and security headers
 api.interceptors.request.use(
@@ -85,7 +91,7 @@ api.interceptors.response.use(
 
 export const loginUser = async (email, password) => {
     try {
-        const response = await api.post('/login', { email, password });
+        const response = await api.post('/auth/login', { email, password });
         return response.data;
     } catch (error) {
         if (error.response) { throw error.response.data; }
