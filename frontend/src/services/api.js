@@ -39,13 +39,17 @@ api.interceptors.response.use(
         const originalRequest = error.config;
 
         // If the error is 401 and we haven't tried to refresh the token yet
-        if (error.response.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
             try {
                 // Attempt to refresh the token
                 const refreshToken = localStorage.getItem('refreshToken');
-                const response = await axios.post('/api/auth/refresh-token', {
+                if (!refreshToken) {
+                    throw new Error('No refresh token');
+                }
+
+                const response = await axios.post(`${api.defaults.baseURL}/auth/refresh-token`, {
                     refreshToken
                 });
 
