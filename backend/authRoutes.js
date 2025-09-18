@@ -2,10 +2,25 @@
 
 import express from 'express';
 import bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
 import pool from './db.js';
+import { protect as authProtect } from './authMiddleware.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router(); // Use Router, not app
+
+// Token verification endpoint
+router.get('/verify', authProtect, (req, res) => {
+    // If middleware passes, token is valid
+    res.json({ 
+        valid: true,
+        user: {
+            id: req.user.id,
+            email: req.user.email,
+            role: req.user.role,
+            fullName: req.user.fullName
+        }
+    });
+});
 
 // --- USER REGISTRATION ENDPOINT ---
 // URL: POST /register
