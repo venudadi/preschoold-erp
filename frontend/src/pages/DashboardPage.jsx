@@ -7,8 +7,18 @@ import {
     ButtonGroup,
     useMediaQuery,
     useTheme,
-    Alert
+    Alert,
+    Card,
+    CardContent,
+    Chip,
+    CardActionArea,
+    List,
+    ListItem,
+    ListItemIcon,
+    ListItemText,
+    Divider
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     LineChart, Line, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList
@@ -21,10 +31,15 @@ import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import ClassIcon from '@mui/icons-material/Class';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import SecurityIcon from '@mui/icons-material/Security';
+import DashboardIcon from '@mui/icons-material/Dashboard';
 
 import MetricCard from '../components/MetricCard.jsx';
 import ChartContainer from '../components/ChartContainer.jsx';
 import CenterSelector from '../components/CenterSelector.jsx';
+import PermissionGate, { RoleBasedContent } from '../components/PermissionGate.jsx';
+import { usePermissions } from '../hooks/usePermissions.js';
+import { FEATURES, ROLE_INFO } from '../config/permissions.js';
 import { 
     getAnalyticsOverview, 
     getAnalyticsDemographics, 
@@ -39,11 +54,13 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'
 const DashboardPage = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const navigate = useNavigate();
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const permissions = usePermissions(user.role);
+    const roleInfo = ROLE_INFO[user.role];
     
     // State management
     const [selectedCenter, setSelectedCenter] = useState('');
-    const [timeRange, setTimeRange] = useState('3months');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     
@@ -55,88 +72,427 @@ const DashboardPage = () => {
     const [financialData, setFinancialData] = useState({});
     const [centerComparison, setCenterComparison] = useState([]);
 
-    // Fetch all analytics data
-    const fetchAnalyticsData = async (centerId = selectedCenter) => {
-        if (user.role !== 'owner' && user.role !== 'superadmin') {
-            return; // Only owners and superadmins see analytics
-        }
-
-        setLoading(true);
-        setError('');
-        
-        try {
-            const params = centerId ? { centerId } : {};
-            
-            const [
-                overviewRes,
-                demographicsRes,
-                trendsRes,
-                conversionRes,
-                financialRes
-            ] = await Promise.all([
-                getAnalyticsOverview(params),
-                getAnalyticsDemographics(params),
-                getAnalyticsEnrollmentTrends(params),
-                getAnalyticsConversionMetrics(params),
-                getAnalyticsFinancialOverview(params)
-            ]);
-
-            setOverview(overviewRes);
-            setDemographics(demographicsRes);
-            setEnrollmentTrends(trendsRes);
-            setConversionMetrics(conversionRes);
-            setFinancialData(financialRes);
-
-            // Fetch center comparison for superadmin
-            if (user.role === 'superadmin') {
-                const comparisonRes = await getAnalyticsCenterComparison();
-                setCenterComparison(comparisonRes);
+    useEffect(() => {
+        const fetchData = async () => {
+            // Load basic overview data for admin and super_admin users
+            if (user.role !== 'admin' && user.role !== 'owner' && user.role !== 'super_admin') {
+                return; // Only admin, owners and super_admins see analytics
             }
 
-        } catch (err) {
-            setError('Failed to load analytics data');
-            console.error('Analytics error:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+            setLoading(true);
+            setError('');
 
-    useEffect(() => {
-        fetchAnalyticsData();
-    }, [selectedCenter, timeRange]);
+            try {
+                // Fetch overview metrics for all admin-level users
+                const overviewRes = await getAnalyticsOverview(selectedCenter);
+                setOverview(overviewRes);
+
+                // Fetch additional analytics only for owners and super_admins
+                if (user.role === 'owner' || user.role === 'super_admin') {
+                    // Fetch enrollment trends  
+                    const trendsRes = await getAnalyticsEnrollmentTrends(selectedCenter);
+                    setEnrollmentTrends(trendsRes);
+
+                    // Fetch demographics
+                    const demographicsRes = await getAnalyticsDemographics(selectedCenter);
+                    setDemographics(demographicsRes);
+
+                    // Fetch conversion metrics
+                    const conversionRes = await getAnalyticsConversionMetrics(selectedCenter);
+                    setConversionMetrics(conversionRes);
+
+                    // Fetch financial overview
+                    const financialRes = await getAnalyticsFinancialOverview(selectedCenter);
+                    setFinancialData(financialRes);
+
+                    // Fetch center comparison for super admin
+                    if (user.role === 'super_admin') {
+                        const comparisonRes = await getAnalyticsCenterComparison();
+                        setCenterComparison(comparisonRes);
+                    }
+                }
+
+            } catch (err) {
+                setError('Failed to load analytics data');
+                console.error('Analytics error:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [selectedCenter, user.role]);
 
     // Handle center change for superadmin
     const handleCenterChange = (centerId) => {
         setSelectedCenter(centerId);
     };
 
-    // Show basic dashboard for non-analytics users
-    if (user.role !== 'owner' && user.role !== 'superadmin') {
+    // Show basic dashboard for non-analytics users (teachers, parents, academic coordinators)
+    if (user.role !== 'admin' && user.role !== 'owner' && user.role !== 'super_admin') {
         return (
             <Box>
-                <Typography variant="h4" component="h1" gutterBottom>
-                    Dashboard
-                </Typography>
-                <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                    Welcome! Here is your workspace overview.
-                </Typography>
+                <Box sx={{ mb: 4 }}>
+                    <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <DashboardIcon color="primary" />
+                        Dashboard
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Typography variant="h6">Welcome, {user.fullName}!</Typography>
+                        {roleInfo && (
+                            <Chip 
+                                label={roleInfo.displayName}
+                                sx={{ 
+                                    backgroundColor: roleInfo.color,
+                                    color: 'white',
+                                    fontWeight: 'bold'
+                                }}
+                                icon={<SecurityIcon sx={{ color: 'white !important' }} />}
+                            />
+                        )}
+                    </Box>
+                    <Typography variant="body1" color="text.secondary">
+                        {roleInfo?.description || 'Here is your workspace overview.'}
+                    </Typography>
+                </Box>
                 
                 <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={3}>
-                        <MetricCard 
-                            title="Your Role" 
-                            value={user.role?.toUpperCase() || 'User'} 
-                            icon={<PeopleIcon />}
-                            color="primary"
-                        />
+                    {/* Role Information Card */}
+                    <Grid item xs={12} md={6}>
+                        <Card sx={{ background: `linear-gradient(135deg, ${roleInfo?.color}20, ${roleInfo?.color}05)` }}>
+                            <CardActionArea 
+                                onClick={() => navigate('/settings')}
+                                sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+                            >
+                                <CardContent sx={{ flexGrow: 1 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                        <SecurityIcon sx={{ color: roleInfo?.color, fontSize: 32 }} />
+                                        <Typography variant="h6">Your Access Level</Typography>
+                                    </Box>
+                                    <Typography variant="body1" sx={{ mb: 2 }}>
+                                        <strong>Role:</strong> {roleInfo?.displayName || user.role}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        You have access to {permissions.userRole === 'teacher' ? 'your assigned classrooms and attendance management' :
+                                        permissions.userRole === 'parent' ? 'your children information and documents' :
+                                        permissions.userRole === 'academic_coordinator' ? 'academic management and reporting' :
+                                        permissions.userRole === 'admin' ? 'administrative functions and billing' :
+                                        'system features'} based on your role.
+                                    </Typography>
+                                    <Divider sx={{ my: 1 }} />
+                                    <Typography variant="body2" color="primary" sx={{ fontWeight: 'medium' }}>
+                                        Click to manage your profile →
+                                    </Typography>
+                                </CardContent>
+                            </CardActionArea>
+                        </Card>
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
-                        <MetricCard 
-                            title="Quick Actions" 
-                            value="Available" 
-                            icon={<AssessmentIcon />}
-                            color="success"
-                        />
+
+                    {/* Quick Access Features */}
+                    <Grid item xs={12} md={6}>
+                        <Card>
+                            <CardContent>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                    <DashboardIcon color="primary" sx={{ fontSize: 32 }} />
+                                    <Typography variant="h6">Quick Access</Typography>
+                                </Box>
+                                
+                                <RoleBasedContent 
+                                    userRole={user.role}
+                                    roles={{
+                                        teacher: (
+                                            <List dense>
+                                                <ListItem 
+                                                    component="button" 
+                                                    onClick={() => navigate('/classrooms')}
+                                                    sx={{ 
+                                                        cursor: 'pointer', 
+                                                        border: 'none', 
+                                                        bgcolor: 'transparent',
+                                                        '&:hover': { bgcolor: 'action.hover' },
+                                                        borderRadius: 1
+                                                    }}
+                                                >
+                                                    <ListItemIcon><ClassIcon color="primary" /></ListItemIcon>
+                                                    <ListItemText primary="View Assigned Classrooms" />
+                                                </ListItem>
+                                                <ListItem 
+                                                    component="button" 
+                                                    onClick={() => navigate('/attendance')}
+                                                    sx={{ 
+                                                        cursor: 'pointer', 
+                                                        border: 'none', 
+                                                        bgcolor: 'transparent',
+                                                        '&:hover': { bgcolor: 'action.hover' },
+                                                        borderRadius: 1
+                                                    }}
+                                                >
+                                                    <ListItemIcon><PeopleIcon color="primary" /></ListItemIcon>
+                                                    <ListItemText primary="Manage Attendance" />
+                                                </ListItem>
+                                            </List>
+                                        ),
+                                        parent: (
+                                            <List dense>
+                                                <ListItem 
+                                                    component="button" 
+                                                    onClick={() => navigate('/children')}
+                                                    sx={{ 
+                                                        cursor: 'pointer', 
+                                                        border: 'none', 
+                                                        bgcolor: 'transparent',
+                                                        '&:hover': { bgcolor: 'action.hover' },
+                                                        borderRadius: 1
+                                                    }}
+                                                >
+                                                    <ListItemIcon><SchoolIcon color="primary" /></ListItemIcon>
+                                                    <ListItemText primary="View Your Children" />
+                                                </ListItem>
+                                                <ListItem 
+                                                    component="button" 
+                                                    onClick={() => navigate('/documents')}
+                                                    sx={{ 
+                                                        cursor: 'pointer', 
+                                                        border: 'none', 
+                                                        bgcolor: 'transparent',
+                                                        '&:hover': { bgcolor: 'action.hover' },
+                                                        borderRadius: 1
+                                                    }}
+                                                >
+                                                    <ListItemIcon><ReceiptIcon color="primary" /></ListItemIcon>
+                                                    <ListItemText primary="Access Documents" />
+                                                </ListItem>
+                                            </List>
+                                        ),
+                                        academic_coordinator: (
+                                            <List dense>
+                                                <ListItem 
+                                                    component="button" 
+                                                    onClick={() => navigate('/classrooms')}
+                                                    sx={{ 
+                                                        cursor: 'pointer', 
+                                                        border: 'none', 
+                                                        bgcolor: 'transparent',
+                                                        '&:hover': { bgcolor: 'action.hover' },
+                                                        borderRadius: 1
+                                                    }}
+                                                >
+                                                    <ListItemIcon><ClassIcon color="primary" /></ListItemIcon>
+                                                    <ListItemText primary="Manage Classrooms" />
+                                                </ListItem>
+                                                <ListItem 
+                                                    component="button" 
+                                                    onClick={() => navigate('/enquiries')}
+                                                    sx={{ 
+                                                        cursor: 'pointer', 
+                                                        border: 'none', 
+                                                        bgcolor: 'transparent',
+                                                        '&:hover': { bgcolor: 'action.hover' },
+                                                        borderRadius: 1
+                                                    }}
+                                                >
+                                                    <ListItemIcon><QuestionAnswerIcon color="primary" /></ListItemIcon>
+                                                    <ListItemText primary="Handle Enquiries" />
+                                                </ListItem>
+                                            </List>
+                                        ),
+                                        admin: (
+                                            <List dense>
+                                                <ListItem 
+                                                    component="button" 
+                                                    onClick={() => navigate('/children')}
+                                                    sx={{ 
+                                                        cursor: 'pointer', 
+                                                        border: 'none', 
+                                                        bgcolor: 'transparent',
+                                                        '&:hover': { bgcolor: 'action.hover' },
+                                                        borderRadius: 1
+                                                    }}
+                                                >
+                                                    <ListItemIcon><PeopleIcon color="primary" /></ListItemIcon>
+                                                    <ListItemText primary="Manage Students" />
+                                                </ListItem>
+                                                <ListItem 
+                                                    component="button" 
+                                                    onClick={() => navigate('/billing')}
+                                                    sx={{ 
+                                                        cursor: 'pointer', 
+                                                        border: 'none', 
+                                                        bgcolor: 'transparent',
+                                                        '&:hover': { bgcolor: 'action.hover' },
+                                                        borderRadius: 1
+                                                    }}
+                                                >
+                                                    <ListItemIcon><MonetizationOnIcon color="primary" /></ListItemIcon>
+                                                    <ListItemText primary="Billing Management" />
+                                                </ListItem>
+                                                <ListItem 
+                                                    component="button" 
+                                                    onClick={() => navigate('/enquiries')}
+                                                    sx={{ 
+                                                        cursor: 'pointer', 
+                                                        border: 'none', 
+                                                        bgcolor: 'transparent',
+                                                        '&:hover': { bgcolor: 'action.hover' },
+                                                        borderRadius: 1
+                                                    }}
+                                                >
+                                                    <ListItemIcon><QuestionAnswerIcon color="primary" /></ListItemIcon>
+                                                    <ListItemText primary="Manage Enquiries" />
+                                                </ListItem>
+                                            </List>
+                                        )
+                                    }}
+                                    defaultContent={
+                                        <Typography variant="body2" color="text.secondary">
+                                            No quick actions available for your role.
+                                        </Typography>
+                                    }
+                                />
+                            </CardContent>
+                        </Card>
+                    </Grid>
+
+                    {/* Center Information */}
+                    {user.centerName && (
+                        <Grid item xs={12} md={6}>
+                            <Card>
+                                <CardActionArea 
+                                    onClick={() => navigate('/settings')}
+                                    sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+                                >
+                                    <CardContent sx={{ flexGrow: 1 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                            <SchoolIcon sx={{ fontSize: 32, color: 'info.main' }} />
+                                            <Typography variant="h6">Your Center</Typography>
+                                        </Box>
+                                        <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                                            {user.centerName}
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                            Currently managing this center
+                                        </Typography>
+                                        <Divider sx={{ my: 1 }} />
+                                        <Typography variant="body2" color="primary" sx={{ fontWeight: 'medium' }}>
+                                            Click to view center settings →
+                                        </Typography>
+                                    </CardContent>
+                                </CardActionArea>
+                            </Card>
+                        </Grid>
+                    )}
+
+                    {/* Quick Stats for Admin/Super Admin */}
+                    {(user.role === 'admin' || user.role === 'super_admin') && (
+                        <>
+                            <Grid item xs={12}>
+                                <Typography variant="h6" sx={{ mb: 2, mt: 2 }}>Quick Overview</Typography>
+                            </Grid>
+                            <Grid item xs={6} md={3}>
+                                <Card>
+                                    <CardActionArea onClick={() => navigate('/children')}>
+                                        <CardContent sx={{ textAlign: 'center' }}>
+                                            <PeopleIcon sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
+                                            <Typography variant="h6" color="primary">
+                                                {loading ? '...' : (overview.total_students || 'N/A')}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Total Students
+                                            </Typography>
+                                        </CardContent>
+                                    </CardActionArea>
+                                </Card>
+                            </Grid>
+                            <Grid item xs={6} md={3}>
+                                <Card>
+                                    <CardActionArea onClick={() => navigate('/enquiries')}>
+                                        <CardContent sx={{ textAlign: 'center' }}>
+                                            <QuestionAnswerIcon sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
+                                            <Typography variant="h6" color="warning.main">
+                                                {loading ? '...' : (overview.open_enquiries || 'N/A')}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Open Enquiries
+                                            </Typography>
+                                        </CardContent>
+                                    </CardActionArea>
+                                </Card>
+                            </Grid>
+                            <Grid item xs={6} md={3}>
+                                <Card>
+                                    <CardActionArea onClick={() => navigate('/billing')}>
+                                        <CardContent sx={{ textAlign: 'center' }}>
+                                            <ReceiptIcon sx={{ fontSize: 40, color: 'error.main', mb: 1 }} />
+                                            <Typography variant="h6" color="error.main">
+                                                {loading ? '...' : (overview.pending_invoices || 'N/A')}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Pending Invoices
+                                            </Typography>
+                                        </CardContent>
+                                    </CardActionArea>
+                                </Card>
+                            </Grid>
+                            <Grid item xs={6} md={3}>
+                                <Card>
+                                    <CardActionArea onClick={() => navigate('/classrooms')}>
+                                        <CardContent sx={{ textAlign: 'center' }}>
+                                            <ClassIcon sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
+                                            <Typography variant="h6" color="success.main">
+                                                {loading ? '...' : (overview.total_classrooms || 'N/A')}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                Total Classrooms
+                                            </Typography>
+                                        </CardContent>
+                                    </CardActionArea>
+                                </Card>
+                            </Grid>
+                        </>
+                    )}
+
+                    {/* Data not available message */}
+                    {loading && (
+                        <Grid item xs={12}>
+                            <Alert severity="info">
+                                Loading dashboard data...
+                            </Alert>
+                        </Grid>
+                    )}
+                    
+                    {error && (
+                        <Grid item xs={12}>
+                            <Alert severity="warning">
+                                {error} - Some metrics may show 'N/A' until data is available.
+                            </Alert>
+                        </Grid>
+                    )}
+
+                    {/* Feature Access Summary */}
+                    <Grid item xs={12} md={6}>
+                        <Card>
+                            <CardActionArea 
+                                onClick={() => navigate('/settings')}
+                                sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+                            >
+                                <CardContent sx={{ flexGrow: 1 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                        <AssessmentIcon sx={{ fontSize: 32, color: 'success.main' }} />
+                                        <Typography variant="h6">Available Features</Typography>
+                                    </Box>
+                                    <Typography variant="h3" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+                                        {Object.values(FEATURES).filter(feature => permissions.can(feature)).length}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        Features accessible to your role
+                                    </Typography>
+                                    <Divider sx={{ my: 1 }} />
+                                    <Typography variant="body2" color="primary" sx={{ fontWeight: 'medium' }}>
+                                        Click to view all permissions →
+                                    </Typography>
+                                </CardContent>
+                            </CardActionArea>
+                        </Card>
                     </Grid>
                 </Grid>
             </Box>
@@ -144,24 +500,51 @@ const DashboardPage = () => {
     }
 
     return (
-        <Box sx={{ pb: 3 }}>
-            {/* Header with center selector */}
-            <Box sx={{ 
-                display: 'flex', 
-                flexDirection: isMobile ? 'column' : 'row',
-                justifyContent: 'space-between', 
-                alignItems: isMobile ? 'flex-start' : 'center',
-                mb: 3,
-                gap: 2
-            }}>
-                <Box>
-                    <Typography variant="h4" component="h1" gutterBottom>
-                        Analytics Dashboard
-                    </Typography>
+        <PermissionGate 
+            features={FEATURES.ANALYTICS_DASHBOARD}
+            userRole={user.role}
+            fallback={
+                <Box sx={{ textAlign: 'center', py: 8 }}>
+                    <SecurityIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                    <Typography variant="h5" gutterBottom>Access Restricted</Typography>
                     <Typography variant="body1" color="text.secondary">
-                        Real-time insights and performance metrics
+                        You don't have permission to view the analytics dashboard.
                     </Typography>
                 </Box>
+            }
+            hideOnDenied={false}
+        >
+            <Box sx={{ pb: 3 }}>
+                {/* Header with role indicator and center selector */}
+                <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: isMobile ? 'column' : 'row',
+                    justifyContent: 'space-between', 
+                    alignItems: isMobile ? 'flex-start' : 'center',
+                    mb: 3,
+                    gap: 2
+                }}>
+                    <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                            <Typography variant="h4" component="h1">
+                                Analytics Dashboard
+                            </Typography>
+                            {roleInfo && (
+                                <Chip 
+                                    label={roleInfo.displayName}
+                                    sx={{ 
+                                        backgroundColor: roleInfo.color,
+                                        color: 'white',
+                                        fontWeight: 'bold'
+                                    }}
+                                    size="small"
+                                />
+                            )}
+                        </Box>
+                        <Typography variant="body1" color="text.secondary">
+                            Real-time insights and performance metrics
+                        </Typography>
+                    </Box>
                 
                 <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                     <CenterSelector 
@@ -352,8 +735,8 @@ const DashboardPage = () => {
                 </Grid>
             </Grid>
 
-            {/* Center Comparison for Superadmin */}
-            {user.role === 'superadmin' && centerComparison.length > 0 && (
+            {/* Center Comparison for Super Admin */}
+            {user.role === 'super_admin' && centerComparison.length > 0 && (
                 <Grid container spacing={3}>
                     <Grid item xs={12}>
                         <ChartContainer 
@@ -379,13 +762,14 @@ const DashboardPage = () => {
                                     <Bar dataKey="total_students" fill="#8884d8" name="Students" />
                                     <Bar dataKey="monthly_revenue" fill="#82ca9d" name="Monthly Revenue (₹)" />
                                 </BarChart>
-                            </ResponsiveContainer>
-                        </ChartContainer>
-                    </Grid>
-                </Grid>
-            )}
-        </Box>
-    );
+            </ResponsiveContainer>
+        </ChartContainer>
+    </Grid>
+</Grid>
+)}
+</Box>
+</PermissionGate>
+);
 };
 
 export default DashboardPage;

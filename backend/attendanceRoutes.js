@@ -180,12 +180,13 @@ router.post('/calculate-summary', protect, async (req, res) => {
             );
 
             // Update or insert summary
+            const summaryId = uuidv4();
             await pool.query(
                 `INSERT INTO attendance_summaries 
                  (id, child_id, classroom_id, center_id, month, year,
                   total_days, present_days, absent_days, late_days, excused_days,
                   last_calculated)
-                 VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                  ON DUPLICATE KEY UPDATE
                  total_days = VALUES(total_days),
                  present_days = VALUES(present_days),
@@ -193,7 +194,7 @@ router.post('/calculate-summary', protect, async (req, res) => {
                  late_days = VALUES(late_days),
                  excused_days = VALUES(excused_days),
                  last_calculated = CURRENT_TIMESTAMP`,
-                [child.id, classroom_id, child.center_id, month, year,
+                [summaryId, child.id, classroom_id, child.center_id, month, year,
                  stats[0].total_days, stats[0].present_days, stats[0].absent_days,
                  stats[0].late_days, stats[0].excused_days]
             );

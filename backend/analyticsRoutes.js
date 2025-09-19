@@ -6,7 +6,7 @@ const router = express.Router();
 
 // Middleware to ensure only owners and superadmins can access analytics
 const analyticsAccess = (req, res, next) => {
-    if (!['owner', 'superadmin'].includes(req.user.role)) {
+    if (!['owner', 'super_admin'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Forbidden: Access restricted to owners and superadmins.' });
     }
     next();
@@ -17,7 +17,7 @@ const validateCenterAccess = (req, res, next) => {
     const requestedCenterId = req.query.centerId;
     const { role, center_id } = req.user;
 
-    if (role === 'superadmin') {
+    if (role === 'super_admin') {
         next(); // Superadmin can access any center
     } else if (!requestedCenterId || requestedCenterId === center_id) {
         next(); // Owner accessing their own center
@@ -38,7 +38,7 @@ router.get('/overview', async (req, res) => {
         const { role, center_id } = req.user;
         
         // Use user's center if not specified (for owners)
-        const targetCenterId = role === 'superadmin' ? centerId : center_id;
+        const targetCenterId = role === 'super_admin' ? centerId : center_id;
         
         let whereClause = '';
         let queryParams = [];
@@ -72,7 +72,7 @@ router.get('/demographics', async (req, res) => {
     try {
         const { centerId } = req.query;
         const { role, center_id } = req.user;
-        const targetCenterId = role === 'superadmin' ? centerId : center_id;
+        const targetCenterId = role === 'super_admin' ? centerId : center_id;
         
         let whereClause = targetCenterId ? 'WHERE c.center_id = ?' : '';
         let queryParams = targetCenterId ? [targetCenterId] : [];
@@ -129,7 +129,7 @@ router.get('/enrollment-trends', async (req, res) => {
     try {
         const { centerId } = req.query;
         const { role, center_id } = req.user;
-        const targetCenterId = role === 'superadmin' ? centerId : center_id;
+        const targetCenterId = role === 'super_admin' ? centerId : center_id;
         
         let whereClause = targetCenterId ? 'WHERE center_id = ?' : '';
         let queryParams = targetCenterId ? [targetCenterId, targetCenterId] : [];
@@ -175,7 +175,7 @@ router.get('/conversion-metrics', async (req, res) => {
     try {
         const { centerId } = req.query;
         const { role, center_id } = req.user;
-        const targetCenterId = role === 'superadmin' ? centerId : center_id;
+        const targetCenterId = role === 'super_admin' ? centerId : center_id;
         
         let whereClause = targetCenterId ? 'WHERE center_id = ?' : '';
         let queryParams = targetCenterId ? [targetCenterId, targetCenterId, targetCenterId] : [];
@@ -235,7 +235,7 @@ router.get('/financial-overview', async (req, res) => {
     try {
         const { centerId } = req.query;
         const { role, center_id } = req.user;
-        const targetCenterId = role === 'superadmin' ? centerId : center_id;
+        const targetCenterId = role === 'super_admin' ? centerId : center_id;
         
         let whereClause = targetCenterId ? 'WHERE center_id = ?' : '';
         let queryParams = targetCenterId ? Array(6).fill(targetCenterId) : [];
@@ -304,10 +304,10 @@ router.get('/financial-overview', async (req, res) => {
     }
 });
 
-// GET /api/analytics/center-comparison - Compare centers (superadmin only)
+// GET /api/analytics/center-comparison - Compare centers (super_admin only)
 router.get('/center-comparison', async (req, res) => {
-    if (req.user.role !== 'superadmin') {
-        return res.status(403).json({ message: 'Access restricted to superadmins.' });
+    if (req.user.role !== 'super_admin') {
+        return res.status(403).json({ message: 'Access restricted to super_admins.' });
     }
     
     try {
