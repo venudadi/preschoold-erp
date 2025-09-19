@@ -20,9 +20,9 @@ ALTER TABLE users
 ADD COLUMN IF NOT EXISTS center_id VARCHAR(36),
 ADD FOREIGN KEY (center_id) REFERENCES centers(id) ON DELETE SET NULL;
 
--- 3. Update user roles to include superadmin
+-- 3. Update user roles to include super_admin
 ALTER TABLE users 
-MODIFY COLUMN role ENUM('superadmin', 'admin', 'owner', 'teacher', 'parent') NOT NULL;
+MODIFY COLUMN role ENUM('super_admin', 'admin', 'owner', 'teacher', 'parent') NOT NULL;
 
 -- 4. Add center_id to tables that might be missing it
 ALTER TABLE classrooms 
@@ -84,7 +84,7 @@ CREATE INDEX idx_fee_structures_center_id ON fee_structures(center_id);
 -- 9. Create sample fee structures for existing classrooms
 INSERT INTO fee_structures (id, classroom_id, center_id, program_name, monthly_fee, billing_frequency, is_active)
 SELECT 
-    UUID() as id,
+    CONCAT(SUBSTR(MD5(RAND()), 1, 8), '-', SUBSTR(MD5(RAND()), 1, 4), '-', SUBSTR(MD5(RAND()), 1, 4), '-', SUBSTR(MD5(RAND()), 1, 4), '-', SUBSTR(MD5(RAND()), 1, 12)) as id,
     c.id as classroom_id,
     c.center_id,
     CONCAT(c.name, ' - Monthly Fee') as program_name,
