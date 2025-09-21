@@ -144,8 +144,8 @@ const CenterManagement = () => {
         }
     };
 
-    // Only render for superadmin
-    if (user.role !== 'superadmin') {
+    // Only render for super_admin
+    if (user.role !== 'super_admin') {
         return null;
     }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     Box, 
     Typography, 
@@ -71,57 +71,69 @@ const DashboardPage = () => {
     const [conversionMetrics, setConversionMetrics] = useState({});
     const [financialData, setFinancialData] = useState({});
     const [centerComparison, setCenterComparison] = useState([]);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const fetchGuardRef = useRef(null);
 
     useEffect(() => {
-        const fetchData = async () => {
-            // Load basic overview data for admin and super_admin users
-            if (user.role !== 'admin' && user.role !== 'owner' && user.role !== 'super_admin') {
-                return; // Only admin, owners and super_admins see analytics
-            }
+        // Only admin, owners and super_admins see analytics
+        if (user.role !== 'admin' && user.role !== 'owner' && user.role !== 'super_admin') {
+            return;
+        }
 
+        const controller = new AbortController();
+        const token = Symbol('analytics-fetch');
+        fetchGuardRef.current = token;
+
+        const load = async () => {
             setLoading(true);
             setError('');
-
             try {
-                // Fetch overview metrics for all admin-level users
-                const overviewRes = await getAnalyticsOverview(selectedCenter);
+                const params = selectedCenter ? { centerId: selectedCenter } : {};
+                const options = { signal: controller.signal };
+
+                // Overview metrics
+                const overviewRes = await getAnalyticsOverview(params, options);
+                if (fetchGuardRef.current !== token) return;
                 setOverview(overviewRes);
 
-                // Fetch additional analytics only for owners and super_admins
                 if (user.role === 'owner' || user.role === 'super_admin') {
-                    // Fetch enrollment trends  
-                    const trendsRes = await getAnalyticsEnrollmentTrends(selectedCenter);
+                    // Load remaining analytics in parallel
+                    const [trendsRes, demographicsRes, conversionRes, financialRes] = await Promise.all([
+                        getAnalyticsEnrollmentTrends(params, options),
+                        getAnalyticsDemographics(params, options),
+                        getAnalyticsConversionMetrics(params, options),
+                        getAnalyticsFinancialOverview(params, options)
+                    ]);
+                    if (fetchGuardRef.current !== token) return;
                     setEnrollmentTrends(trendsRes);
-
-                    // Fetch demographics
-                    const demographicsRes = await getAnalyticsDemographics(selectedCenter);
                     setDemographics(demographicsRes);
-
-                    // Fetch conversion metrics
-                    const conversionRes = await getAnalyticsConversionMetrics(selectedCenter);
                     setConversionMetrics(conversionRes);
-
-                    // Fetch financial overview
-                    const financialRes = await getAnalyticsFinancialOverview(selectedCenter);
                     setFinancialData(financialRes);
 
-                    // Fetch center comparison for super admin
                     if (user.role === 'super_admin') {
-                        const comparisonRes = await getAnalyticsCenterComparison();
+                        const comparisonRes = await getAnalyticsCenterComparison(options);
+                        if (fetchGuardRef.current !== token) return;
                         setCenterComparison(comparisonRes);
                     }
                 }
-
             } catch (err) {
-                setError('Failed to load analytics data');
-                console.error('Analytics error:', err);
+                if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
+                    setError(err?.message || 'Failed to load analytics data');
+                    console.error('Analytics error:', err);
+                }
             } finally {
-                setLoading(false);
+                if (fetchGuardRef.current === token) {
+                    setLoading(false);
+                }
             }
         };
 
-        fetchData();
-    }, [selectedCenter, user.role]);
+        load();
+        return () => {
+            fetchGuardRef.current = null;
+            controller.abort();
+        };
+    }, [selectedCenter, user.role, refreshKey]);
 
     // Handle center change for superadmin
     const handleCenterChange = (centerId) => {
@@ -634,6 +646,10 @@ const DashboardPage = () => {
                         title="Student Demographics" 
                         subtitle="Age group distribution"
                         loading={loading}
+                        error={error || null}
+                        empty={!loading && !error && (!demographics.age_groups || demographics.age_groups.length === 0)}
+                        emptyMessage="No demographic data available. Try adjusting filters."
+                        onRetry={() => setRefreshKey(k => k + 1)}
                         height={300}
                     >
                         <ResponsiveContainer width="100%" height="100%">
@@ -664,6 +680,10 @@ const DashboardPage = () => {
                         title="Enrollment Trends" 
                         subtitle="Monthly enrollments over time"
                         loading={loading}
+                        error={error || null}
+                        empty={!loading && !error && (!enrollmentTrends.monthly_enrollments || enrollmentTrends.monthly_enrollments.length === 0)}
+                        emptyMessage="No enrollment data for the selected period."
+                        onRetry={() => setRefreshKey(k => k + 1)}
                         height={300}
                     >
                         <ResponsiveContainer width="100%" height="100%">
@@ -694,6 +714,10 @@ const DashboardPage = () => {
                         title="Enquiry Conversion Funnel" 
                         subtitle="Lead progression through stages"
                         loading={loading}
+                        error={error || null}
+                        empty={!loading && !error && (!conversionMetrics.funnel_data || conversionMetrics.funnel_data.length === 0)}
+                        emptyMessage="No enquiries to display in the funnel."
+                        onRetry={() => setRefreshKey(k => k + 1)}
                         height={300}
                     >
                         <ResponsiveContainer width="100%" height="100%">
@@ -717,6 +741,10 @@ const DashboardPage = () => {
                         title="Revenue Trends" 
                         subtitle="Monthly revenue breakdown"
                         loading={loading}
+                        error={error || null}
+                        empty={!loading && !error && (!financialData.revenue_trends || financialData.revenue_trends.length === 0)}
+                        emptyMessage="No revenue data found for this timeframe."
+                        onRetry={() => setRefreshKey(k => k + 1)}
                         height={300}
                     >
                         <ResponsiveContainer width="100%" height="100%">
@@ -736,13 +764,17 @@ const DashboardPage = () => {
             </Grid>
 
             {/* Center Comparison for Super Admin */}
-            {user.role === 'super_admin' && centerComparison.length > 0 && (
+            {user.role === 'super_admin' && (
                 <Grid container spacing={3}>
                     <Grid item xs={12}>
                         <ChartContainer 
                             title="Center Performance Comparison" 
                             subtitle="Revenue and enrollment metrics across centers"
                             loading={loading}
+                            error={error || null}
+                            empty={!loading && !error && centerComparison.length === 0}
+                            emptyMessage="No comparable data across centers."
+                            onRetry={() => setRefreshKey(k => k + 1)}
                             height={400}
                         >
                             <ResponsiveContainer width="100%" height="100%">

@@ -23,8 +23,8 @@ const CenterSelector = ({ selectedCenter, onCenterChange, userRole }) => {
                 const data = await getCenters();
                 setCenters(data);
                 
-                // Auto-select first center for superadmin if none selected
-                if (userRole === 'superadmin' && !selectedCenter && data.length > 0) {
+                // Auto-select first center for super_admin if none selected
+                if (userRole === 'super_admin' && !selectedCenter && data.length > 0) {
                     onCenterChange(data[0].id);
                 }
             } catch (err) {
@@ -38,8 +38,8 @@ const CenterSelector = ({ selectedCenter, onCenterChange, userRole }) => {
         fetchCenters();
     }, [userRole, selectedCenter, onCenterChange]);
 
-    // Don't render for non-superadmin users
-    if (userRole !== 'superadmin') {
+    // Don't render for non-super_admin users
+    if (userRole !== 'super_admin') {
         return null;
     }
 
@@ -74,11 +74,16 @@ const CenterSelector = ({ selectedCenter, onCenterChange, userRole }) => {
                     onChange={(e) => onCenterChange(e.target.value)}
                     sx={{ backgroundColor: 'background.paper' }}
                 >
+                    {centers.length === 0 && (
+                        <MenuItem disabled value="">
+                            <Typography variant="body2" color="text.secondary">No centers available</Typography>
+                        </MenuItem>
+                    )}
                     {centers.map((center) => (
                         <MenuItem key={center.id} value={center.id}>
                             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                                 <Typography variant="body2" fontWeight="medium">
-                                    {center.center_name}
+                                    {center.name || center.center_name}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
                                     {center.total_students} students • {center.total_classrooms} classrooms

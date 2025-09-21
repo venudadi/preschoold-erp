@@ -10,17 +10,31 @@ const { numberToWords } = pkg;
 
 const router = express.Router();
 
-// Middleware to ensure only admins and owners can access invoice routes
-const adminOnly = (req, res, next) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
-        return res.status(403).json({ message: 'Forbidden: Access restricted to administrators.' });
+// Middleware to check authorization for invoice routes
+const checkInvoiceAccess = (req, res, next) => {
+    const role = req.user.role;
+    // super_admin has unrestricted access
+    if (role === 'super_admin') {
+        return next();
     }
-    next();
+    // admin and owner can only access their center's invoices
+    if ((role === 'admin' || role === 'owner') && req.user.center_id) {
+        // For list operations where centerId might be in query
+        const centerId = req.params.centerId || req.query.centerId;
+        if (req.user.center_id === centerId) {
+            return next();
+        }
+    }
+    // Allow access if no specific center filtering is needed (for general list view)
+    if (!req.params.centerId && !req.query.centerId) {
+        return next();
+    }
+    return res.status(403).json({ message: 'Forbidden: Access restricted to authorized administrators.' });
 };
 
-// Apply protection and admin-only middleware to all routes
+// Apply protection and access middleware to all routes
 router.use(protect);
-router.use(adminOnly);
+router.use(checkInvoiceAccess);
 
 // Helper function to generate unique invoice number
 const generateInvoiceNumber = async (connection, centerId) => {
@@ -171,7 +185,9 @@ router.post('/generate-monthly', async (req, res) => {
 
 // 2. GET /api/invoices
 // Fetches all invoices with filtering and pagination
-router.get('/', async (req, res) => {
+
+// Get all invoices
+router.get('/', protect, async (req, res) => {
     const { centerId } = req.user;
     const { status, child_name, page = 1, limit = 50 } = req.query;
     

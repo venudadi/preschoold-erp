@@ -8,7 +8,7 @@ const router = express.Router();
 // --- ADD A NEW ENQUIRY (PROTECTED) ---
 // This endpoint is now fully aligned with your final schema
 router.post('/', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
         return res.status(403).json({ message: 'Forbidden: You do not have permission to add enquiries.' });
     }
     try {
@@ -55,7 +55,7 @@ router.post('/', protect, async (req, res) => {
 // --- GET ALL ENQUIRIES (NOW WITH SEARCH & FILTER) ---
 // URL: GET /api/enquiries?search=...&status=...
 router.get('/', protect, async (req, res) => {
-     if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+     if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
         return res.status(403).json({ message: 'Forbidden.' });
     }
     
@@ -93,7 +93,7 @@ router.get('/', protect, async (req, res) => {
 
 // --- UPDATE AN EXISTING ENQUIRY (PROTECTED) ---
 router.put('/:id', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
         return res.status(403).json({ message: 'Forbidden.' });
     }
     try {
