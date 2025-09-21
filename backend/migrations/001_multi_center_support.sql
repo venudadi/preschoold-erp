@@ -4,7 +4,7 @@
 -- 1. Create centers table
 CREATE TABLE IF NOT EXISTS centers (
     id VARCHAR(36) PRIMARY KEY,
-    center_name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     address TEXT,
     phone_number VARCHAR(20),
     email VARCHAR(255),
@@ -14,6 +14,12 @@ CREATE TABLE IF NOT EXISTS centers (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (manager_user_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+-- Legacy compatibility: backfill name from center_name if such legacy column exists
+ALTER TABLE centers ADD COLUMN name VARCHAR(255);
+UPDATE centers SET name = center_name WHERE (name IS NULL OR name = '') AND center_name IS NOT NULL;
+ALTER TABLE centers MODIFY COLUMN name VARCHAR(255) NOT NULL;
+ALTER TABLE centers DROP COLUMN center_name;
 
 -- 2. Add center_id to users table if not exists
 ALTER TABLE users 
@@ -53,25 +59,23 @@ CREATE TABLE IF NOT EXISTS fee_structures (
     UNIQUE KEY unique_classroom_program (classroom_id, program_name)
 );
 
--- 6. Insert default center for existing data migration
-INSERT INTO centers (id, center_name, address, phone_number, email, is_active, created_at) 
-VALUES (
-    'default-center-001',
-    'Main Campus',
-    'Default Address - Please Update',
-    '0000000000',
-    'admin@neldrac.com',
-    1,
-    NOW()
-) ON DUPLICATE KEY UPDATE center_name = center_name;
+-- 6. Choose a valid default center id, prefer an existing one
+SET @preferred_center_id := (SELECT id FROM centers WHERE name = 'Neldrac - Kondapur' LIMIT 1);
+SET @existing_center_id := (SELECT id FROM centers LIMIT 1);
+SET @default_center_id := COALESCE(@preferred_center_id, @existing_center_id, 'default-center-001');
+
+-- Insert a default center only if centers table is empty
+INSERT INTO centers (id, name, address, phone_number, email, is_active, created_at)
+SELECT @default_center_id, 'Main Campus', 'Default Address - Please Update', '0000000000', 'admin@neldrac.com', 1, NOW()
+WHERE NOT EXISTS (SELECT 1 FROM centers);
 
 -- 7. Update existing records to use default center
-UPDATE users SET center_id = 'default-center-001' WHERE center_id IS NULL;
-UPDATE children SET center_id = 'default-center-001' WHERE center_id IS NULL;
-UPDATE classrooms SET center_id = 'default-center-001' WHERE center_id IS NULL;
-UPDATE enquiries SET center_id = 'default-center-001' WHERE center_id IS NULL;
-UPDATE invoices SET center_id = 'default-center-001' WHERE center_id IS NULL;
-UPDATE staff_assignments SET center_id = 'default-center-001' WHERE center_id IS NULL;
+UPDATE users SET center_id = @default_center_id WHERE center_id IS NULL;
+UPDATE children SET center_id = @default_center_id WHERE center_id IS NULL;
+UPDATE classrooms SET center_id = @default_center_id WHERE center_id IS NULL;
+UPDATE enquiries SET center_id = @default_center_id WHERE center_id IS NULL;
+UPDATE invoices SET center_id = @default_center_id WHERE center_id IS NULL;
+UPDATE staff_assignments SET center_id = @default_center_id WHERE center_id IS NULL;
 
 -- 8. Create indexes for performance
 CREATE INDEX idx_users_center_id ON users(center_id);

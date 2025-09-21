@@ -1,5 +1,5 @@
 import React from 'react';
-import { Paper, Typography, Box, CircularProgress, useTheme } from '@mui/material';
+import { Paper, Typography, Box, CircularProgress, useTheme, Skeleton, Button } from '@mui/material';
 
 const ChartContainer = ({ 
     title, 
@@ -8,7 +8,10 @@ const ChartContainer = ({
     error = null,
     height = 300,
     actions = null,
-    subtitle = null
+    subtitle = null,
+    empty = false,
+    emptyMessage = 'No data available for the selected filters.',
+    onRetry = null
 }) => {
     const theme = useTheme();
 
@@ -61,11 +64,12 @@ const ChartContainer = ({
                 height: height
             }}>
                 {loading ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                        <CircularProgress size={40} />
-                        <Typography variant="body2" color="text.secondary">
-                            Loading chart data...
-                        </Typography>
+                    <Box sx={{ width: '100%' }}>
+                        <Skeleton variant="rectangular" height={height - 20} sx={{ borderRadius: 1 }} />
+                        <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                            <Skeleton variant="text" width={120} />
+                            <Skeleton variant="text" width={80} />
+                        </Box>
                     </Box>
                 ) : error ? (
                     <Box sx={{ 
@@ -78,6 +82,24 @@ const ChartContainer = ({
                         <Typography variant="h6">⚠️</Typography>
                         <Typography variant="body2" color="error" textAlign="center">
                             {error}
+                        </Typography>
+                        {onRetry && (
+                            <Button variant="outlined" color="error" size="small" onClick={onRetry}>
+                                Retry
+                            </Button>
+                        )}
+                    </Box>
+                ) : empty ? (
+                    <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        color: 'text.secondary'
+                    }}>
+                        <Typography variant="h6">No Data</Typography>
+                        <Typography variant="body2" textAlign="center">
+                            {emptyMessage}
                         </Typography>
                     </Box>
                 ) : (

@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Middleware to ensure only superadmins can manage centers
 const superadminOnly = (req, res, next) => {
-    if (req.user.role !== 'superadmin') {
+    if (req.user.role !== 'super_admin') {
         return res.status(403).json({ message: 'Forbidden: Access restricted to superadmins.' });
     }
     next();
@@ -18,7 +18,7 @@ const validateCenterAccess = async (req, res, next) => {
     const requestedCenterId = req.params.centerId || req.query.centerId || req.body.centerId;
     const { role, center_id: userCenterId } = req.user;
 
-    if (role === 'superadmin') {
+    if (role === 'super_admin') {
         // Superadmin has access to all centers
         next();
     } else if (role === 'admin' || role === 'owner') {
@@ -44,12 +44,10 @@ router.get('/', async (req, res) => {
         let query = `
             SELECT 
                 c.*,
-                u.full_name as manager_name,
                 COUNT(DISTINCT ch.id) as total_students,
                 COUNT(DISTINCT cl.id) as total_classrooms,
                 COUNT(DISTINCT s.user_id) as total_staff
             FROM centers c
-            LEFT JOIN users u ON c.manager_user_id = u.id
             LEFT JOIN children ch ON c.id = ch.center_id
             LEFT JOIN classrooms cl ON c.id = cl.center_id
             LEFT JOIN staff_assignments s ON c.id = s.center_id
@@ -57,12 +55,12 @@ router.get('/', async (req, res) => {
         
         let queryParams = [];
         
-        if (role !== 'superadmin') {
+        if (role !== 'super_admin') {
             query += ' WHERE c.id = ?';
             queryParams.push(center_id);
         }
         
-        query += ' GROUP BY c.id ORDER BY c.center_name';
+        query += ' GROUP BY c.id ORDER BY c.name';
         
         const [centers] = await pool.query(query, queryParams);
         res.status(200).json(centers);
@@ -75,9 +73,9 @@ router.get('/', async (req, res) => {
 
 // POST /api/centers - Create new center (superadmin only)
 router.post('/', superadminOnly, async (req, res) => {
-    const { center_name, address, phone_number, email, manager_user_id } = req.body;
+    const { name, address, phone_number } = req.body;
     
-    if (!center_name) {
+    if (!name) {
         return res.status(400).json({ message: 'Center name is required.' });
     }
     
@@ -85,14 +83,14 @@ router.post('/', superadminOnly, async (req, res) => {
         const centerId = uuidv4();
         
         const [result] = await pool.query(`
-            INSERT INTO centers (id, center_name, address, phone_number, email, manager_user_id, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, NOW())
-        `, [centerId, center_name, address, phone_number, email, manager_user_id]);
+            INSERT INTO centers (id, name, address, phone_number, created_at)
+            VALUES (?, ?, ?, ?, NOW())
+        `, [centerId, name, address, phone_number]);
         
         res.status(201).json({ 
             message: 'Center created successfully!',
             centerId,
-            center_name
+            name
         });
         
     } catch (error) {
@@ -107,15 +105,14 @@ router.post('/', superadminOnly, async (req, res) => {
 // PUT /api/centers/:id - Update center (superadmin only)
 router.put('/:id', superadminOnly, async (req, res) => {
     const { id } = req.params;
-    const { center_name, address, phone_number, email, manager_user_id, is_active } = req.body;
+    const { name, address, phone_number, is_active } = req.body;
     
     try {
         const [result] = await pool.query(`
             UPDATE centers 
-            SET center_name = ?, address = ?, phone_number = ?, email = ?, 
-                manager_user_id = ?, is_active = ?, updated_at = NOW()
+            SET name = ?, address = ?, phone_number = ?, is_active = ?
             WHERE id = ?
-        `, [center_name, address, phone_number, email, manager_user_id, is_active, id]);
+        `, [name, address, phone_number, is_active, id]);
         
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Center not found.' });
@@ -220,7 +217,7 @@ router.get('/user-accessible', async (req, res) => {
     try {
         const { role, center_id } = req.user;
         
-        let query = 'SELECT id, center_name FROM centers WHERE is_active = 1';
+        let query = 'SELECT id, name FROM centers WHERE is_active = 1';
         let queryParams = [];
         
         if (role !== 'superadmin') {
@@ -228,7 +225,7 @@ router.get('/user-accessible', async (req, res) => {
             queryParams.push(center_id);
         }
         
-        query += ' ORDER BY center_name';
+        query += ' ORDER BY name';
         
         const [centers] = await pool.query(query, queryParams);
         res.status(200).json(centers);

@@ -5,15 +5,38 @@ import { protect } from './authMiddleware.js';
 
 const router = express.Router();
 
+// Middleware to check admin access
+const checkAdminAccess = (req, res, next) => {
+    const role = req.user.role;
+    // super_admin has unrestricted access to all centers
+    if (role === 'super_admin') {
+        return next();
+    }
+    // admin and owner can only access their assigned center
+    if ((role === 'admin' || role === 'owner') && req.user.center_id) {
+        const centerId = req.params.centerId || req.query.centerId || req.body.centerId;
+        if (req.user.center_id === centerId || !centerId) {
+            return next();
+        }
+    }
+    // For general operations without specific center ID requirement
+    if (!req.params.centerId && !req.query.centerId && !req.body.centerId) {
+        if (role === 'admin' || role === 'owner') {
+            return next();
+        }
+    }
+    return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
+};
+
+// Apply protection and admin access check to all routes
+router.use(protect);
+router.use(checkAdminAccess);
+
 // --- CHILD MANAGEMENT ---
 
 // URL: POST /api/admin/children
 // Adds a new child to the database.
-router.post('/children', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
-        return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
-    }
-
+router.post('/children', async (req, res) => {
     try {
         const { fullName, dateOfBirth, gender, enrollmentDate, classroomId } = req.body;
 
@@ -38,7 +61,7 @@ router.post('/children', protect, async (req, res) => {
 
 // URL: GET /api/admin/children
 // Retrieves a list of all enrolled children.
-router.get('/children', protect, async (req, res) => {
+router.get('/children', async (req, res) => {
     if (req.user.role !== 'admin' && req.user.role !== 'owner') {
         return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
     }

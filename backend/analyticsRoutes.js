@@ -40,24 +40,20 @@ router.get('/overview', async (req, res) => {
         // Use user's center if not specified (for owners)
         const targetCenterId = role === 'super_admin' ? centerId : center_id;
         
-        let whereClause = '';
-        let queryParams = [];
-        
-        if (targetCenterId) {
-            whereClause = 'WHERE center_id = ?';
-            queryParams.push(targetCenterId);
-        }
+        // Use a consistent conditional filter that works with/without center filter
+        const filterClause = 'WHERE (? IS NULL OR center_id = ?)';
+        const filterParams = targetCenterId ? [null, targetCenterId] : [null, null];
 
         // Get overview metrics
         const [overview] = await pool.query(`
             SELECT 
-                (SELECT COUNT(*) FROM children ${whereClause}) as total_students,
-                (SELECT COUNT(*) FROM users WHERE role IN ('admin', 'teacher') ${targetCenterId ? 'AND center_id = ?' : ''}) as total_staff,
-                (SELECT COUNT(*) FROM invoices WHERE status = 'Pending' ${targetCenterId ? 'AND center_id = ?' : ''}) as pending_invoices,
-                (SELECT COUNT(*) FROM enquiries WHERE status = 'Open' ${targetCenterId ? 'AND center_id = ?' : ''}) as open_enquiries,
-                (SELECT COUNT(*) FROM classrooms ${whereClause}) as total_classrooms,
-                (SELECT SUM(total_amount) FROM invoices WHERE status = 'Paid' AND MONTH(issue_date) = MONTH(CURRENT_DATE()) ${targetCenterId ? 'AND center_id = ?' : ''}) as monthly_revenue
-        `, targetCenterId ? [targetCenterId, targetCenterId, targetCenterId, targetCenterId, targetCenterId, targetCenterId] : []);
+                (SELECT COUNT(*) FROM children ${filterClause}) as total_students,
+                (SELECT COUNT(*) FROM users WHERE role IN ('admin', 'teacher') AND (? IS NULL OR center_id = ?)) as total_staff,
+                (SELECT COUNT(*) FROM invoices WHERE status = 'Pending' AND (? IS NULL OR center_id = ?)) as pending_invoices,
+                (SELECT COUNT(*) FROM enquiries WHERE status = 'Open' AND (? IS NULL OR center_id = ?)) as open_enquiries,
+                (SELECT COUNT(*) FROM classrooms ${filterClause}) as total_classrooms,
+                (SELECT SUM(total_amount) FROM invoices WHERE status = 'Paid' AND MONTH(issue_date) = MONTH(CURRENT_DATE()) AND (? IS NULL OR center_id = ?)) as monthly_revenue
+        `, [...filterParams, ...filterParams, ...filterParams, ...filterParams, ...filterParams, ...filterParams]);
 
         res.status(200).json(overview[0]);
         
@@ -74,8 +70,8 @@ router.get('/demographics', async (req, res) => {
         const { role, center_id } = req.user;
         const targetCenterId = role === 'super_admin' ? centerId : center_id;
         
-        let whereClause = targetCenterId ? 'WHERE c.center_id = ?' : '';
-        let queryParams = targetCenterId ? [targetCenterId] : [];
+    const childFilter = 'WHERE (? IS NULL OR c.center_id = ?)';
+    const childParams = targetCenterId ? [null, targetCenterId] : [null, null];
 
         // Age groups distribution
         const [ageGroups] = await pool.query(`
@@ -87,17 +83,17 @@ router.get('/demographics', async (req, res) => {
                     ELSE 'School Age (5+ years)'
                 END as age_group,
                 COUNT(*) as count
-            FROM children c ${whereClause}
+            FROM children c ${childFilter}
             GROUP BY age_group
             ORDER BY count DESC
-        `, queryParams);
+        `, childParams);
 
         // Gender distribution
         const [genderDistribution] = await pool.query(`
             SELECT gender, COUNT(*) as count
-            FROM children c ${whereClause}
+            FROM children c ${childFilter}
             GROUP BY gender
-        `, queryParams);
+        `, childParams);
 
         // Students by classroom
         const [classroomDistribution] = await pool.query(`
@@ -107,10 +103,10 @@ router.get('/demographics', async (req, res) => {
                 cl.id as classroom_id
             FROM classrooms cl
             LEFT JOIN children c ON cl.id = c.classroom_id
-            ${targetCenterId ? 'WHERE cl.center_id = ?' : ''}
+            WHERE (? IS NULL OR cl.center_id = ?)
             GROUP BY cl.id, cl.name
             ORDER BY student_count DESC
-        `, queryParams);
+        `, childParams);
 
         res.status(200).json({
             age_groups: ageGroups,
@@ -131,8 +127,8 @@ router.get('/enrollment-trends', async (req, res) => {
         const { role, center_id } = req.user;
         const targetCenterId = role === 'super_admin' ? centerId : center_id;
         
-        let whereClause = targetCenterId ? 'WHERE center_id = ?' : '';
-        let queryParams = targetCenterId ? [targetCenterId, targetCenterId] : [];
+    const centerFilter = 'WHERE (? IS NULL OR center_id = ?)';
+    const centerParams = targetCenterId ? [null, targetCenterId] : [null, null];
 
         // Monthly enrollment trends (last 12 months)
         const [monthlyEnrollments] = await pool.query(`
@@ -140,11 +136,11 @@ router.get('/enrollment-trends', async (req, res) => {
                 DATE_FORMAT(enrollment_date, '%Y-%m') as month,
                 COUNT(*) as enrollments
             FROM children 
-            ${whereClause} 
+            ${centerFilter}
             AND enrollment_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
             GROUP BY DATE_FORMAT(enrollment_date, '%Y-%m')
             ORDER BY month
-        `, queryParams);
+        `, centerParams);
 
         // Enquiry vs Enrollment comparison (last 6 months)
         const [conversionData] = await pool.query(`
@@ -153,11 +149,11 @@ router.get('/enrollment-trends', async (req, res) => {
                 COUNT(*) as enquiries,
                 SUM(CASE WHEN status = 'Closed' THEN 1 ELSE 0 END) as closed_enquiries
             FROM enquiries 
-            ${whereClause}
+            ${centerFilter}
             AND created_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
             GROUP BY DATE_FORMAT(created_at, '%Y-%m')
             ORDER BY month
-        `, queryParams);
+        `, centerParams);
 
         res.status(200).json({
             monthly_enrollments: monthlyEnrollments,
@@ -177,15 +173,15 @@ router.get('/conversion-metrics', async (req, res) => {
         const { role, center_id } = req.user;
         const targetCenterId = role === 'super_admin' ? centerId : center_id;
         
-        let whereClause = targetCenterId ? 'WHERE center_id = ?' : '';
-        let queryParams = targetCenterId ? [targetCenterId, targetCenterId, targetCenterId] : [];
+    const enquiryFilter = 'WHERE (? IS NULL OR center_id = ?)';
+    const enquiryParams = targetCenterId ? [null, targetCenterId] : [null, null];
 
         // Conversion funnel
         const [funnelData] = await pool.query(`
             SELECT 
                 status,
                 COUNT(*) as count
-            FROM enquiries ${whereClause}
+            FROM enquiries ${enquiryFilter}
             GROUP BY status
             ORDER BY 
                 CASE status 
@@ -194,7 +190,7 @@ router.get('/conversion-metrics', async (req, res) => {
                     WHEN 'Closed' THEN 3 
                     WHEN 'Lost' THEN 4 
                 END
-        `, queryParams);
+        `, enquiryParams);
 
         // Conversion by source
         const [sourceConversion] = await pool.query(`
@@ -203,20 +199,20 @@ router.get('/conversion-metrics', async (req, res) => {
                 COUNT(*) as total_enquiries,
                 SUM(CASE WHEN status = 'Closed' THEN 1 ELSE 0 END) as converted,
                 ROUND((SUM(CASE WHEN status = 'Closed' THEN 1 ELSE 0 END) / COUNT(*)) * 100, 2) as conversion_rate
-            FROM enquiries ${whereClause}
+            FROM enquiries ${enquiryFilter}
             GROUP BY source
             ORDER BY conversion_rate DESC
-        `, queryParams);
+        `, enquiryParams);
 
         // Average days to conversion
         const [avgDays] = await pool.query(`
             SELECT 
                 AVG(DATEDIFF(updated_at, created_at)) as avg_days_to_close
             FROM enquiries 
-            ${whereClause}
+            ${enquiryFilter}
             AND status = 'Closed'
             AND updated_at IS NOT NULL
-        `, queryParams);
+        `, enquiryParams);
 
         res.status(200).json({
             funnel_data: funnelData,
@@ -237,8 +233,8 @@ router.get('/financial-overview', async (req, res) => {
         const { role, center_id } = req.user;
         const targetCenterId = role === 'super_admin' ? centerId : center_id;
         
-        let whereClause = targetCenterId ? 'WHERE center_id = ?' : '';
-        let queryParams = targetCenterId ? Array(6).fill(targetCenterId) : [];
+    const invFilter = 'WHERE (? IS NULL OR center_id = ?)';
+    const invParams = targetCenterId ? [null, targetCenterId] : [null, null];
 
         // Revenue trends (last 12 months)
         const [revenueData] = await pool.query(`
@@ -248,11 +244,11 @@ router.get('/financial-overview', async (req, res) => {
                 SUM(CASE WHEN status = 'Pending' THEN total_amount ELSE 0 END) as pending_amount,
                 SUM(CASE WHEN status = 'Overdue' THEN total_amount ELSE 0 END) as overdue_amount
             FROM invoices 
-            ${whereClause}
+            ${invFilter}
             AND issue_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
             GROUP BY DATE_FORMAT(issue_date, '%Y-%m')
             ORDER BY month
-        `, queryParams);
+        `, invParams);
 
         // Invoice status distribution
         const [invoiceStatus] = await pool.query(`
@@ -260,9 +256,9 @@ router.get('/financial-overview', async (req, res) => {
                 status,
                 COUNT(*) as count,
                 SUM(total_amount) as total_amount
-            FROM invoices ${whereClause}
+            FROM invoices ${invFilter}
             GROUP BY status
-        `, queryParams);
+        `, invParams);
 
         // Revenue by program (through fee structures)
         const [programRevenue] = await pool.query(`
@@ -270,14 +266,14 @@ router.get('/financial-overview', async (req, res) => {
                 fs.program_name,
                 SUM(ili.total_price) as total_revenue,
                 COUNT(DISTINCT i.id) as invoice_count
-            FROM invoice_line_items ili
+            FROM invoice_items ili
             JOIN invoices i ON ili.invoice_id = i.id
             JOIN fee_structures fs ON ili.fee_structure_id = fs.id
-            ${targetCenterId ? 'WHERE i.center_id = ?' : ''}
+            WHERE (? IS NULL OR i.center_id = ?)
             AND i.status = 'Paid'
             GROUP BY fs.program_name
             ORDER BY total_revenue DESC
-        `, queryParams);
+        `, invParams);
 
         // Collection efficiency
         const [collectionData] = await pool.query(`
@@ -287,9 +283,9 @@ router.get('/financial-overview', async (req, res) => {
                 SUM(CASE WHEN status = 'Paid' THEN total_amount ELSE 0 END) as collected_amount,
                 ROUND((SUM(CASE WHEN status = 'Paid' THEN total_amount ELSE 0 END) / SUM(total_amount)) * 100, 2) as collection_rate
             FROM invoices 
-            ${whereClause}
+            ${invFilter}
             AND issue_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
-        `, queryParams);
+        `, invParams);
 
         res.status(200).json({
             revenue_trends: revenueData,
@@ -313,7 +309,7 @@ router.get('/center-comparison', async (req, res) => {
     try {
         const [centerComparison] = await pool.query(`
             SELECT 
-                c.center_name,
+                c.name as center_name,
                 c.id as center_id,
                 COUNT(DISTINCT ch.id) as total_students,
                 COUNT(DISTINCT cl.id) as total_classrooms,
@@ -327,7 +323,7 @@ router.get('/center-comparison', async (req, res) => {
             LEFT JOIN invoices i ON c.id = i.center_id
             LEFT JOIN enquiries e ON c.id = e.center_id
             WHERE c.is_active = 1
-            GROUP BY c.id, c.center_name
+            GROUP BY c.id, c.name
             ORDER BY monthly_revenue DESC
         `);
 

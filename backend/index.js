@@ -28,6 +28,7 @@ import documentRoutes from './documentRoutes.js';
 import feeStructureRoutes from './feeStructureRoutes.js';
 import studentRoutes from './studentRoutes.js';
 import exitRoutes from './exitRoutes.js';
+import ownerRoutes from './ownerRoutes.js';
 const app = express();
 const PORT = process.env.PORT || 5001;
 
@@ -50,6 +51,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/fee-structures', feeStructureRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/exits', exitRoutes);
+app.use('/api/owners', ownerRoutes);
 // --- SERVER LISTENER ---
 app.listen(PORT, () => {
   console.log(`✅ Server is running on port ${PORT}`);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link as RouterLink, Outlet, useNavigate } from 'react-router-dom';
 import { 
     Box, 
@@ -14,7 +14,8 @@ import {
     Toolbar,
     IconButton,
     useMediaQuery,
-    useTheme
+    useTheme,
+    Chip
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import PeopleIcon from '@mui/icons-material/People';
@@ -27,18 +28,20 @@ import FolderIcon from '@mui/icons-material/Folder';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
+import { getFilteredNavigation, ROLE_INFO } from '../config/permissions';
 
-const navItems = [
-    { text: 'Dashboard', icon: <HomeIcon />, path: '/dashboard' },
-    { text: 'Children', icon: <PeopleIcon />, path: '/children' },
-    { text: 'Classrooms', icon: <ClassIcon />, path: '/classrooms' },
-    { text: 'Attendance', icon: <HowToRegIcon />, path: '/attendance' },
-    { text: 'Enquiries', icon: <QuestionAnswerIcon />, path: '/enquiries' },
-    { text: 'Billing', icon: <MonetizationOnIcon />, path: '/billing' },
-    { text: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
-    { text: 'Documents', icon: <FolderIcon />, path: '/documents' },
-    { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
-];
+// Icon mapping for navigation items
+const ICON_MAP = {
+    HomeIcon: <HomeIcon />,
+    PeopleIcon: <PeopleIcon />,
+    ClassIcon: <ClassIcon />,
+    HowToRegIcon: <HowToRegIcon />,
+    QuestionAnswerIcon: <QuestionAnswerIcon />,
+    MonetizationOnIcon: <MonetizationOnIcon />,
+    AssessmentIcon: <AssessmentIcon />,
+    FolderIcon: <FolderIcon />,
+    SettingsIcon: <SettingsIcon />
+};
 
 const DashboardLayout = () => {
     const navigate = useNavigate();
@@ -46,6 +49,15 @@ const DashboardLayout = () => {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileOpen, setMobileOpen] = useState(false);
     const user = JSON.parse(localStorage.getItem('user'));
+
+    // Get filtered navigation items based on user role
+    const allowedNavItems = useMemo(() => {
+        if (!user?.role) return [];
+        return getFilteredNavigation(user.role);
+    }, [user?.role]);
+
+    // Get role info for display
+    const roleInfo = user?.role ? ROLE_INFO[user.role] : null;
 
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
@@ -79,7 +91,7 @@ const DashboardLayout = () => {
             </Box>
             
             <List sx={{ flexGrow: 1 }}>
-                {navItems.map((item) => (
+                {allowedNavItems.map((item) => (
                     <ListItem key={item.text} disablePadding>
                         <ListItemButton 
                             component={RouterLink} 
@@ -94,7 +106,9 @@ const DashboardLayout = () => {
                                 }
                             }}
                         >
-                            <ListItemIcon sx={{ color: 'inherit' }}>{item.icon}</ListItemIcon>
+                            <ListItemIcon sx={{ color: 'inherit' }}>
+                                {ICON_MAP[item.icon]}
+                            </ListItemIcon>
                             <ListItemText primary={item.text} />
                         </ListItemButton>
                     </ListItem>
@@ -102,9 +116,28 @@ const DashboardLayout = () => {
             </List>
             
             <Box>
-                <Typography variant="subtitle1">{user?.fullName}</Typography>
-                <Typography variant="body2" color="text.secondary">{user?.role}</Typography>
-                <Button variant="outlined" fullWidth onClick={handleLogout} sx={{ mt: 2 }}>
+                <Box sx={{ mb: 1 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                        {user?.fullName}
+                    </Typography>
+                    {roleInfo && (
+                        <Chip 
+                            label={roleInfo.displayName}
+                            size="small"
+                            sx={{ 
+                                backgroundColor: roleInfo.color,
+                                color: 'white',
+                                fontSize: '0.75rem',
+                                height: 20,
+                                mb: 1
+                            }}
+                        />
+                    )}
+                    <Typography variant="body2" color="text.secondary">
+                        {user?.centerName || 'All Centers'}
+                    </Typography>
+                </Box>
+                <Button variant="outlined" fullWidth onClick={handleLogout} sx={{ mt: 1 }}>
                     Logout
                 </Button>
             </Box>

@@ -17,8 +17,8 @@ const SettingsPage = () => {
             </Typography>
 
             <Grid container spacing={4}>
-                {/* Center Management - Superadmin Only */}
-                {user.role === 'superadmin' && (
+                {/* Center Management - Super Admin Only */}
+                {user.role === 'super_admin' && (
                     <Grid item xs={12}>
                         <CenterManagement />
                     </Grid>

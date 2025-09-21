@@ -2,8 +2,9 @@ import axios from 'axios';
 import { useMemo } from 'react';
 
 // Create an instance of axios with a base URL
+const apiBase = import.meta.env.VITE_API_BASE_URL || '/api';
 const api = axios.create({
-    baseURL: 'http://localhost:5001/api',
+    baseURL: apiBase,
 });
 
 // Custom hook for using the API instance
@@ -367,12 +368,48 @@ export const getUserAccessibleCenters = async () => {
     }
 };
 
+// --- OWNERS (SUPER ADMIN) ---
+export const getOwners = async () => {
+    const res = await api.get('/owners');
+    return res.data;
+};
+
+export const createOwner = async ({ fullName, email, password }) => {
+    const res = await api.post('/owners', { fullName, email, password });
+    return res.data;
+};
+
+export const getAllCenters = async () => {
+    const res = await api.get('/owners/centers');
+    return res.data;
+};
+
+export const getOwnerCenters = async (ownerId) => {
+    const res = await api.get(`/owners/${ownerId}/centers`);
+    return res.data;
+};
+
+export const updateOwnerCenters = async (ownerId, centerIds) => {
+    const res = await api.put(`/owners/${ownerId}/centers`, { centerIds });
+    return res.data;
+};
+
+export const getUserRoles = async (userId) => {
+    const res = await api.get(`/owners/${userId}/roles`);
+    return res.data;
+};
+
+export const updateUserRoles = async (userId, roles) => {
+    const res = await api.put(`/owners/${userId}/roles`, { roles });
+    return res.data;
+};
+
 // --- ANALYTICS FUNCTIONS ---
 
 // Get analytics overview
-export const getAnalyticsOverview = async (params = {}) => {
+export const getAnalyticsOverview = async (params = {}, options = {}) => {
     try {
-        const response = await api.get('/analytics/overview', { params });
+        const response = await api.get('/analytics/overview', { params, ...options });
         return response.data;
     } catch (error) {
         if (error.response) { 
@@ -386,9 +423,9 @@ export const getAnalyticsOverview = async (params = {}) => {
 };
 
 // Get demographics data
-export const getAnalyticsDemographics = async (params = {}) => {
+export const getAnalyticsDemographics = async (params = {}, options = {}) => {
     try {
-        const response = await api.get('/analytics/demographics', { params });
+        const response = await api.get('/analytics/demographics', { params, ...options });
         return response.data;
     } catch (error) {
         if (error.response) { 
@@ -402,9 +439,9 @@ export const getAnalyticsDemographics = async (params = {}) => {
 };
 
 // Get enrollment trends
-export const getAnalyticsEnrollmentTrends = async (params = {}) => {
+export const getAnalyticsEnrollmentTrends = async (params = {}, options = {}) => {
     try {
-        const response = await api.get('/analytics/enrollment-trends', { params });
+        const response = await api.get('/analytics/enrollment-trends', { params, ...options });
         return response.data;
     } catch (error) {
         if (error.response) { 
@@ -418,9 +455,9 @@ export const getAnalyticsEnrollmentTrends = async (params = {}) => {
 };
 
 // Get conversion metrics
-export const getAnalyticsConversionMetrics = async (params = {}) => {
+export const getAnalyticsConversionMetrics = async (params = {}, options = {}) => {
     try {
-        const response = await api.get('/analytics/conversion-metrics', { params });
+        const response = await api.get('/analytics/conversion-metrics', { params, ...options });
         return response.data;
     } catch (error) {
         if (error.response) { 
@@ -434,9 +471,9 @@ export const getAnalyticsConversionMetrics = async (params = {}) => {
 };
 
 // Get financial overview
-export const getAnalyticsFinancialOverview = async (params = {}) => {
+export const getAnalyticsFinancialOverview = async (params = {}, options = {}) => {
     try {
-        const response = await api.get('/analytics/financial-overview', { params });
+        const response = await api.get('/analytics/financial-overview', { params, ...options });
         return response.data;
     } catch (error) {
         if (error.response) { 
@@ -450,9 +487,9 @@ export const getAnalyticsFinancialOverview = async (params = {}) => {
 };
 
 // Get center comparison (superadmin only)
-export const getAnalyticsCenterComparison = async () => {
+export const getAnalyticsCenterComparison = async (options = {}) => {
     try {
-        const response = await api.get('/analytics/center-comparison');
+        const response = await api.get('/analytics/center-comparison', { ...options });
         return response.data;
     } catch (error) {
         if (error.response) { 
