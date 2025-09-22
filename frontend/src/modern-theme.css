@@ -1,0 +1,124 @@
+// Modern, vibrant, and futuristic color palette
+:root {
+  --color-bg: #0f2027;
+  --color-bg-gradient: linear-gradient(135deg, #0f2027 0%, #2c5364 100%);
+  --color-card-glass: rgba(255,255,255,0.12);
+  --color-card-border: rgba(255,255,255,0.18);
+  --color-primary: #00c6ff;
+  --color-secondary: #0072ff;
+  --color-accent: #ff6a00;
+  --color-success: #00ffb4;
+  --color-danger: #ff4e50;
+  --color-warning: #ffd700;
+  --color-info: #00eaff;
+  --color-text: #f5f6fa;
+  --color-muted: #b2bec3;
+  --color-glow: 0 0 16px 2px #00c6ff99;
+  --font-main: 'Poppins', 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+body {
+  background: var(--color-bg-gradient);
+  color: var(--color-text);
+  font-family: var(--font-main);
+  min-height: 100vh;
+  margin: 0;
+  transition: background 0.5s;
+}
+
+.glass-card {
+  background: var(--color-card-glass);
+  border: 1.5px solid var(--color-card-border);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 1.5rem;
+  margin: 1rem 0;
+  transition: box-shadow 0.3s;
+}
+
+.glass-card:hover {
+  box-shadow: 0 0 32px 4px #00c6ff44, 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+}
+
+.gradient-btn {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  box-shadow: var(--color-glow);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.3s;
+}
+
+.gradient-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 32px 8px #ff6a0099, var(--color-glow);
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+}
+
+.glow {
+  box-shadow: 0 0 16px 2px var(--color-primary), 0 0 32px 4px var(--color-accent);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #222b3a;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 8px;
+}
+
+/* Futuristic floating action button */
+.fab {
+  position: fixed;
+  right: 2rem;
+  bottom: 2rem;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+  color: #fff;
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  box-shadow: 0 0 32px 8px #00c6ff55;
+  z-index: 1000;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.3s;
+}
+.fab:hover {
+  transform: scale(1.1) rotate(8deg);
+  box-shadow: 0 0 48px 16px #ff6a00aa, 0 0 32px 8px #00c6ff55;
+}
+
+/* Animated background blob (optional) */
+.animated-bg {
+  position: fixed;
+  top: -10%;
+  left: -10%;
+  width: 120vw;
+  height: 120vh;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 60% 40%, #00c6ff33 0%, #2c536400 80%),
+              radial-gradient(circle at 30% 70%, #ff6a0033 0%, #0f202700 80%);
+  animation: moveBg 12s ease-in-out infinite alternate;
+}
+@keyframes moveBg {
+  0% { background-position: 60% 40%, 30% 70%; }
+  100% { background-position: 40% 60%, 70% 30%; }
+}

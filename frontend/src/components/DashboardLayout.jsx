@@ -15,8 +15,10 @@ import {
     IconButton,
     useMediaQuery,
     useTheme,
-    Chip
+    Chip,
+    Avatar
 } from '@mui/material';
+import '../modern-theme.css';
 import HomeIcon from '@mui/icons-material/Home';
 import PeopleIcon from '@mui/icons-material/People';
 import ClassIcon from '@mui/icons-material/Class';
@@ -72,7 +74,7 @@ const DashboardLayout = () => {
     const drawerWidth = 240;
 
     const drawerContent = (
-        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Box className="glass-card" sx={{ p: 2, display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100vh', boxShadow: '0 0 32px 4px #00c6ff22' }}>
             {/* Header with close button for mobile */}
             <Box sx={{ 
                 display: 'flex', 
@@ -80,7 +82,7 @@ const DashboardLayout = () => {
                 justifyContent: 'space-between',
                 mb: 2
             }}>
-                <Typography variant="h6">
+                <Typography variant="h6" className="gradient-text" style={{ fontWeight: 700, fontSize: 22, letterSpacing: 1 }}>
                     Preschool ERP
                 </Typography>
                 {isMobile && (
@@ -89,7 +91,6 @@ const DashboardLayout = () => {
                     </IconButton>
                 )}
             </Box>
-            
             <List sx={{ flexGrow: 1 }}>
                 {allowedNavItems.map((item) => (
                     <ListItem key={item.text} disablePadding>
@@ -98,15 +99,17 @@ const DashboardLayout = () => {
                             to={item.path}
                             onClick={isMobile ? handleDrawerToggle : undefined}
                             sx={{
-                                borderRadius: 1,
+                                borderRadius: 2,
                                 mb: 0.5,
+                                transition: 'all 0.2s',
                                 '&:hover': {
-                                    backgroundColor: 'primary.light',
-                                    color: 'primary.contrastText'
+                                    background: 'linear-gradient(90deg, var(--color-primary), var(--color-accent))',
+                                    color: '#fff',
+                                    boxShadow: '0 0 16px 2px #00c6ff55'
                                 }
                             }}
                         >
-                            <ListItemIcon sx={{ color: 'inherit' }}>
+                            <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}>
                                 {ICON_MAP[item.icon]}
                             </ListItemIcon>
                             <ListItemText primary={item.text} />
@@ -114,9 +117,11 @@ const DashboardLayout = () => {
                     </ListItem>
                 ))}
             </List>
-            
-            <Box>
-                <Box sx={{ mb: 1 }}>
+            <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ width: 48, height: 48, boxShadow: '0 0 16px 2px var(--color-primary), 0 0 32px 4px var(--color-accent)' }}>
+                    {user?.fullName ? user.fullName[0] : '?'}
+                </Avatar>
+                <Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                         {user?.fullName}
                     </Typography>
@@ -133,14 +138,14 @@ const DashboardLayout = () => {
                             }}
                         />
                     )}
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="var(--color-muted)">
                         {user?.centerName || 'All Centers'}
                     </Typography>
                 </Box>
-                <Button variant="outlined" fullWidth onClick={handleLogout} sx={{ mt: 1 }}>
-                    Logout
-                </Button>
             </Box>
+            <Button className="gradient-btn" fullWidth onClick={handleLogout} sx={{ mt: 3 }}>
+                Logout
+            </Button>
         </Box>
     );
 
@@ -225,12 +230,15 @@ const DashboardLayout = () => {
                     flexGrow: 1, 
                     p: { xs: 2, md: 3 }, 
                     mt: { xs: 8, md: 0 }, // Add top margin for mobile app bar
-                    height: '100vh', 
+                    minHeight: '100vh', 
                     overflow: 'auto', 
-                    bgcolor: '#f4f6f8',
-                    width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` }
+                    bgcolor: 'transparent',
+                    width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` },
+                    position: 'relative',
                 }}
             >
+                {/* Animated background blob */}
+                <div className="animated-bg" />
                 <Outlet />
             </Box>
         </Box>

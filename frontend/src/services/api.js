@@ -1,3 +1,50 @@
+// Get all invoice requests (for financial manager)
+export const getInvoiceRequests = async () => {
+    try {
+        const response = await api.get('/invoices/requests');
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Approve an invoice request
+export const approveInvoiceRequest = async (requestId) => {
+    try {
+        const response = await api.post(`/invoices/requests/${requestId}/approve`);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Reject an invoice request
+export const rejectInvoiceRequest = async (requestId, reason) => {
+    try {
+        const response = await api.post(`/invoices/requests/${requestId}/reject`, { reason });
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
 import axios from 'axios';
 import { useMemo } from 'react';
 
@@ -238,6 +285,22 @@ export const generateMonthlyInvoices = async () => {
             throw new Error('Could not connect to the server. Please try again later.'); 
         } else { 
             throw new Error('An unexpected error occurred.'); 
+        }
+    }
+};
+
+// Create an invoice request (admin)
+export const createInvoiceRequest = async (requestData) => {
+    try {
+        const response = await api.post('/invoices/requests', requestData);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
         }
     }
 };
