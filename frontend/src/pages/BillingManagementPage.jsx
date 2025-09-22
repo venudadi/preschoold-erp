@@ -6,13 +6,18 @@ import {
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import InvoiceList from '../components/InvoiceList.jsx';
+import ApprovalDashboard from '../components/ApprovalDashboard.jsx';
 import { generateMonthlyInvoices } from '../services/api';
+
+import InvoiceRequestForm from '../components/InvoiceRequestForm.jsx';
 
 const BillingManagementPage = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const [requestFormOpen, setRequestFormOpen] = useState(false);
 
     // Get current month name
     const getCurrentMonth = () => {
@@ -57,6 +62,10 @@ const BillingManagementPage = () => {
     const handleCloseSnackbar = () => {
         setSnackbar({ ...snackbar, open: false });
     };
+
+    // Open invoice request form
+    const handleOpenRequestForm = () => setRequestFormOpen(true);
+    const handleCloseRequestForm = () => setRequestFormOpen(false);
 
     return (
         <Box sx={{ p: 3 }}>
@@ -108,10 +117,25 @@ const BillingManagementPage = () => {
                         : `Generate All Monthly Invoices for ${getCurrentMonth()}`
                     }
                 </Button>
+
+                {/* Request Invoice for Student (Admin) */}
+                <Button
+                    variant="outlined"
+                    color="primary"
+                    sx={{ mt: 2, minWidth: 300, height: 48, fontWeight: 'bold' }}
+                    onClick={handleOpenRequestForm}
+                >
+                    Request Invoice for Student
+                </Button>
             </Paper>
 
             {/* Invoice List Section */}
             <InvoiceList refreshTrigger={refreshTrigger} />
+
+            {/* Approval Dashboard for Financial Manager */}
+            <Box sx={{ mt: 4 }}>
+                <ApprovalDashboard />
+            </Box>
 
             {/* Confirmation Dialog */}
             <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
@@ -170,6 +194,13 @@ const BillingManagementPage = () => {
                     {snackbar.message}
                 </Alert>
             </Snackbar>
+
+            {/* Invoice Request Form Dialog */}
+            <InvoiceRequestForm
+                open={requestFormOpen}
+                onClose={handleCloseRequestForm}
+                onSuccess={() => setRefreshTrigger(prev => prev + 1)}
+            />
         </Box>
     );
 };
