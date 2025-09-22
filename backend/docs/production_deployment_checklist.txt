@@ -1,0 +1,69 @@
+# Production Deployment Configuration Checklist
+
+This checklist covers all critical configuration steps for deploying the preschool ERP system to production. Review and complete each step before go-live.
+
+---
+
+## 1. Cloud Storage Setup
+- [ ] Create a cloud storage bucket (e.g., AWS S3, Azure Blob, or GCP Storage).
+- [ ] Set up bucket permissions: allow only backend service account to upload/read/delete.
+- [ ] Enable versioning and lifecycle rules for storage cost management.
+- [ ] Note bucket name and region for environment variables.
+
+## 2. Environment Variables (.env)
+- [ ] Set database connection string (DB_HOST, DB_USER, DB_PASS, DB_NAME).
+- [ ] Set JWT secret and token expiry.
+- [ ] Set cloud storage credentials (e.g., AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_S3_BUCKET).
+- [ ] Set email/SMS gateway credentials if notifications are used.
+- [ ] Set FCM or push notification service keys if using push notifications.
+- [ ] Set NODE_ENV=production.
+
+## 3. Database
+- [ ] Run all migrations in backend/migrations to ensure schema is up to date.
+- [ ] Set up regular automated backups (daily, offsite preferred).
+- [ ] Enable DB monitoring and alerting for errors/slow queries.
+
+## 4. Backend (Node.js/Express)
+- [ ] Install all dependencies: `npm ci` in backend directory.
+- [ ] Set up process manager (e.g., PM2, systemd) for auto-restart and logging.
+- [ ] Enable HTTPS (TLS) for all API endpoints.
+- [ ] Set up CORS to allow only frontend domain(s).
+- [ ] Enable audit logging for sensitive actions.
+- [ ] Set up error monitoring (e.g., Sentry, Loggly).
+
+## 5. Frontend (React)
+- [ ] Install all dependencies: `npm ci` in frontend directory.
+- [ ] Set environment variables for API base URL and push notification keys.
+- [ ] Build static assets: `npm run build`.
+- [ ] Deploy to secure static hosting (e.g., S3+CloudFront, Vercel, Netlify).
+
+## 6. Push Notifications
+- [ ] Set up Firebase Cloud Messaging (FCM) or equivalent.
+- [ ] Configure backend to send push notifications on new announcements.
+- [ ] Configure frontend service worker for push subscription and badge updates.
+
+## 7. Security
+- [ ] Enforce HTTPS everywhere (frontend, backend, storage).
+- [ ] Rotate all secrets and credentials before go-live.
+- [ ] Review and restrict all IAM/service account permissions.
+- [ ] Enable 2FA for admin accounts.
+- [ ] Run vulnerability scans on all dependencies.
+
+## 8. Monitoring & Alerts
+- [ ] Set up uptime monitoring for all endpoints.
+- [ ] Set up error and performance monitoring (backend and frontend).
+- [ ] Set up alerting for failed jobs, push notification errors, and storage issues.
+
+## 9. Backups & Disaster Recovery
+- [ ] Schedule regular DB and storage backups.
+- [ ] Test restore process for both DB and file storage.
+- [ ] Document recovery procedures.
+
+## 10. Documentation & Support
+- [ ] Update all user and admin manuals.
+- [ ] Document all environment variables and configuration steps.
+- [ ] Provide support contact and escalation procedures.
+
+---
+
+**Keep this file updated as you make changes to your production setup.**

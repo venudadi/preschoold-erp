@@ -1,0 +1,25 @@
+-- Check users table structure
+SELECT 
+    COLUMN_NAME, 
+    DATA_TYPE, 
+    CHARACTER_MAXIMUM_LENGTH, 
+    IS_NULLABLE
+FROM 
+    INFORMATION_SCHEMA.COLUMNS
+WHERE 
+    TABLE_SCHEMA = DATABASE() 
+    AND TABLE_NAME = 'users'
+    AND COLUMN_NAME = 'id';
+
+-- Check centers table structure
+SELECT 
+    COLUMN_NAME, 
+    DATA_TYPE, 
+    CHARACTER_MAXIMUM_LENGTH, 
+    IS_NULLABLE
+FROM 
+    INFORMATION_SCHEMA.COLUMNS
+WHERE 
+    TABLE_SCHEMA = DATABASE() 
+    AND TABLE_NAME = 'centers'
+    AND COLUMN_NAME = 'id';

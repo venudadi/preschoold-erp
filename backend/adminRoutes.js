@@ -1,7 +1,10 @@
+
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import pool from './db.js';
 import { protect } from './authMiddleware.js';
+import { validateInput, validationRules, sanitizeInput, rateLimiters } from './middleware/security.js';
+import { body } from 'express-validator';
 
 const router = express.Router();
 
@@ -28,22 +31,57 @@ const checkAdminAccess = (req, res, next) => {
     return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
 };
 
-// Apply protection and admin access check to all routes
+
+// Apply protection, rate limiting, and admin access check to all routes
 router.use(protect);
+router.use(rateLimiters.api);
 router.use(checkAdminAccess);
+router.use(sanitizeInput);
 
 // --- CHILD MANAGEMENT ---
 
 // URL: POST /api/admin/children
 // Adds a new child to the database.
-router.post('/children', async (req, res) => {
+router.post(
+  '/children',
+  validateInput([
+    body('fullName')
+      .trim()
+      .isLength({ min: 2, max: 50 })
+      .withMessage('Full name must be 2-50 characters')
+      .matches(/^[a-zA-Z\s.'-]+$/)
+      .withMessage('Full name contains invalid characters'),
+    body('dateOfBirth')
+      .isISO8601()
+      .withMessage('Date of birth must be a valid date (YYYY-MM-DD)')
+      .custom((value) => {
+        const dob = new Date(value);
+        const now = new Date();
+        if (dob > now) throw new Error('Date of birth cannot be in the future');
+        const age = (now - dob) / (365.25 * 24 * 60 * 60 * 1000);
+        if (age < 0.5 || age > 8) throw new Error('Child age must be between 6 months and 8 years');
+        return true;
+      }),
+    body('gender')
+      .isIn(['male', 'female', 'other'])
+      .withMessage('Gender must be male, female, or other'),
+    body('enrollmentDate')
+      .isISO8601()
+      .withMessage('Enrollment date must be a valid date (YYYY-MM-DD)')
+      .custom((value) => {
+        const enroll = new Date(value);
+        const now = new Date();
+        if (enroll > now) throw new Error('Enrollment date cannot be in the future');
+        return true;
+      }),
+    body('classroomId')
+      .optional({ nullable: true })
+      .isUUID()
+      .withMessage('Classroom ID must be a valid UUID')
+  ]),
+  async (req, res) => {
     try {
         const { fullName, dateOfBirth, gender, enrollmentDate, classroomId } = req.body;
-
-        if (!fullName || !dateOfBirth || !gender || !enrollmentDate) {
-            return res.status(400).json({ message: 'Missing required fields for child enrollment.' });
-        }
-
         const childId = uuidv4();
         const sql = `
             INSERT INTO children (id, full_name, date_of_birth, gender, enrollment_date, classroom_id)
@@ -54,8 +92,23 @@ router.post('/children', async (req, res) => {
         res.status(201).json({ message: 'Child enrolled successfully!', childId });
 
     } catch (error) {
-        console.error('Error enrolling child:', error);
-        res.status(500).json({ message: 'Server error while enrolling child.' });
+      if (error.code === 'PROTOCOL_CONNECTION_LOST' || error.code === 'ECONNREFUSED' || error.code === 'ER_CON_COUNT_ERROR') {
+        return res.status(503).json({ message: 'Database connection error. Please try again later.' });
+      }
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ message: 'Duplicate entry. This record already exists.' });
+      }
+      if (error.code === 'ER_NO_REFERENCED_ROW_2' || error.code === 'ER_ROW_IS_REFERENCED_2') {
+        return res.status(409).json({ message: 'Foreign key constraint error.' });
+      }
+      if (error.code === 'ER_LOCK_DEADLOCK') {
+        return res.status(500).json({ message: 'Database deadlock. Please retry the operation.' });
+      }
+      if (error.fatal) {
+        return res.status(500).json({ message: 'Fatal database error. Please contact support.' });
+      }
+      console.error('Error enrolling child:', error);
+      res.status(500).json({ message: 'Server error while enrolling child.' });
     }
 });
 

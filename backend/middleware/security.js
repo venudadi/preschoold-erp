@@ -1,6 +1,39 @@
+// --- Rate Limiting Middleware ---
 import rateLimit from 'express-rate-limit';
+
+// General API rate limiter: 100 requests per 15 minutes per IP
+const api = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many requests from this IP, please try again later.'
+});
+
+// Auth endpoints: stricter (10 requests per 15 minutes per IP)
+const auth = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many login attempts, please try again later.'
+});
+
+// Invoice endpoints: moderate (30 requests per 15 minutes per IP)
+const invoice = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: 'Too many invoice actions, please try again later.'
+});
+
+// (Removed duplicate export of rateLimiters)
 import helmet from 'helmet';
 import { body, validationResult } from 'express-validator';
+import { checkRole } from '../authMiddleware.js';
+// Role-based access middleware for route protection
+export const requireRole = (roles) => checkRole(roles);
 
 /**
  * Security middleware collection for enhanced protection
@@ -51,6 +84,13 @@ export const rateLimiters = {
         15 * 60 * 1000, // 15 minutes
         10, // limit each IP to 10 file uploads per windowMs
         'Too many file upload attempts, please try again later'
+    ),
+
+    // Invoice endpoints: moderate (30 requests per 15 minutes per IP)
+    invoice: createRateLimiter(
+        15 * 60 * 1000, // 15 minutes
+        30, // limit each IP to 30 invoice actions per windowMs
+        'Too many invoice actions, please try again later.'
     )
 };
 
@@ -213,4 +253,5 @@ export default {
     corsConfig,
     securityHeaders,
     sanitizeInput
+    // Note: requireRole is exported above, not as part of default
 };
