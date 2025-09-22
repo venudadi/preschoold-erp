@@ -476,9 +476,10 @@ router.post('/change-password',
             // Hash new password
             const hashedNewPassword = hashPassword(newPassword);
 
-            // Update password
+
+            // Update password and clear must_reset_password flag
             await connection.query(
-                'UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?',
+                'UPDATE users SET password = ?, must_reset_password = 0, updated_at = NOW() WHERE id = ?',
                 [hashedNewPassword, userId]
             );
 

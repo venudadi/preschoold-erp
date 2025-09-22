@@ -1,7 +1,39 @@
+import speakeasy from 'speakeasy';
+
+// 2FA middleware for sensitive downloads
+const require2FAForSensitiveDownload = async (req, res, next) => {
+    const user = req.user;
+    // Only enforce for parents and teachers
+    if (user.role !== 'parent' && user.role !== 'teacher') {
+        return next();
+    }
+    // Fetch 2FA settings from users table
+    const [users] = await pool.query('SELECT two_fa_enabled, two_fa_secret FROM users WHERE id = ?', [user.id]);
+    if (!users.length || !users[0].two_fa_enabled) {
+        // 2FA not enabled, allow
+        return next();
+    }
+    // 2FA enabled, require TOTP code in header
+    const totp = req.headers['x-2fa-totp'];
+    if (!totp) {
+        return res.status(401).json({ message: '2FA code required for sensitive download', code: '2FA_REQUIRED' });
+    }
+    const verified = speakeasy.totp.verify({
+        secret: users[0].two_fa_secret,
+        encoding: 'base32',
+        token: totp,
+        window: 1
+    });
+    if (!verified) {
+        return res.status(401).json({ message: 'Invalid 2FA code', code: '2FA_INVALID' });
+    }
+    next();
+};
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import pool from './db.js';
 import { protect } from './authMiddleware.js';
+import { rateLimiters, sanitizeInput } from './middleware/security.js';
 import PDFDocument from 'pdfkit';
 import path from 'path';
 import fs from 'fs';
@@ -32,9 +64,12 @@ const checkInvoiceAccess = (req, res, next) => {
     return res.status(403).json({ message: 'Forbidden: Access restricted to authorized administrators.' });
 };
 
-// Apply protection and access middleware to all routes
+
+// Apply protection, rate limiting, and access middleware to all routes
 router.use(protect);
+router.use(rateLimiters.api);
 router.use(checkInvoiceAccess);
+router.use(sanitizeInput);
 
 // Helper function to generate unique invoice number
 const generateInvoiceNumber = async (connection, centerId) => {
@@ -112,6 +147,11 @@ router.post('/generate-monthly', async (req, res) => {
         
         // Generate invoice for each eligible child
         for (const child of eligibleChildren) {
+            // Business logic: monthly_fee must be positive
+            if (child.monthly_fee == null || isNaN(child.monthly_fee) || child.monthly_fee <= 0) {
+                await connection.rollback();
+                return res.status(400).json({ message: `Invalid monthly fee for child ${child.child_id}` });
+            }
             // Check if invoice already exists for this child for current month
             const [existingInvoice] = await connection.query(`
                 SELECT id FROM invoices 
@@ -175,9 +215,24 @@ router.post('/generate-monthly', async (req, res) => {
         });
         
     } catch (error) {
-        await connection.rollback();
-        console.error('Error generating monthly invoices:', error);
-        res.status(500).json({ message: 'Server error during invoice generation.' });
+      if (error.code === 'PROTOCOL_CONNECTION_LOST' || error.code === 'ECONNREFUSED' || error.code === 'ER_CON_COUNT_ERROR') {
+        return res.status(503).json({ message: 'Database connection error. Please try again later.' });
+      }
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ message: 'Duplicate entry. This record already exists.' });
+      }
+      if (error.code === 'ER_NO_REFERENCED_ROW_2' || error.code === 'ER_ROW_IS_REFERENCED_2') {
+        return res.status(409).json({ message: 'Foreign key constraint error.' });
+      }
+      if (error.code === 'ER_LOCK_DEADLOCK') {
+        return res.status(500).json({ message: 'Database deadlock. Please retry the operation.' });
+      }
+      if (error.fatal) {
+        return res.status(500).json({ message: 'Fatal database error. Please contact support.' });
+      }
+      await connection.rollback();
+      console.error('Error generating monthly invoices:', error);
+      res.status(500).json({ message: 'Server error during invoice generation.' });
     } finally {
         connection.release();
     }
@@ -265,7 +320,7 @@ router.get('/', protect, async (req, res) => {
 
 // 3. GET /api/invoices/generate-pdf/:id
 // Generates and downloads PDF for a specific invoice
-router.get('/generate-pdf/:id', async (req, res) => {
+router.get('/generate-pdf/:id', require2FAForSensitiveDownload, async (req, res) => {
     const { id } = req.params;
     const { centerId } = req.user;
     

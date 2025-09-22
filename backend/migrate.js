@@ -1,9 +1,12 @@
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import pool from './db.js';
 
-const migrationsDir = path.resolve('./migrations');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const migrationsDir = path.resolve(__dirname, 'migrations');
 
 async function ensureMigrationsTable() {
   await pool.query(`CREATE TABLE IF NOT EXISTS migrations (

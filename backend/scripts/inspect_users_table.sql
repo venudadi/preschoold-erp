@@ -1,0 +1,29 @@
+-- Script to get more detailed information about the users.id column
+SELECT 
+    TABLE_SCHEMA,
+    TABLE_NAME,
+    COLUMN_NAME,
+    DATA_TYPE,
+    CHARACTER_MAXIMUM_LENGTH,
+    IS_NULLABLE,
+    COLUMN_KEY,
+    EXTRA,
+    COLLATION_NAME,
+    COLUMN_TYPE 
+FROM 
+    INFORMATION_SCHEMA.COLUMNS 
+WHERE 
+    TABLE_SCHEMA = DATABASE() 
+    AND TABLE_NAME = 'users'
+    AND COLUMN_NAME = 'id';
+
+-- Get collation for the table
+SELECT 
+    TABLE_SCHEMA,
+    TABLE_NAME,
+    TABLE_COLLATION
+FROM 
+    INFORMATION_SCHEMA.TABLES
+WHERE 
+    TABLE_SCHEMA = DATABASE() 
+    AND TABLE_NAME = 'users';
