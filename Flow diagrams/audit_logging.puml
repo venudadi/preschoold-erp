@@ -1,0 +1,7 @@
+@startuml audit_logging
+actor AnyUser
+database MySQL
+
+AnyUser -> Backend : Any sensitive action (login, create, update, approve, reject, etc.)
+Backend -> MySQL : INSERT INTO security_audit_log (user_id, action, details, timestamp)
+@enduml

@@ -1,1 +1,29 @@
+# Dependencies
+backend/node_modules/
+frontend/node_modules/
+
+# Env files
+.env
+.env.*
+backend/.env
+frontend/.env
+
+# Build outputs
+frontend/dist/
+dist/
+
+# Logs
+*.log
+logs/
+
+# Coverage/Cache
+coverage/
+.nyc_output/
+.cache/
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
 /python_scripts

@@ -8,12 +8,22 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
     const location = useLocation();
     const api = useApi();
 
+
     useEffect(() => {
         const verifyAuth = async () => {
             const token = localStorage.getItem('token');
+            const sessionToken = localStorage.getItem('sessionToken');
+            const csrfToken = localStorage.getItem('csrfToken');
             const user = JSON.parse(localStorage.getItem('user') || '{}');
 
+            // Debug: log tokens and user
+            console.debug('[ProtectedRoute] token:', token);
+            console.debug('[ProtectedRoute] sessionToken:', sessionToken);
+            console.debug('[ProtectedRoute] csrfToken:', csrfToken);
+            console.debug('[ProtectedRoute] user:', user);
+
             if (!token) {
+                console.debug('[ProtectedRoute] No token found, not authenticated.');
                 setIsAuthenticated(false);
                 setIsLoading(false);
                 return;
@@ -21,8 +31,9 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
 
             try {
                 // Verify token with backend
-                await api.get('/auth/verify');
-                
+                const verifyResp = await api.get('/auth/verify');
+                console.debug('[ProtectedRoute] /auth/verify response:', verifyResp);
+
                 // If role is required, check it
                 if (requiredRole && user.role !== requiredRole) {
                     throw new Error('Insufficient permissions');
@@ -30,7 +41,10 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
 
                 setIsAuthenticated(true);
             } catch (error) {
-                console.error('Authentication verification failed:', error);
+                console.error('[ProtectedRoute] Authentication verification failed:', error);
+                if (error.response) {
+                    console.error('[ProtectedRoute] Error response data:', error.response.data);
+                }
                 // Only clear auth data if it's not a network error
                 if (error.response) {
                     localStorage.removeItem('token');
@@ -49,8 +63,7 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
     }, [api, requiredRole]);
 
     if (isLoading) {
-        // You can replace this with a loading spinner component
-        return <div>Loading...</div>;
+        return <div style={{ padding: 16 }}>Loading…</div>;
     }
 
     if (!isAuthenticated) {

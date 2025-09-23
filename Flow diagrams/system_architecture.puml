@@ -1,0 +1,49 @@
+@startuml system_architecture
+!define RECTANGLE class
+RECTANGLE Frontend {
+  React (Vite)
+  - App.jsx
+  - main.jsx
+  - components/
+  - pages/
+  - services/api.js
+}
+RECTANGLE Backend {
+  Node.js/Express
+  - index.js
+  - authRoutes.js
+  - authMiddleware.js
+  - adminRoutes.js
+  - admissionRoutes.js
+  - analyticsRoutes.js
+  - centerRoutes.js
+  - enquiryRoutes.js
+  - feeStructureRoutes.js
+  - invoiceRoutes.js
+  - invoiceRequestRoutes.js
+  - parentAuthRoutes.js
+  - settingsRoutes.js
+  - staffRoutes.js
+  - studentRoutes.js
+  - utils/security.js
+  - middleware/security.js
+}
+RECTANGLE Database {
+  MySQL
+  - users
+  - user_roles
+  - children
+  - students
+  - enquiries
+  - classrooms
+  - companies
+  - invoices
+  - invoice_requests
+  - invoice_line_items
+  - fee_structures
+  - security_audit_log
+  - user_sessions
+}
+Frontend --> Backend : REST API (Axios)
+Backend --> Database : SQL Queries
+@enduml

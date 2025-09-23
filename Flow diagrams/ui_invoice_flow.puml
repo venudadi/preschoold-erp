@@ -1,0 +1,26 @@
+@startuml ui_invoice_flow
+actor Admin
+actor FinancialManager
+actor Parent
+
+Admin -> Frontend : Login
+Admin -> Frontend : Open BillingManagementPage
+Admin -> Frontend : Open InvoiceRequestForm
+Frontend -> Backend : POST /api/invoices/requests
+Backend -> Database : INSERT INTO invoice_requests
+Backend -> Database : INSERT INTO security_audit_log
+
+FinancialManager -> Frontend : Open ApprovalDashboard
+Frontend -> Backend : GET /api/invoices/requests
+Backend -> Database : SELECT * FROM invoice_requests WHERE status='Pending'
+FinancialManager -> Frontend : Approve/Reject Request
+Frontend -> Backend : POST /api/invoices/requests/:id/approve|reject
+Backend -> Database : UPDATE invoice_requests, INSERT INTO invoices (if approved)
+Backend -> Database : INSERT INTO security_audit_log
+
+Admin -> Frontend : Click Generate Monthly Invoices
+Frontend -> Backend : POST /api/invoices/generate-monthly
+Backend -> Database : SELECT eligible children
+Backend -> Database : INSERT INTO invoices, invoice_line_items
+Backend -> Database : INSERT INTO security_audit_log
+@enduml

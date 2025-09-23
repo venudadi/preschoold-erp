@@ -1,0 +1,13 @@
+@startuml attendance_management
+actor Admin
+actor Staff
+actor Parent
+database MySQL
+
+Admin -> Frontend : View/Export Attendance
+Staff -> Frontend : Mark/View Attendance
+Parent -> Frontend : View Attendance
+Frontend -> Backend : /attendance
+Backend -> MySQL : SELECT/INSERT/UPDATE attendance
+Backend -> MySQL : INSERT INTO security_audit_log
+@enduml

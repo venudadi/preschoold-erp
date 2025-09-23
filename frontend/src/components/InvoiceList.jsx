@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Paper, Typography, Table, TableBody, TableCell, TableContainer, 
-    TableHead, TableRow, Button, Chip, Box, TextField, FormControl, 
+    Dialog, DialogTitle, DialogContent, DialogActions,
+    Paper, Typography, Table, TableBody, TableCell, TableContainer,
+    TableHead, TableRow, Button, Chip, Box, TextField, FormControl,
     InputLabel, Select, MenuItem, TablePagination, CircularProgress,
     IconButton, Tooltip, Alert
 } from '@mui/material';
@@ -25,6 +26,11 @@ const InvoiceList = ({ refreshTrigger = 0 }) => {
         items_per_page: 10
     });
     const [downloadingInvoices, setDownloadingInvoices] = useState(new Set());
+    // 2FA modal state
+    const [show2FAModal, setShow2FAModal] = useState(false);
+    const [pendingInvoice, setPendingInvoice] = useState(null);
+    const [twoFACode, setTwoFACode] = useState('');
+    const [twoFAError, setTwoFAError] = useState('');
 
     // Fetch invoices function
     const fetchInvoices = async (page = 1, filterParams = filters) => {
@@ -82,21 +88,43 @@ const InvoiceList = ({ refreshTrigger = 0 }) => {
     };
 
     // Handle PDF download
-    const handleDownloadPDF = async (invoiceId, invoiceNumber) => {
-        setDownloadingInvoices(prev => new Set(prev).add(invoiceId));
-        
+    // Show 2FA modal before download
+    const handleDownloadPDF = (invoiceId, invoiceNumber) => {
+        setPendingInvoice({ invoiceId, invoiceNumber });
+        setShow2FAModal(true);
+        setTwoFACode('');
+        setTwoFAError('');
+    };
+
+    // Confirm 2FA and download
+    const handle2FADownload = async () => {
+        if (!twoFACode || twoFACode.length < 6) {
+            setTwoFAError('Please enter a valid 2FA code.');
+            return;
+        }
+        setTwoFAError('');
+        setDownloadingInvoices(prev => new Set(prev).add(pendingInvoice.invoiceId));
         try {
-            await downloadInvoicePDF(invoiceId, invoiceNumber);
+            await downloadInvoicePDF(pendingInvoice.invoiceId, pendingInvoice.invoiceNumber, twoFACode);
+            setShow2FAModal(false);
+            setPendingInvoice(null);
         } catch (error) {
-            console.error('Error downloading PDF:', error);
-            // You could add a snackbar notification here
+            setTwoFAError(error?.message || '2FA verification failed.');
         } finally {
             setDownloadingInvoices(prev => {
                 const newSet = new Set(prev);
-                newSet.delete(invoiceId);
+                newSet.delete(pendingInvoice.invoiceId);
                 return newSet;
             });
         }
+    };
+
+    // Cancel 2FA modal
+    const handle2FACancel = () => {
+        setShow2FAModal(false);
+        setPendingInvoice(null);
+        setTwoFACode('');
+        setTwoFAError('');
     };
 
     // Get status chip color and variant
@@ -136,9 +164,11 @@ const InvoiceList = ({ refreshTrigger = 0 }) => {
                     Invoice List
                 </Typography>
                 <Tooltip title="Refresh">
-                    <IconButton onClick={() => fetchInvoices(pagination.current_page)} disabled={loading}>
-                        <RefreshIcon />
-                    </IconButton>
+                    <span>
+                        <IconButton onClick={() => fetchInvoices(pagination.current_page)} disabled={loading}>
+                            <RefreshIcon />
+                        </IconButton>
+                    </span>
                 </Tooltip>
             </Box>
 
@@ -254,19 +284,44 @@ const InvoiceList = ({ refreshTrigger = 0 }) => {
                                             </TableCell>
                                             <TableCell>
                                                 <Tooltip title="Download PDF">
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleDownloadPDF(invoice.id, invoice.invoice_number)}
-                                                        disabled={downloadingInvoices.has(invoice.id)}
-                                                        color="primary"
-                                                    >
-                                                        {downloadingInvoices.has(invoice.id) ? (
-                                                            <CircularProgress size={20} />
-                                                        ) : (
-                                                            <DownloadIcon />
-                                                        )}
-                                                    </IconButton>
+                                                    <span>
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => handleDownloadPDF(invoice.id, invoice.invoice_number)}
+                                                            disabled={downloadingInvoices.has(invoice.id)}
+                                                            color="primary"
+                                                        >
+                                                            {downloadingInvoices.has(invoice.id) ? (
+                                                                <CircularProgress size={20} />
+                                                            ) : (
+                                                                <DownloadIcon />
+                                                            )}
+                                                        </IconButton>
+                                                    </span>
                                                 </Tooltip>
+            {/* 2FA Modal */}
+            <Dialog open={show2FAModal} onClose={handle2FACancel} maxWidth="xs" fullWidth>
+                <DialogTitle>2-Factor Authentication Required</DialogTitle>
+                <DialogContent>
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        For your child's safety, 2-factor authentication is required to download invoices or personally identifiable information. This helps prevent unauthorized access to your child's data.
+                    </Alert>
+                    <TextField
+                        label="Enter 2FA Code"
+                        value={twoFACode}
+                        onChange={e => setTwoFACode(e.target.value)}
+                        fullWidth
+                        inputProps={{ maxLength: 6, inputMode: 'numeric', pattern: '[0-9]*' }}
+                        autoFocus
+                        margin="dense"
+                    />
+                    {twoFAError && <Alert severity="error" sx={{ mt: 2 }}>{twoFAError}</Alert>}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handle2FACancel} color="secondary">Cancel</Button>
+                    <Button onClick={handle2FADownload} color="primary" variant="contained">Download</Button>
+                </DialogActions>
+            </Dialog>
                                             </TableCell>
                                         </TableRow>
                                     ))

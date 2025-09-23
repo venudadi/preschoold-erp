@@ -1,0 +1,13 @@
+@startuml document_management
+actor Admin
+actor Staff
+actor Parent
+database MySQL
+
+Admin -> Frontend : Upload/View/Delete Documents
+Staff -> Frontend : View Documents
+Parent -> Frontend : View Documents
+Frontend -> Backend : /documents
+Backend -> MySQL : SELECT/INSERT/DELETE documents
+Backend -> MySQL : INSERT INTO security_audit_log
+@enduml

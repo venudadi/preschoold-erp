@@ -18,8 +18,6 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10, // Max connections in pool
   queueLimit: 0, // Unlimited queued requests
-  connectTimeout: 10000, // 10 seconds
-  acquireTimeout: 20000, // 20 seconds
   // Optional: enable namedPlaceholders if needed
   // namedPlaceholders: true
 });

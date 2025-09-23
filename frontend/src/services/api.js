@@ -1,50 +1,3 @@
-// Get all invoice requests (for financial manager)
-export const getInvoiceRequests = async () => {
-    try {
-        const response = await api.get('/invoices/requests');
-        return response.data;
-    } catch (error) {
-        if (error.response) {
-            throw error.response.data;
-        } else if (error.request) {
-            throw new Error('Could not connect to the server.');
-        } else {
-            throw new Error('An unexpected error occurred.');
-        }
-    }
-};
-
-// Approve an invoice request
-export const approveInvoiceRequest = async (requestId) => {
-    try {
-        const response = await api.post(`/invoices/requests/${requestId}/approve`);
-        return response.data;
-    } catch (error) {
-        if (error.response) {
-            throw error.response.data;
-        } else if (error.request) {
-            throw new Error('Could not connect to the server.');
-        } else {
-            throw new Error('An unexpected error occurred.');
-        }
-    }
-};
-
-// Reject an invoice request
-export const rejectInvoiceRequest = async (requestId, reason) => {
-    try {
-        const response = await api.post(`/invoices/requests/${requestId}/reject`, { reason });
-        return response.data;
-    } catch (error) {
-        if (error.response) {
-            throw error.response.data;
-        } else if (error.request) {
-            throw new Error('Could not connect to the server.');
-        } else {
-            throw new Error('An unexpected error occurred.');
-        }
-    }
-};
 import axios from 'axios';
 import { useMemo } from 'react';
 
@@ -103,9 +56,7 @@ api.interceptors.response.use(
                     throw new Error('No refresh token');
                 }
 
-                const response = await axios.post(`${api.defaults.baseURL}/auth/refresh-token`, {
-                    refreshToken
-                });
+                const response = await api.post('/auth/refresh-token', { refreshToken });
 
                 const { token, sessionToken, csrfToken } = response.data;
 
@@ -134,6 +85,55 @@ api.interceptors.response.use(
     }
 );
 
+// --- INVOICE REQUEST FUNCTIONS ---
+
+// Get all invoice requests (for financial manager)
+export const getInvoiceRequests = async () => {
+    try {
+        const response = await api.get('/invoices/requests');
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Approve an invoice request
+export const approveInvoiceRequest = async (requestId) => {
+    try {
+        const response = await api.post(`/invoices/requests/${requestId}/approve`);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Reject an invoice request
+export const rejectInvoiceRequest = async (requestId, reason) => {
+    try {
+        const response = await api.post(`/invoices/requests/${requestId}/reject`, { reason });
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
 
 // --- AUTH FUNCTIONS ---
 
@@ -142,7 +142,10 @@ export const loginUser = async (email, password) => {
         const response = await api.post('/auth/login', { email, password });
         return response.data;
     } catch (error) {
-        if (error.response) { throw error.response.data; }
+        if (error.response) {
+            const msg = error.response.data?.message || error.response.data?.error || 'Login failed';
+            throw new Error(msg);
+        }
         else if (error.request) { throw new Error('Could not connect to the server. Please try again later.'); }
         else { throw new Error('An unexpected error occurred.'); }
     }
@@ -322,12 +325,12 @@ export const getInvoices = async (params = {}) => {
 };
 
 // Download invoice PDF
-export const downloadInvoicePDF = async (invoiceId, invoiceNumber) => {
+export const downloadInvoicePDF = async (invoiceId, invoiceNumber, twoFACode) => {
     try {
         const response = await api.get(`/invoices/generate-pdf/${invoiceId}`, {
-            responseType: 'blob'
+            responseType: 'blob',
+            headers: twoFACode ? { 'x-2fa-totp': twoFACode } : {}
         });
-        
         // Create blob link to download
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
@@ -337,7 +340,6 @@ export const downloadInvoicePDF = async (invoiceId, invoiceNumber) => {
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
-        
     } catch (error) {
         if (error.response) { 
             throw error.response.data; 
@@ -595,6 +597,22 @@ export const deleteDocument = async (documentId) => {
         return response.data;
     } catch (error) {
         throw error.response?.data || new Error('Could not delete document');
+    }
+};
+
+// Expense analytics
+export const getExpenseAnalytics = async () => {
+    try {
+        const response = await api.get('/expenses/analytics');
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
     }
 };
 

@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress } from '@mui/material';
+import { Button } from '@mui/material';
+import PromoteAssignStudentModal from './PromoteAssignStudentModal';
+import TransferStudentModal from './TransferStudentModal';
 import { getChildren } from '../services/api';
 
 const ChildList = () => {
     const [children, setChildren] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    // Modal state
+    const [modalOpen, setModalOpen] = useState(false);
+    const [selectedChild, setSelectedChild] = useState(null);
+    const [transferModalOpen, setTransferModalOpen] = useState(false);
+    const [transferChild, setTransferChild] = useState(null);
 
     useEffect(() => {
         const fetchChildren = async () => {
@@ -43,6 +52,7 @@ const ChildList = () => {
                             <TableCell>Date of Birth</TableCell>
                             <TableCell>Classroom</TableCell>
                             <TableCell>Enrollment Date</TableCell>
+                            <TableCell>Actions</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -53,6 +63,24 @@ const ChildList = () => {
                                     <TableCell>{new Date(child.date_of_birth).toLocaleDateString()}</TableCell>
                                     <TableCell>{child.classroom_name || 'Unassigned'}</TableCell>
                                     <TableCell>{new Date(child.enrollment_date).toLocaleDateString()}</TableCell>
+                                    <TableCell>
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => { setSelectedChild(child); setModalOpen(true); }}
+                                            sx={{ mr: 1 }}
+                                        >
+                                            Promote/Assign
+                                        </Button>
+                                        <Button
+                                            variant="contained"
+                                            size="small"
+                                            color="secondary"
+                                            onClick={() => { setTransferChild(child); setTransferModalOpen(true); }}
+                                        >
+                                            Transfer
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
                             ))
                         ) : (
@@ -65,6 +93,21 @@ const ChildList = () => {
                     </TableBody>
                 </Table>
             </TableContainer>
+            <PromoteAssignStudentModal
+                open={modalOpen}
+                onClose={() => setModalOpen(false)}
+                studentId={selectedChild?.id}
+                currentClassId={selectedChild?.class_id}
+                currentCenterId={selectedChild?.center_id}
+                onSuccess={() => { setModalOpen(false); /* Optionally refetch children */ }}
+            />
+            <TransferStudentModal
+                open={transferModalOpen}
+                onClose={() => setTransferModalOpen(false)}
+                studentId={transferChild?.id}
+                fromCenterId={transferChild?.center_id}
+                onSuccess={() => { setTransferModalOpen(false); /* Optionally refetch children */ }}
+            />
         </Box>
     );
 };

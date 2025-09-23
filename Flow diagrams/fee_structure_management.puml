@@ -1,0 +1,9 @@
+@startuml fee_structure_management
+actor Admin
+database MySQL
+
+Admin -> Frontend : Manage Fee Structures
+Frontend -> Backend : /settings/programs, /settings/companies
+Backend -> MySQL : SELECT/INSERT/UPDATE fee_structures, companies
+Backend -> MySQL : INSERT INTO security_audit_log
+@enduml

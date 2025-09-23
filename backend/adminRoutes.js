@@ -115,7 +115,7 @@ router.post(
 // URL: GET /api/admin/children
 // Retrieves a list of all enrolled children.
 router.get('/children', async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
         return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
     }
 
@@ -142,7 +142,7 @@ router.get('/children', async (req, res) => {
 // URL: POST /api/admin/classrooms
 // Creates a new classroom.
 router.post('/classrooms', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
         return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
     }
 
@@ -167,7 +167,7 @@ router.post('/classrooms', protect, async (req, res) => {
 // URL: GET /api/admin/classrooms
 // Retrieves a list of all classrooms.
 router.get('/classrooms', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
         return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
     }
 
@@ -187,7 +187,7 @@ router.get('/classrooms', protect, async (req, res) => {
 // URL: GET /api/admin/staff
 // Retrieves a list of all staff members (users who are not parents).
 router.get('/staff', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
         return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
     }
 
@@ -204,7 +204,7 @@ router.get('/staff', protect, async (req, res) => {
 // URL: POST /api/admin/assign-teacher
 // Assigns a teacher to a specific classroom.
 router.post('/assign-teacher', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
         return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
     }
 

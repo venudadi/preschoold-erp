@@ -43,8 +43,6 @@ import digitalPortfolioRoutes from './digitalPortfolioRoutes.js';
 import classroomAnnouncementRoutes from './classroomAnnouncementRoutes.js';
 import adminClassPromotionRoutes from './adminClassPromotionRoutes.js';
 
-app.use('/api/messaging', messagingRoutes);
-
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
@@ -69,6 +67,9 @@ app.use('/api/owners', ownerRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/lesson-plans', lessonPlanRoutes);
 app.use('/api/assignments', assignmentRoutes);
+app.use('/api/messaging', messagingRoutes);
+app.use('/api/parent', parentModuleRoutes);
+app.use('/api/observation-logs', observationLogRoutes);
 app.use('/api/digital-portfolio', digitalPortfolioRoutes);
 app.use('/api/classroom-announcements', classroomAnnouncementRoutes);
 app.use('/api/admin-class/promotion', adminClassPromotionRoutes);
