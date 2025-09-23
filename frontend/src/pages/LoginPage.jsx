@@ -20,8 +20,13 @@ const LoginPage = () => {
             // Call the login function from our API service
             const data = await loginUser(email, password);
 
-            // If successful, store the token and user info
+            // If successful, store all tokens and user info
             localStorage.setItem('token', data.token);
+            localStorage.setItem('sessionToken', data.sessionToken);
+            localStorage.setItem('csrfToken', data.csrfToken);
+            if (data.refreshToken) {
+                localStorage.setItem('refreshToken', data.refreshToken);
+            }
             localStorage.setItem('user', JSON.stringify(data.user));
 
             // Redirect the user to the main dashboard page

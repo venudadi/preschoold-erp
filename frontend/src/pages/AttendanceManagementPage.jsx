@@ -1,13 +1,8 @@
 import React from 'react';
 import AttendanceManagement from '../components/AttendanceManagement';
-import DashboardLayout from '../components/DashboardLayout';
 
 const AttendanceManagementPage = () => {
-    return (
-        <DashboardLayout>
-            <AttendanceManagement />
-        </DashboardLayout>
-    );
+    return <AttendanceManagement />;
 };
 
 export default AttendanceManagementPage;

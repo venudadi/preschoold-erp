@@ -1,0 +1,6 @@
+@echo off
+REM Start frontend server only
+echo Starting frontend server...
+cd /d "%~dp0..\frontend"
+echo Frontend server starting on port 5173...
+call npm run dev

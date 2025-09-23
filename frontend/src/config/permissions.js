@@ -22,6 +22,7 @@ export const FEATURES = {
     CLASSROOM_MANAGEMENT: 'classroom_management', 
     STAFF_MANAGEMENT: 'staff_management',
     CENTER_MANAGEMENT: 'center_management',
+    USER_MANAGEMENT: 'user_management', // Super admin only - create/manage all user roles
     
     // Operations
     ATTENDANCE_MANAGEMENT: 'attendance_management',
@@ -61,6 +62,7 @@ export const ROLE_PERMISSIONS = {
         FEATURES.CLASSROOM_MANAGEMENT,
         FEATURES.STAFF_MANAGEMENT,
         FEATURES.CENTER_MANAGEMENT,
+        FEATURES.USER_MANAGEMENT, // Create and manage all user roles
         FEATURES.ATTENDANCE_MANAGEMENT,
         FEATURES.ENQUIRY_MANAGEMENT,
         FEATURES.BILLING_MANAGEMENT,
@@ -152,10 +154,10 @@ export const NAVIGATION_ITEMS = [
         requireAny: true // Show if user has ANY of the required features
     },
     {
-        text: 'Owners',
+        text: 'User Management',
         icon: 'PeopleIcon',
-        path: '/owners',
-        requiredFeatures: [FEATURES.CENTER_MANAGEMENT]
+        path: '/users',
+        requiredFeatures: [FEATURES.USER_MANAGEMENT]
     },
     {
         text: 'Children',

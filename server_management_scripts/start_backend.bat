@@ -1,0 +1,6 @@
+@echo off
+REM Start backend server only
+echo Starting backend server...
+cd /d "%~dp0..\backend"
+echo Backend server starting on port 5001...
+call npm start

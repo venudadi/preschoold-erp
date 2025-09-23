@@ -445,7 +445,7 @@ const EnquiryForm = ({ onEnquiryAdded }) => {
                     {/* Visited checkbox */}
                     <Grid item xs={12} sm={3}>
                         <FormControlLabel 
-                            control={<Checkbox name="visited" checked={formData.visited} onChange={handleChange} />} 
+                            control={<Checkbox name="visited" checked={Boolean(formData.visited)} onChange={handleChange} />} 
                             label="Visited Center?" 
                             sx={{ pt:1 }} 
                         />

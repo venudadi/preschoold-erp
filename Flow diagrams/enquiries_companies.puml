@@ -1,0 +1,9 @@
+@startuml enquiries_companies
+actor Admin
+database MySQL
+
+Admin -> Frontend : Manage Enquiries, Companies
+Frontend -> Backend : /enquiries, /settings/companies
+Backend -> MySQL : SELECT/INSERT/UPDATE enquiries, companies
+Backend -> MySQL : INSERT INTO security_audit_log
+@enduml

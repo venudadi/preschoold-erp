@@ -1,0 +1,8 @@
+@startuml role_access_control
+actor User
+rectangle "authMiddleware.js" {
+  :User: --> :authMiddleware.js: : JWT, Session, CSRF
+  :authMiddleware.js: --> MySQL : SELECT user, roles
+  :authMiddleware.js: --> Backend : req.user.role
+}
+@enduml

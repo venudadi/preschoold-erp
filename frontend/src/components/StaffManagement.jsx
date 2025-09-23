@@ -112,7 +112,7 @@ const StaffManagement = () => {
             designation: staffMember.designation,
             department: staffMember.department,
             employee_id: staffMember.employee_id,
-            joining_date: staffMember.joining_date,
+            joining_date: staffMember.joining_date ? new Date(staffMember.joining_date).toISOString().slice(0, 10) : '',
             contract_type: staffMember.contract_type,
             contact_number: staffMember.contact_number,
             emergency_contact: staffMember.emergency_contact,

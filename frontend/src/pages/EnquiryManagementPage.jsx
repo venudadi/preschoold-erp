@@ -42,7 +42,11 @@ const EnquiryManagementPage = () => {
     };
 
     const handleRowClick = (enquiry) => {
-        const formattedEnquiry = { ...enquiry, follow_up_date: enquiry.follow_up_date ? new Date(enquiry.follow_up_date).toISOString().slice(0, 10) : '' };
+        const formattedEnquiry = { 
+            ...enquiry, 
+            follow_up_date: enquiry.follow_up_date ? new Date(enquiry.follow_up_date).toISOString().slice(0, 10) : '',
+            child_dob: enquiry.child_dob ? new Date(enquiry.child_dob).toISOString().slice(0, 10) : ''
+        };
         setSelectedEnquiry(formattedEnquiry);
         setIsUpdateModalOpen(true);
     };
@@ -164,7 +168,7 @@ const EnquiryManagementPage = () => {
                                 </Grid>
                                 <Grid item xs={12} sm={4}>
                                     <FormControlLabel 
-                                        control={<Checkbox name="follow_up_flag" checked={selectedEnquiry.follow_up_flag || false} onChange={handleModalFieldChange} />} 
+                                        control={<Checkbox name="follow_up_flag" checked={Boolean(selectedEnquiry.follow_up_flag)} onChange={handleModalFieldChange} />} 
                                         label="Follow-up Required" 
                                     />
                                 </Grid>
@@ -184,7 +188,7 @@ const EnquiryManagementPage = () => {
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                     <FormControlLabel 
-                                        control={<Checkbox name="visited" checked={selectedEnquiry.visited || false} onChange={handleModalFieldChange} />} 
+                                        control={<Checkbox name="visited" checked={Boolean(selectedEnquiry.visited)} onChange={handleModalFieldChange} />} 
                                         label="Visited Center" 
                                     />
                                 </Grid>

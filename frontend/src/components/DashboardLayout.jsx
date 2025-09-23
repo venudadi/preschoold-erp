@@ -50,7 +50,13 @@ const DashboardLayout = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [mobileOpen, setMobileOpen] = useState(false);
-    const user = JSON.parse(localStorage.getItem('user'));
+    let user = {};
+    try {
+        const raw = localStorage.getItem('user');
+        user = raw ? JSON.parse(raw) : {};
+    } catch (e) {
+        user = {};
+    }
 
     // Get filtered navigation items based on user role
     const allowedNavItems = useMemo(() => {
@@ -67,6 +73,9 @@ const DashboardLayout = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('sessionToken');
+        localStorage.removeItem('csrfToken');
         localStorage.removeItem('user');
         navigate('/login');
     };

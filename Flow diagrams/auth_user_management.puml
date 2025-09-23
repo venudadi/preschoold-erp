@@ -1,0 +1,14 @@
+@startuml auth_user_management
+actor User
+actor Admin
+actor FinancialManager
+actor Parent
+
+database MySQL
+
+User -> Frontend : Login/Register/Reset
+Frontend -> Backend : POST /auth/login, /auth/register, etc.
+Backend -> MySQL : SELECT/INSERT users, user_roles
+Backend -> MySQL : INSERT INTO user_sessions
+Backend -> MySQL : INSERT INTO security_audit_log
+@enduml

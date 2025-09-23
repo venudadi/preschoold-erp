@@ -1,0 +1,26 @@
+.expense-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: var(--color-card-glass);
+  color: var(--color-text);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.expense-table th, .expense-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-card-border);
+  text-align: left;
+}
+.expense-table th {
+  background: var(--color-bg-gradient);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.expense-table tr:last-child td {
+  border-bottom: none;
+}
+.expense-table a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}

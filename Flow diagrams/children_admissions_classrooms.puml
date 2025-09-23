@@ -1,0 +1,9 @@
+@startuml children_admissions_classrooms
+actor Admin
+database MySQL
+
+Admin -> Frontend : Manage Children, Admissions, Classrooms
+Frontend -> Backend : /admin/children, /admissions, /admin/classrooms
+Backend -> MySQL : SELECT/INSERT/UPDATE children, classrooms, students
+Backend -> MySQL : INSERT INTO security_audit_log
+@enduml

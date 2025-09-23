@@ -1,0 +1,66 @@
+@startuml financial_manager_expense_flow
+!theme spacelab
+' Financial Manager E2E Expense Flow
+
+actor FinancialManager as FM
+actor Admin
+actor Owner
+participant "Expense Dashboard" as Dashboard
+participant "Expense Form" as Form
+participant "Approval Dashboard" as Approval
+participant "Backend API" as API
+participant "DB"
+
+== Expense Logging ==
+FM -> Dashboard: Open dashboard
+FM -> Form: Click "Log Expense"
+Form -> FM: Show form (fields, upload)
+FM -> Form: Fill details, upload receipt, submit
+Form -> API: POST /expenses/log + receipt
+API -> DB: Insert expense (status=approved)
+API -> DB: Save receipt file
+API -> API: Log audit
+API --> Form: Success
+Form -> Dashboard: Refresh metrics
+
+== Expense Request (Admin/Owner) ==
+Admin -> Form: Open expense request form
+Admin -> Form: Fill details, submit
+Form -> API: POST /expenses/request
+API -> DB: Insert expense (status=pending)
+API -> API: Log audit
+API --> Form: Success
+Form -> Approval: Show pending request
+
+== Approval Flow ==
+FM -> Approval: View pending requests
+Approval -> API: GET /expenses?status=pending
+API -> DB: Fetch pending expenses
+API --> Approval: List
+FM -> Approval: Approve/Reject
+Approval -> API: POST /expenses/approve/:id or /reject/:id
+API -> DB: Update status, log audit
+API --> Approval: Success
+Approval -> Dashboard: Refresh metrics
+
+== Recurring Management ==
+FM -> Dashboard: View recurring expenses
+Dashboard -> API: GET /expenses/analytics
+API -> DB: Aggregate recurring
+API --> Dashboard: Show recurring metrics
+FM -> Dashboard: Remove recurring (with reason)
+Dashboard -> API: POST /expenses/remove-recurring/:id
+API -> DB: Update, log audit
+API --> Dashboard: Success
+
+== Export & Analytics ==
+FM -> Dashboard: Export to Excel
+Dashboard -> API: GET /expenses/export
+API -> DB: Query, generate file
+API --> Dashboard: Download file
+FM -> System: Choose local folder (browser dialog)
+
+== Notifications ==
+API -> FM: In-app notification for recurring due
+
+@enduml

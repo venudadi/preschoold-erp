@@ -27,8 +27,8 @@ router.post('/', protect, checkRole(['admin', 'owner']), async (req, res) => {
     }
 });
 
-// Get all invoice requests (financial_manager only)
-router.get('/', protect, checkRole(['financial_manager']), async (req, res) => {
+// Get all invoice requests (financial_manager and super_admin only)
+router.get('/', protect, checkRole(['financial_manager', 'super_admin']), async (req, res) => {
     try {
         const [requests] = await pool.query(
             `SELECT ir.*, c.first_name as child_name
@@ -43,8 +43,8 @@ router.get('/', protect, checkRole(['financial_manager']), async (req, res) => {
     }
 });
 
-// Approve invoice request (financial_manager only)
-router.post('/:id/approve', protect, checkRole(['financial_manager']), async (req, res) => {
+// Approve invoice request (financial_manager and super_admin only)
+router.post('/:id/approve', protect, checkRole(['financial_manager', 'super_admin']), async (req, res) => {
     const { id } = req.params;
     try {
         // Get request details
@@ -83,8 +83,8 @@ router.post('/:id/approve', protect, checkRole(['financial_manager']), async (re
     }
 });
 
-// Reject invoice request (financial_manager only)
-router.post('/:id/reject', protect, checkRole(['financial_manager']), async (req, res) => {
+// Reject invoice request (financial_manager and super_admin only)
+router.post('/:id/reject', protect, checkRole(['financial_manager', 'super_admin']), async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
     if (!reason) return res.status(400).json({ message: 'Rejection reason required.' });
