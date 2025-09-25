@@ -121,9 +121,10 @@ router.get('/children', async (req, res) => {
 
     try {
         const sql = `
-            SELECT 
-                c.id, c.first_name, c.last_name, c.date_of_birth, c.enrollment_date, 
-                cl.name as classroom_name 
+            SELECT
+                c.id, c.first_name, c.last_name, c.date_of_birth, c.enrollment_date,
+                c.status, c.pause_start_date, c.pause_end_date, c.pause_reason,
+                cl.name as classroom_name
             FROM children c
             LEFT JOIN classrooms cl ON c.classroom_id = cl.id
             ORDER BY c.created_at DESC

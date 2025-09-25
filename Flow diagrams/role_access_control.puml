@@ -1,8 +1,116 @@
 @startuml role_access_control
-actor User
-rectangle "authMiddleware.js" {
-  :User: --> :authMiddleware.js: : JWT, Session, CSRF
-  :authMiddleware.js: --> MySQL : SELECT user, roles
-  :authMiddleware.js: --> Backend : req.user.role
-}
+!theme spacelab
+title Role-Based Access Control System
+
+actor "User" as User
+participant "Frontend Router" as Router
+participant "Permission Gate" as Gate
+participant "Auth Middleware" as Auth
+participant "Backend API" as API
+database "MySQL DB" as DB
+
+== Access Control Flow ==
+User -> Router : Request protected resource
+Router -> Gate : Check permission requirements
+Gate -> Auth : Validate user token
+Auth -> DB : SELECT user, role, permissions
+DB --> Auth : User data + role permissions
+Auth -> Gate : Return user permissions
+Gate -> Gate : Match required vs actual permissions
+
+alt Permission Granted
+    Gate -> API : Forward request
+    API -> DB : Execute business logic
+    DB --> API : Return data
+    API --> Router : Success response
+    Router --> User : Display content
+else Permission Denied
+    Gate --> Router : 403 Forbidden
+    Router --> User : Access denied message
+end
+
+== Role Hierarchy ==
+note right of DB
+  **Super Admin**
+  - Full system access
+  - Multi-center management
+  - User role assignment
+  - System configuration
+
+  **Owner**
+  - Center-specific full access
+  - Staff management
+  - Financial oversight
+  - Analytics access
+
+  **Admin**
+  - Student management
+  - Enquiry handling
+  - Invoice requests
+  - Classroom management
+
+  **Financial Manager**
+  - Expense management
+  - Invoice approval
+  - Financial reports
+  - Budget oversight
+
+  **Teacher**
+  - Academic content
+  - Student observations
+  - Assignment management
+  - Classroom communication
+
+  **Parent**
+  - Child-specific data
+  - Communication tools
+  - Portfolio viewing
+  - Assignment submission
+end note
+
+== Permission Matrix ==
+DB -> DB : Store permission matrix
+note left of DB
+  **Permissions by Module:**
+
+  User Management:
+  - super_admin: CRUD all users
+  - owner: CRUD center users
+  - admin: Read staff/students
+
+  Academic Operations:
+  - teacher: CRUD lessons/assignments
+  - academic_coordinator: CRUD templates
+  - parent: Read child data only
+
+  Financial Operations:
+  - financial_manager: Full expense mgmt
+  - admin: Create expense requests
+  - owner: View financial reports
+
+  Communication:
+  - teacher: Send messages/announcements
+  - parent: Send messages, view announcements
+  - admin: Send system announcements
+end note
+
+== Dynamic Permission Checking ==
+API -> DB : Check user active status
+API -> DB : Verify center assignments
+API -> DB : Validate resource ownership
+API -> API : Apply row-level security
+API -> API : Filter data by permissions
+
+== Center-Based Isolation ==
+API -> DB : SELECT user_centers
+DB --> API : Assigned center IDs
+API -> API : Apply center filter to all queries
+API -> DB : WHERE center_id IN (user_centers)
+
+== Audit Logging ==
+API -> DB : LOG permission checks
+DB -> DB : Track access attempts
+DB -> DB : Record permission violations
+DB -> DB : Monitor privilege escalation
+
 @enduml

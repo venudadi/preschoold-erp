@@ -157,10 +157,10 @@ router.post('/calculate-summary', protect, async (req, res) => {
     try {
         const { month, year, classroom_id } = req.body;
         
-        // Get all children in the classroom
+        // Get all active children in the classroom (exclude paused students)
         const [children] = await pool.query(
-            'SELECT id, center_id FROM children WHERE classroom_id = ?',
-            [classroom_id]
+            'SELECT id, center_id FROM children WHERE classroom_id = ? AND status = ?',
+            [classroom_id, 'active']
         );
 
         for (const child of children) {
