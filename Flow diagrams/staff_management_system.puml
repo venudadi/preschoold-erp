@@ -1,0 +1,200 @@
+@startuml staff_management_system
+!theme spacelab
+title Staff Management System Flow
+
+actor "Admin" as Admin
+actor "Staff Member" as Staff
+actor "HR Manager" as HR
+participant "Staff Dashboard" as Dashboard
+participant "Staff Form" as Form
+participant "Attendance System" as Attendance
+participant "Leave Management" as Leave
+participant "Document Manager" as Docs
+participant "Backend API" as API
+database "MySQL DB" as DB
+participant "Notification Service" as Notify
+participant "Email Service" as Email
+
+== Staff Onboarding ==
+Admin -> Form : Add new staff member
+Form -> API : POST /api/staff
+API -> DB : INSERT INTO staff_members
+API -> DB : CREATE user account
+API -> DB : ASSIGN role and permissions
+API -> DB : SET center assignments
+API -> Email : Send welcome email with credentials
+API -> Notify : Notify HR of new hire
+API --> Form : Staff created successfully
+
+== Staff Profile Management ==
+Staff -> Dashboard : Update personal information
+Dashboard -> API : PUT /api/staff/:staffId
+API -> DB : UPDATE staff personal details
+API -> DB : INSERT INTO audit_log
+API --> Dashboard : Profile updated
+
+HR -> Dashboard : View staff details
+Dashboard -> API : GET /api/staff/:staffId
+API -> DB : SELECT staff information
+API -> DB : Include performance metrics
+API --> Dashboard : Display staff profile
+
+== Schedule Management ==
+Admin -> Dashboard : Set staff schedule
+Dashboard -> API : PUT /api/staff/:staffId/schedule
+API -> DB : INSERT INTO staff_schedules
+API -> DB : CHECK scheduling conflicts
+API -> Notify : Notify staff of schedule changes
+API --> Dashboard : Schedule updated
+
+Staff -> Dashboard : View my schedule
+Dashboard -> API : GET /api/staff/:staffId/schedule
+API -> DB : SELECT schedule for staff member
+API --> Dashboard : Display weekly/monthly schedule
+
+== Attendance Tracking ==
+Staff -> Attendance : Clock in/out
+Attendance -> API : POST /api/staff/:staffId/attendance
+API -> DB : INSERT attendance record
+API -> DB : CALCULATE working hours
+API -> DB : CHECK tardiness/early departure
+API -> Notify : Alert for attendance issues
+API --> Attendance : Attendance recorded
+
+HR -> Dashboard : View attendance reports
+Dashboard -> API : GET /api/staff/:staffId/attendance
+API -> DB : SELECT attendance records
+API -> DB : CALCULATE monthly summaries
+API -> DB : GENERATE attendance analytics
+API --> Dashboard : Display attendance reports
+
+== Leave Management ==
+Staff -> Leave : Apply for leave
+Leave -> API : POST /api/staff/:staffId/leave
+API -> DB : INSERT INTO leave_applications
+API -> DB : CHECK leave balance
+API -> DB : VALIDATE leave policies
+API -> Notify : Notify supervisor for approval
+API -> Email : Send leave application email
+API --> Leave : Leave application submitted
+
+Admin -> Dashboard : Review leave applications
+Dashboard -> API : GET /api/staff/:staffId/leave
+API -> DB : SELECT pending leave applications
+API --> Dashboard : Display leave requests
+
+Admin -> Dashboard : Approve/Reject leave
+Dashboard -> API : PUT /api/staff/:staffId/leave/:leaveId
+API -> DB : UPDATE leave status
+API -> DB : UPDATE leave balance
+API -> Notify : Notify staff of decision
+API -> Email : Send approval/rejection email
+API --> Dashboard : Leave processed
+
+== Document Management ==
+HR -> Docs : Upload staff documents
+Docs -> API : POST /api/staff/:staffId/documents
+API -> DB : INSERT INTO staff_documents
+API -> DB : SET document categories
+API -> DB : TRACK document expiry dates
+API -> Notify : Alert for expiring documents
+API --> Docs : Document uploaded
+
+Staff -> Dashboard : View my documents
+Dashboard -> API : GET /api/staff/:staffId/documents
+API -> DB : SELECT documents for staff
+API -> DB : CHECK access permissions
+API --> Dashboard : Display document list
+
+== Performance Reviews ==
+HR -> Dashboard : Create performance review
+Dashboard -> API : POST /api/staff/:staffId/reviews
+API -> DB : INSERT INTO performance_reviews
+API -> DB : SET review parameters
+API -> DB : SCHEDULE review meetings
+API -> Notify : Notify staff and reviewers
+API --> Dashboard : Review created
+
+HR -> Dashboard : Submit review scores
+Dashboard -> API : PUT /api/staff/:staffId/reviews/:reviewId
+API -> DB : UPDATE review scores
+API -> DB : ADD review comments
+API -> DB : CALCULATE overall rating
+API -> Notify : Notify staff of completed review
+API --> Dashboard : Review completed
+
+== Payroll Integration ==
+HR -> Dashboard : Generate payroll data
+Dashboard -> API : GET payroll data
+API -> DB : SELECT attendance records
+API -> DB : CALCULATE working hours
+API -> DB : APPLY overtime rules
+API -> DB : DEDUCT leave days
+API --> Dashboard : Payroll report ready
+
+== Staff Analytics ==
+Admin -> Dashboard : View staff analytics
+Dashboard -> API : GET /api/analytics/staff
+API -> DB : AGGREGATE staff data
+API -> DB : CALCULATE turnover rates
+API -> DB : ANALYZE performance trends
+API -> DB : GENERATE departmental reports
+API --> Dashboard : Display analytics
+
+== Training Management ==
+HR -> Dashboard : Schedule training
+Dashboard -> API : POST training session
+API -> DB : INSERT INTO training_sessions
+API -> DB : ASSIGN staff to training
+API -> Notify : Notify staff of training
+API -> Email : Send training details
+API --> Dashboard : Training scheduled
+
+Staff -> Dashboard : Complete training
+Dashboard -> API : POST training completion
+API -> DB : UPDATE training status
+API -> DB : RECORD completion certificate
+API -> DB : UPDATE skill matrix
+API --> Dashboard : Training completed
+
+== Emergency Procedures ==
+Admin -> Dashboard : Send emergency alert
+Dashboard -> API : POST emergency alert
+API -> DB : SELECT all active staff
+API -> Notify : Send immediate notifications
+API -> Email : Send emergency emails
+API -> SMS : Send emergency SMS
+API --> Dashboard : Emergency alert sent
+
+note right of API
+  HR Features:
+  - Complete employee lifecycle
+  - Attendance automation
+  - Leave policy enforcement
+  - Document compliance
+  - Performance tracking
+  - Payroll integration
+end note
+
+note right of DB
+  Staff Data:
+  - Personal information
+  - Employment history
+  - Attendance records
+  - Leave balances
+  - Performance reviews
+  - Training records
+  - Document archives
+end note
+
+note right of Notify
+  Staff Notifications:
+  - Schedule changes
+  - Leave approvals
+  - Document expiries
+  - Training reminders
+  - Performance reviews
+  - Emergency alerts
+end note
+
+@enduml

@@ -1,0 +1,105 @@
+@startuml student_admission_process
+!theme spacelab
+title Student Admission Process Flow
+
+actor "Prospective Parent" as Parent
+actor "Admin" as Admin
+participant "Frontend" as Frontend
+participant "Backend API" as Backend
+database "MySQL DB" as DB
+participant "Email Service" as Email
+participant "Document Storage" as Storage
+
+== Enquiry Stage ==
+Parent -> Frontend : Submit enquiry form
+Frontend -> Backend : POST /api/enquiries
+Backend -> DB : INSERT INTO enquiries
+Backend -> DB : Check company tie-up status
+Backend -> Email : Send acknowledgment to parent
+Backend -> Email : Notify admin of new enquiry
+Backend --> Frontend : Enquiry submitted successfully
+
+== Enquiry Follow-up ==
+Admin -> Frontend : Review enquiries
+Frontend -> Backend : GET /api/enquiries (filtered)
+Backend -> DB : SELECT enquiries with filters
+Backend --> Frontend : Display enquiry list
+Admin -> Frontend : Update enquiry status
+Frontend -> Backend : PUT /api/enquiries/:id
+Backend -> DB : UPDATE enquiry status
+Backend -> Email : Notify parent of status change
+
+== Admission Decision ==
+Admin -> Frontend : Convert enquiry to admission
+Frontend -> Backend : POST /api/admissions/convert/:enquiryId
+Backend -> DB : START TRANSACTION
+Backend -> DB : INSERT INTO children
+Backend -> DB : INSERT INTO students
+Backend -> DB : CREATE parent-child relationship
+Backend -> DB : UPDATE enquiry status = 'Converted'
+Backend -> DB : COMMIT TRANSACTION
+Backend -> Email : Send admission confirmation
+Backend --> Frontend : Admission successful
+
+== Document Collection ==
+Admin -> Frontend : Upload required documents
+Frontend -> Storage : Upload documents
+Storage --> Frontend : Return file URLs
+Frontend -> Backend : POST /api/documents/upload
+Backend -> DB : INSERT document records
+Backend -> DB : Link documents to student
+
+== Class Assignment ==
+Admin -> Frontend : Assign student to classroom
+Frontend -> Backend : POST /api/admin-class-promotion/assign
+Backend -> DB : INSERT INTO class_assignments
+Backend -> DB : UPDATE student classroom
+Backend -> Email : Notify parent of class assignment
+
+== Fee Structure Setup ==
+Admin -> Frontend : Set fee structure for student
+Frontend -> Backend : POST /api/fee-structures/calculate
+Backend -> DB : SELECT applicable fee components
+Backend -> DB : Calculate with company discounts
+Backend -> DB : INSERT INTO student_fee_structures
+Backend --> Frontend : Fee structure confirmed
+
+== Parent Account Creation ==
+Backend -> Backend : Generate parent verification code
+Backend -> Email : Send registration link to parent
+Parent -> Frontend : Access registration link
+Frontend -> Backend : POST /api/parent-auth/register
+Backend -> DB : Verify child-parent relationship
+Backend -> DB : INSERT INTO parent_accounts
+Backend -> Email : Send welcome email with credentials
+
+== Completion ==
+Backend -> DB : UPDATE student status = 'Active'
+Backend -> DB : INSERT audit log
+Backend -> Email : Send admission completion notification
+Admin -> Frontend : View admission dashboard
+Frontend -> Backend : GET /api/analytics/overview
+Backend --> Frontend : Updated enrollment metrics
+
+note right of Backend
+  Validation Rules:
+  - Child age requirements
+  - Classroom capacity
+  - Required documents
+  - Fee payment terms
+  - Parent verification
+end note
+
+note right of DB
+  Created Records:
+  - enquiries
+  - children
+  - students
+  - parent_child_relationships
+  - class_assignments
+  - student_fee_structures
+  - documents
+  - audit_logs
+end note
+
+@enduml

@@ -1,49 +1,93 @@
 @startuml system_architecture
-!define RECTANGLE class
-RECTANGLE Frontend {
-  React (Vite)
-  - App.jsx
-  - main.jsx
-  - components/
-  - pages/
-  - services/api.js
+!theme spacelab
+title Preschool ERP System Architecture
+
+package "Frontend Layer" {
+  component "React App (Vite)" as React {
+    - App.jsx
+    - Role-based Dashboards
+    - 40+ UI Components
+    - 20+ Pages
+    - API Service Layer
+  }
 }
-RECTANGLE Backend {
-  Node.js/Express
-  - index.js
-  - authRoutes.js
-  - authMiddleware.js
-  - adminRoutes.js
-  - admissionRoutes.js
-  - analyticsRoutes.js
-  - centerRoutes.js
-  - enquiryRoutes.js
-  - feeStructureRoutes.js
-  - invoiceRoutes.js
-  - invoiceRequestRoutes.js
-  - parentAuthRoutes.js
-  - settingsRoutes.js
-  - staffRoutes.js
-  - studentRoutes.js
-  - utils/security.js
-  - middleware/security.js
+
+package "Backend Layer" {
+  component "Node.js/Express Server" as Backend {
+    - Authentication & Authorization
+    - Role-based Access Control
+    - JWT + Session Management
+    - Rate Limiting & Security
+  }
+
+  component "API Routes (26 modules)" as Routes {
+    - Auth & User Management
+    - Academic Operations
+    - Financial Management
+    - Communication System
+    - Administrative Functions
+    - System Management
+  }
+
+  component "Middleware" as Middleware {
+    - Authentication Middleware
+    - Security Middleware
+    - Permission Gates
+    - Audit Logging
+  }
+
+  component "Cloud Storage" as Storage {
+    - Document Management
+    - Digital Portfolio
+    - Receipt Storage
+    - File Versioning
+  }
 }
-RECTANGLE Database {
-  MySQL
-  - users
-  - user_roles
-  - children
-  - students
-  - enquiries
-  - classrooms
-  - companies
-  - invoices
-  - invoice_requests
-  - invoice_line_items
-  - fee_structures
-  - security_audit_log
-  - user_sessions
+
+package "Database Layer" {
+  database "MySQL Database" as DB {
+    - User Management Tables
+    - Academic Data
+    - Financial Records
+    - Communication Logs
+    - Audit Trails
+    - Session Management
+  }
 }
-Frontend --> Backend : REST API (Axios)
-Backend --> Database : SQL Queries
+
+package "External Services" {
+  component "Email Service" as Email
+  component "SMS Service" as SMS
+  component "PDF Generator" as PDF
+}
+
+' Connections
+React --> Backend : REST API (Axios)\nAuthenticated Requests
+Backend --> Routes : Route Handling
+Backend --> Middleware : Request Processing
+Routes --> DB : SQL Queries\nTransactions
+Backend --> Storage : File Operations
+Backend --> Email : Notifications
+Backend --> SMS : Alerts
+Backend --> PDF : Invoice Generation
+
+note right of Backend
+  Security Features:
+  - JWT with Refresh Tokens
+  - Role-based Permissions
+  - Rate Limiting
+  - Input Validation
+  - SQL Injection Prevention
+  - 2FA for Sensitive Operations
+end note
+
+note right of DB
+  Multi-tenant Architecture:
+  - Center-based Data Isolation
+  - Role-based Access Control
+  - Audit Logging
+  - Soft Deletes
+  - Performance Indexes
+end note
+
 @enduml

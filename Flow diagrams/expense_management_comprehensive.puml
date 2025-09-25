@@ -1,0 +1,139 @@
+@startuml expense_management_comprehensive
+!theme spacelab
+title Comprehensive Expense Management Flow
+
+actor "Financial Manager" as FM
+actor "Admin" as Admin
+actor "Owner" as Owner
+participant "Expense Dashboard" as Dashboard
+participant "Expense Form" as Form
+participant "Approval Dashboard" as Approval
+participant "Backend API" as API
+participant "Cloud Storage" as Storage
+database "MySQL DB" as DB
+participant "Notification Service" as Notify
+participant "Excel Export" as Excel
+
+== Direct Expense Logging (Financial Manager) ==
+FM -> Dashboard : Access expense dashboard
+Dashboard -> API : GET /api/expenses/analytics
+API -> DB : Fetch expense analytics
+API --> Dashboard : Display metrics & charts
+
+FM -> Form : Click "Log New Expense"
+Form -> FM : Show expense form
+FM -> Form : Fill details, upload receipt
+Form -> Storage : Upload receipt file
+Storage --> Form : Return file URL
+Form -> API : POST /api/expenses/log
+API -> DB : INSERT INTO expenses (status='approved')
+API -> DB : INSERT INTO expense_attachments
+API -> DB : INSERT INTO audit_log
+API -> Notify : Log approval notification
+API --> Form : Success response
+Form -> Dashboard : Refresh analytics
+
+== Expense Request Flow (Admin/Owner) ==
+Admin -> Form : Access expense request
+Form -> Admin : Show request form
+Admin -> Form : Fill expense details, submit
+Form -> API : POST /api/expenses/request
+API -> DB : INSERT INTO expenses (status='pending')
+API -> DB : INSERT INTO audit_log
+API -> Notify : Notify Financial Manager
+API --> Form : Request submitted
+
+== Approval Process ==
+FM -> Approval : View pending requests
+Approval -> API : GET /api/expenses?status=pending
+API -> DB : SELECT pending expenses
+API --> Approval : List pending requests
+
+alt Approve Request
+    FM -> Approval : Click "Approve"
+    Approval -> API : POST /api/expenses/approve/:id
+    API -> DB : UPDATE expenses SET status='approved'
+    API -> DB : INSERT INTO audit_log
+    API -> Notify : Notify requester (approval)
+    API --> Approval : Success
+else Reject Request
+    FM -> Approval : Click "Reject" + reason
+    Approval -> API : POST /api/expenses/reject/:id
+    API -> DB : UPDATE expenses SET status='rejected'
+    API -> DB : INSERT rejection reason
+    API -> DB : INSERT INTO audit_log
+    API -> Notify : Notify requester (rejection)
+    API --> Approval : Success
+end
+
+== Recurring Expense Management ==
+FM -> Dashboard : View recurring expenses
+Dashboard -> API : GET /api/expenses/analytics
+API -> DB : SELECT recurring expenses
+API --> Dashboard : Show recurring list
+
+FM -> Dashboard : Remove recurring expense
+Dashboard -> API : POST /api/expenses/remove-recurring/:id
+API -> DB : UPDATE recurring_status = 'inactive'
+API -> DB : INSERT removal reason
+API -> DB : INSERT INTO audit_log
+API --> Dashboard : Success
+
+== Analytics & Reporting ==
+FM -> Dashboard : View expense analytics
+Dashboard -> API : GET /api/expenses/analytics
+API -> DB : Aggregate expense data by category
+API -> DB : Calculate monthly trends
+API -> DB : Analyze recurring patterns
+API --> Dashboard : Display charts & metrics
+
+== Export Functionality ==
+FM -> Dashboard : Click "Export to Excel"
+Dashboard -> API : GET /api/expenses/export
+API -> DB : Query expense data with filters
+API -> Excel : Generate Excel file
+Excel --> API : Return file buffer
+API --> Dashboard : Download Excel file
+Dashboard -> FM : Browser download dialog
+
+== Notification System ==
+API -> Notify : Check recurring expenses due
+Notify -> DB : SELECT recurring expenses near due date
+Notify -> API : POST /api/expenses/notifications
+API -> DB : INSERT INTO notifications
+API -> FM : In-app notification display
+
+== Audit & Compliance ==
+API -> DB : INSERT INTO audit_log for all actions
+DB -> DB : Track user actions, timestamps
+DB -> DB : Maintain expense approval trails
+API -> API : Generate compliance reports
+
+note right of API
+  Business Rules:
+  - FM can log expenses directly
+  - Admin/Owner need approval
+  - All expenses require receipts
+  - Recurring tracking automatic
+  - Approval workflow mandatory
+  - Audit trail required
+end note
+
+note right of DB
+  Expense States:
+  - pending (awaiting approval)
+  - approved (ready for payment)
+  - rejected (with reason)
+  - paid (completed)
+  - recurring (auto-generated)
+end note
+
+note right of Notify
+  Notifications:
+  - Approval/Rejection alerts
+  - Recurring expense reminders
+  - Budget threshold warnings
+  - Monthly summaries
+end note
+
+@enduml

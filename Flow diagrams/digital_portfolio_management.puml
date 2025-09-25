@@ -1,0 +1,140 @@
+@startuml digital_portfolio_management
+!theme spacelab
+title Digital Portfolio Management Flow
+
+actor "Teacher" as Teacher
+actor "Parent" as Parent
+participant "Portfolio Gallery" as Gallery
+participant "Portfolio Uploader" as Uploader
+participant "Backend API" as API
+participant "Cloud Storage" as Storage
+database "MySQL DB" as DB
+participant "Notification Service" as Notify
+
+== Portfolio Upload (Teacher) ==
+Teacher -> Uploader : Access portfolio uploader
+Uploader -> Teacher : Show upload form
+Teacher -> Uploader : Select files, add metadata
+Uploader -> Storage : Upload files (images/videos/documents)
+Storage --> Uploader : Return file URLs & metadata
+Uploader -> API : POST /api/digital-portfolio/upload
+API -> DB : INSERT INTO portfolio_items
+API -> DB : INSERT INTO portfolio_metadata
+API -> DB : Link to child and teacher
+API -> Notify : Notify parents of new upload
+API --> Uploader : Upload successful
+
+== Portfolio Viewing (Parent) ==
+Parent -> Gallery : Access child's portfolio
+Gallery -> API : GET /api/digital-portfolio/child/:childId
+API -> DB : SELECT portfolio items for child
+API -> DB : Check parent permissions
+API --> Gallery : Return portfolio items
+Gallery -> Parent : Display gallery with filtering
+
+Parent -> Gallery : Filter by date/category/teacher
+Gallery -> API : GET with filters
+API -> DB : SELECT filtered portfolio items
+API --> Gallery : Filtered results
+
+== Portfolio Management (Teacher) ==
+Teacher -> Gallery : View classroom portfolios
+Gallery -> API : GET /api/digital-portfolio/child/:childId
+API -> DB : SELECT portfolio items by teacher
+API --> Gallery : Display teacher's uploads
+
+Teacher -> Gallery : Delete portfolio item
+Gallery -> API : DELETE /api/digital-portfolio/:id
+API -> DB : Soft delete portfolio item
+API -> Storage : Mark file for cleanup
+API -> DB : INSERT INTO audit_log
+API --> Gallery : Item deleted
+
+== Metadata Management ==
+Teacher -> Uploader : Add detailed metadata
+Uploader -> Teacher : Show metadata form
+Teacher -> Uploader : Fill milestone, category, notes
+Uploader -> API : Update portfolio metadata
+API -> DB : UPDATE portfolio_items SET metadata
+API -> DB : Track developmental milestones
+API --> Uploader : Metadata saved
+
+== Portfolio Analytics ==
+Teacher -> Gallery : View child development analytics
+Gallery -> API : GET portfolio analytics
+API -> DB : Aggregate portfolio data
+API -> DB : Track milestone achievements
+API -> DB : Generate development reports
+API --> Gallery : Display analytics charts
+
+Parent -> Gallery : View child's progress
+Gallery -> API : GET child progress report
+API -> DB : SELECT milestone data
+API -> DB : Calculate developmental progress
+API --> Gallery : Progress visualization
+
+== Bulk Operations ==
+Teacher -> Gallery : Select multiple items
+Gallery -> Teacher : Show bulk actions
+Teacher -> Gallery : Bulk category update
+Gallery -> API : POST bulk update
+API -> DB : UPDATE multiple portfolio items
+API -> DB : INSERT INTO audit_log
+API --> Gallery : Bulk update complete
+
+== Search & Discovery ==
+Parent -> Gallery : Search portfolio items
+Gallery -> API : GET with search terms
+API -> DB : FULLTEXT search on titles, descriptions
+API -> DB : Filter by date ranges
+API --> Gallery : Search results
+
+== Privacy & Permissions ==
+API -> DB : Check parent-child relationships
+API -> DB : Verify teacher-classroom assignments
+API -> DB : Enforce privacy settings
+API -> API : Apply access control rules
+
+== Storage Management ==
+Storage -> Storage : Auto-generate thumbnails
+Storage -> Storage : Compress large files
+Storage -> Storage : Implement CDN caching
+Storage -> API : Webhook on file processing
+API -> DB : UPDATE file processing status
+
+== Notification System ==
+Notify -> Parent : New portfolio item notification
+Notify -> Parent : Weekly portfolio summary
+Notify -> Teacher : Upload confirmation
+Notify -> Teacher : Storage quota warnings
+
+note right of API
+  File Types Supported:
+  - Images (JPG, PNG, GIF)
+  - Videos (MP4, MOV)
+  - Documents (PDF)
+  - Audio recordings
+  - Artwork scans
+end note
+
+note right of DB
+  Portfolio Data:
+  - Developmental milestones
+  - Activity categories
+  - Teacher observations
+  - Upload timestamps
+  - Child associations
+  - Privacy settings
+end note
+
+note right of Storage
+  Cloud Features:
+  - Automatic backups
+  - CDN distribution
+  - Thumbnail generation
+  - File compression
+  - Access logging
+  - Secure URLs
+end note
+
+@enduml

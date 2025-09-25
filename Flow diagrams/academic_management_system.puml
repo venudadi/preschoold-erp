@@ -1,0 +1,193 @@
+@startuml academic_management_system
+!theme spacelab
+title Academic Management System Flow
+
+actor "Teacher" as Teacher
+actor "Academic Coordinator" as AC
+actor "Parent" as Parent
+participant "Lesson Plan Interface" as LessonPlan
+participant "Assignment Interface" as Assignment
+participant "Observation Interface" as Observation
+participant "Analytics Dashboard" as Analytics
+participant "Backend API" as API
+database "MySQL DB" as DB
+participant "Notification Service" as Notify
+participant "Cloud Storage" as Storage
+
+== Lesson Plan Management ==
+AC -> LessonPlan : Create lesson plan template
+LessonPlan -> API : POST /api/lesson-plans
+API -> DB : INSERT INTO lesson_plans
+API -> DB : SET curriculum standards
+API -> DB : ADD learning objectives
+API -> Storage : Upload plan attachments
+API -> Notify : Notify assigned teachers
+API --> LessonPlan : Plan created
+
+Teacher -> LessonPlan : View assigned plans
+LessonPlan -> API : GET /api/lesson-plans
+API -> DB : SELECT plans for teacher
+API -> DB : FILTER by date/subject
+API --> LessonPlan : Display lesson plans
+
+Teacher -> LessonPlan : Mark plan as completed
+LessonPlan -> API : PATCH /api/lesson-plans/:id/checkoff
+API -> DB : UPDATE completion status
+API -> DB : ADD teacher notes
+API -> DB : TRACK implementation data
+API -> Notify : Notify academic coordinator
+API --> LessonPlan : Plan marked complete
+
+== Assignment Workflow ==
+Teacher -> Assignment : Create new assignment
+Assignment -> API : POST /api/assignments
+API -> DB : INSERT INTO assignments
+API -> DB : LINK to lesson plan
+API -> DB : SET due dates and criteria
+API -> Storage : Upload assignment files
+API -> Notify : Notify parents of new assignment
+API --> Assignment : Assignment created
+
+Parent -> Assignment : View child's assignments
+Assignment -> API : GET /api/assignments
+API -> DB : SELECT assignments for child
+API -> DB : CHECK assignment status
+API --> Assignment : Display assignment list
+
+Parent -> Assignment : Submit assignment
+Assignment -> Storage : Upload submission files
+Storage --> Assignment : Return file URLs
+Assignment -> API : POST /api/assignments/:id/submit
+API -> DB : INSERT INTO assignment_submissions
+API -> DB : UPDATE assignment status
+API -> Notify : Notify teacher of submission
+API --> Assignment : Submission recorded
+
+Teacher -> Assignment : Provide feedback
+Assignment -> API : POST /api/assignments/submissions/:id/feedback
+API -> DB : INSERT feedback record
+API -> DB : ADD grades and comments
+API -> DB : UPDATE submission status
+API -> Notify : Notify parent of feedback
+API --> Assignment : Feedback provided
+
+== Observation Logging ==
+Teacher -> Observation : Create observation log
+Observation -> API : POST /api/observation-logs
+API -> DB : INSERT INTO observation_logs
+API -> DB : TAG developmental milestones
+API -> DB : ADD behavioral notes
+API -> Storage : Upload observation photos/videos
+API -> Notify : Notify parents of new observation
+API --> Observation : Observation logged
+
+Parent -> Observation : View child observations
+Observation -> API : GET /api/observation-logs
+API -> DB : SELECT observations for child
+API -> DB : FILTER by milestone/date
+API --> Observation : Display observations
+
+== Academic Analytics ==
+AC -> Analytics : View academic performance
+Analytics -> API : GET academic analytics
+API -> DB : AGGREGATE lesson plan completion
+API -> DB : CALCULATE assignment success rates
+API -> DB : ANALYZE milestone achievements
+API -> DB : TRACK curriculum progress
+API --> Analytics : Display performance metrics
+
+Teacher -> Analytics : View classroom analytics
+Analytics -> API : GET classroom analytics
+API -> DB : SELECT data for teacher's classes
+API -> DB : CALCULATE student progress
+API -> DB : IDENTIFY learning gaps
+API --> Analytics : Classroom insights
+
+== Progress Tracking ==
+API -> DB : AUTO-CALCULATE child development scores
+DB -> DB : TRACK milestone achievements
+DB -> DB : IDENTIFY learning patterns
+API -> Notify : Alert for developmental concerns
+API -> Notify : Celebrate milestone achievements
+
+== Curriculum Alignment ==
+AC -> LessonPlan : Map to curriculum standards
+LessonPlan -> API : UPDATE curriculum mapping
+API -> DB : LINK plans to standards
+API -> DB : TRACK standard coverage
+API -> DB : ENSURE curriculum compliance
+API --> LessonPlan : Mapping updated
+
+== Assessment Management ==
+Teacher -> Assignment : Create assessment
+Assignment -> API : POST assessment
+API -> DB : INSERT INTO assessments
+API -> DB : SET assessment criteria
+API -> DB : LINK to learning objectives
+API -> Notify : Schedule assessment
+API --> Assignment : Assessment scheduled
+
+Teacher -> Assignment : Record assessment results
+Assignment -> API : POST assessment results
+API -> DB : INSERT assessment scores
+API -> DB : CALCULATE grade averages
+API -> DB : UPDATE student progress
+API -> Notify : Notify parents of results
+API --> Assignment : Results recorded
+
+== Portfolio Integration ==
+Teacher -> Observation : Link to digital portfolio
+Observation -> API : CONNECT observation to portfolio
+API -> DB : CROSS-REFERENCE portfolio items
+API -> DB : BUILD comprehensive child profile
+API -> DB : TRACK developmental journey
+API --> Observation : Portfolio linked
+
+== Parent Engagement ==
+Parent -> Analytics : View child's academic progress
+Analytics -> API : GET child progress report
+API -> DB : COMPILE academic data
+API -> DB : GENERATE progress summaries
+API -> DB : INCLUDE milestone tracking
+API --> Analytics : Progress report
+
+== Communication ==
+Teacher -> Assignment : Send academic updates
+Assignment -> API : POST academic communication
+API -> Notify : Notify parents of updates
+API -> Email : Send detailed reports
+API -> DB : LOG communication
+API --> Assignment : Update sent
+
+note right of API
+  Academic Features:
+  - Curriculum alignment
+  - Milestone tracking
+  - Progress analytics
+  - Assessment management
+  - Multi-media observations
+  - Parent engagement
+end note
+
+note right of DB
+  Academic Data:
+  - Lesson plans
+  - Assignment records
+  - Observation logs
+  - Assessment scores
+  - Milestone achievements
+  - Progress tracking
+  - Curriculum mapping
+end note
+
+note right of Notify
+  Academic Notifications:
+  - New assignments
+  - Submission reminders
+  - Milestone achievements
+  - Progress updates
+  - Assessment results
+  - Observation logs
+end note
+
+@enduml

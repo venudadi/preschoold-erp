@@ -1,14 +1,82 @@
 @startuml auth_user_management
-actor User
-actor Admin
-actor FinancialManager
-actor Parent
+!theme spacelab
+title Authentication & User Management Flow
 
-database MySQL
+actor "User" as User
+actor "Parent" as Parent
+actor "Admin/Owner" as Admin
+participant "Frontend" as Frontend
+participant "Auth Middleware" as AuthMW
+participant "Backend API" as Backend
+participant "JWT Service" as JWT
+database "MySQL DB" as DB
+participant "Security Logger" as Logger
 
-User -> Frontend : Login/Register/Reset
-Frontend -> Backend : POST /auth/login, /auth/register, etc.
-Backend -> MySQL : SELECT/INSERT users, user_roles
-Backend -> MySQL : INSERT INTO user_sessions
-Backend -> MySQL : INSERT INTO security_audit_log
+== User Authentication ==
+User -> Frontend : Login Request
+Frontend -> Backend : POST /api/auth/login\n{email, password}
+Backend -> DB : SELECT user, check password
+Backend -> JWT : Generate access + refresh tokens
+Backend -> DB : INSERT session record
+Backend -> Logger : Log successful login
+Backend --> Frontend : {tokens, user, permissions}
+Frontend -> Frontend : Store tokens, redirect to dashboard
+
+== Parent Authentication ==
+Parent -> Frontend : Parent Registration
+Frontend -> Backend : POST /api/parent-auth/register
+Backend -> DB : Verify child exists
+Backend -> Backend : Generate verification code
+Backend -> Parent : Send verification code
+Parent -> Frontend : Enter verification code
+Frontend -> Backend : POST /api/parent-auth/request-verification-code
+Backend -> DB : Validate code, create parent account
+Backend -> Logger : Log parent registration
+
+== Token Refresh ==
+Frontend -> Backend : POST /api/auth/refresh-token
+Backend -> JWT : Validate refresh token
+Backend -> JWT : Generate new access token
+Backend -> DB : Update session
+Backend --> Frontend : New access token
+
+== Protected Route Access ==
+User -> Frontend : Access protected page
+Frontend -> AuthMW : Check token validity
+AuthMW -> JWT : Verify access token
+AuthMW -> DB : Check user status, permissions
+AuthMW -> Logger : Log access attempt
+AuthMW --> Frontend : Allow/Deny access
+
+== User Management (Admin) ==
+Admin -> Frontend : Create/Update User
+Frontend -> Backend : POST/PUT /api/owners
+Backend -> AuthMW : Verify admin permissions
+Backend -> DB : Create/Update user record
+Backend -> DB : Assign role and centers
+Backend -> Logger : Log user management action
+Backend --> Frontend : Success response
+
+== Account Security ==
+Backend -> Backend : Rate limiting check
+Backend -> DB : Check failed login attempts
+Backend -> DB : Lock account if threshold exceeded
+Backend -> Logger : Log security events
+
+note right of JWT
+  JWT Features:
+  - Access token (15 min)
+  - Refresh token (7 days)
+  - Role-based claims
+  - Center permissions
+end note
+
+note right of Logger
+  Audit Events:
+  - Login/Logout
+  - Permission changes
+  - Account modifications
+  - Security violations
+end note
+
 @enduml

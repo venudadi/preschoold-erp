@@ -1,0 +1,175 @@
+@startuml parent_communication_system
+!theme spacelab
+title Parent Communication System Flow
+
+actor "Teacher" as Teacher
+actor "Parent" as Parent
+actor "Admin" as Admin
+participant "Messaging Interface" as Messaging
+participant "Announcement Board" as Announcements
+participant "Parent Dashboard" as Dashboard
+participant "Backend API" as API
+database "MySQL DB" as DB
+participant "Notification Service" as Notify
+participant "Email Service" as Email
+participant "SMS Service" as SMS
+
+== Direct Messaging ==
+Parent -> Messaging : Start conversation with teacher
+Messaging -> API : POST /api/messaging/threads
+API -> DB : CREATE message thread
+API -> DB : INSERT initial message
+API -> Notify : Notify teacher of new message
+API --> Messaging : Thread created
+
+Teacher -> Messaging : Reply to parent message
+Messaging -> API : POST /api/messaging/threads/:id/messages
+API -> DB : INSERT message into thread
+API -> DB : UPDATE thread last_activity
+API -> Notify : Notify parent of reply
+API -> Email : Send email notification (if enabled)
+API --> Messaging : Message sent
+
+== Classroom Announcements ==
+Teacher -> Announcements : Create classroom announcement
+Announcements -> API : POST /api/classroom-announcements
+API -> DB : INSERT INTO announcements
+API -> DB : Link to classroom
+API -> Notify : Notify all parents in classroom
+API -> Email : Send email to parent list
+API -> SMS : Send SMS alerts (urgent announcements)
+API --> Announcements : Announcement posted
+
+Parent -> Dashboard : View announcements
+Dashboard -> API : GET /api/classroom-announcements/:classroomId
+API -> DB : SELECT announcements for child's classroom
+API -> DB : UPDATE read status for parent
+API --> Dashboard : Display announcements
+
+== Assignment Communications ==
+Teacher -> Dashboard : Post assignment
+Dashboard -> API : POST /api/assignments
+API -> DB : INSERT INTO assignments
+API -> DB : Link to students
+API -> Notify : Notify parents of new assignment
+API --> Dashboard : Assignment posted
+
+Parent -> Dashboard : Submit assignment
+Dashboard -> API : POST /api/assignments/:id/submit
+API -> DB : INSERT submission record
+API -> DB : Store file attachments
+API -> Notify : Notify teacher of submission
+API --> Dashboard : Submission recorded
+
+Teacher -> Dashboard : Provide feedback
+Dashboard -> API : POST /api/assignments/submissions/:id/feedback
+API -> DB : INSERT feedback record
+API -> Notify : Notify parent of feedback
+API --> Dashboard : Feedback provided
+
+== Parent Preferences Management ==
+Parent -> Dashboard : Update communication preferences
+Dashboard -> API : POST /api/parent-module/preferences
+API -> DB : UPDATE parent notification settings
+API -> DB : Set email/SMS preferences
+API -> DB : Configure notification frequency
+API --> Dashboard : Preferences saved
+
+== Feedback System ==
+Parent -> Dashboard : Submit feedback
+Dashboard -> API : POST /api/parent-module/feedback
+API -> DB : INSERT INTO parent_feedback
+API -> Notify : Notify admin of feedback
+API -> Email : Send feedback to management
+API --> Dashboard : Feedback submitted
+
+Admin -> Dashboard : Review parent feedback
+Dashboard -> API : GET /api/parent-module/feedback
+API -> DB : SELECT feedback with filters
+API --> Dashboard : Display feedback reports
+
+== Observation Log Sharing ==
+Teacher -> Dashboard : Create observation log
+Dashboard -> API : POST /api/observation-logs
+API -> DB : INSERT observation record
+API -> DB : Link to child
+API -> Notify : Notify parent of new observation
+API --> Dashboard : Observation logged
+
+Parent -> Dashboard : View child observations
+Dashboard -> API : GET /api/observation-logs
+API -> DB : SELECT observations for child
+API -> DB : Filter by parent permissions
+API --> Dashboard : Display observations
+
+== Multi-Channel Notifications ==
+Notify -> Email : Send email notifications
+Email -> Parent : Delivery confirmation
+Notify -> SMS : Send SMS alerts
+SMS -> Parent : Delivery confirmation
+Notify -> Dashboard : In-app notifications
+Dashboard -> Parent : Real-time updates
+
+== Read Status Tracking ==
+Parent -> Dashboard : Read announcement/message
+Dashboard -> API : POST /api/parent-module/read-status
+API -> DB : UPDATE read timestamp
+API -> DB : Track engagement metrics
+API --> Dashboard : Status updated
+
+== Bulk Communications ==
+Admin -> Dashboard : Send bulk message
+Dashboard -> API : POST bulk communication
+API -> DB : SELECT target parent groups
+API -> Email : Send bulk emails
+API -> SMS : Send bulk SMS
+API -> DB : Log bulk communication
+API --> Dashboard : Bulk sent
+
+== Communication Analytics ==
+Admin -> Dashboard : View communication analytics
+Dashboard -> API : GET communication metrics
+API -> DB : Aggregate message statistics
+API -> DB : Calculate engagement rates
+API -> DB : Track response times
+API --> Dashboard : Analytics charts
+
+== Emergency Communications ==
+Admin -> Dashboard : Send emergency alert
+Dashboard -> API : POST emergency notification
+API -> SMS : Immediate SMS to all parents
+API -> Email : Emergency email blast
+API -> Notify : Push notifications
+API -> DB : Log emergency communication
+API --> Dashboard : Emergency sent
+
+note right of Notify
+  Notification Types:
+  - New messages
+  - Announcements
+  - Assignment updates
+  - Observation logs
+  - Emergency alerts
+  - Weekly summaries
+end note
+
+note right of DB
+  Communication Data:
+  - Message threads
+  - Read timestamps
+  - Notification preferences
+  - Engagement metrics
+  - Emergency logs
+  - Feedback records
+end note
+
+note right of API
+  Privacy Features:
+  - Teacher-parent only threads
+  - Classroom-based announcements
+  - Child-specific observations
+  - Secure file attachments
+  - Access logging
+end note
+
+@enduml

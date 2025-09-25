@@ -34,7 +34,11 @@
     "pdfkit": "^0.14.0",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "sharp": "^0.33.0",
+    "exif-parser": "^0.1.12",
+    "jimp": "^0.22.10",
+    "file-type": "^19.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
