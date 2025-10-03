@@ -1,0 +1,330 @@
+{
+  "passed": 16,
+  "failed": 15,
+  "errors": [
+    {
+      "module": "Dashboard",
+      "test": "Profile Access as parent",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:48.364Z"
+    },
+    {
+      "module": "Children Management",
+      "test": "Get Children as admin",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:48.890Z"
+    },
+    {
+      "module": "Children Management",
+      "test": "Get Children as teacher",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:49.407Z"
+    },
+    {
+      "module": "Digital Portfolio",
+      "test": "Access Portfolio as admin",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:49.924Z"
+    },
+    {
+      "module": "Digital Portfolio",
+      "test": "Access Portfolio as owner",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:50.445Z"
+    },
+    {
+      "module": "Digital Portfolio",
+      "test": "Access Portfolio as super_admin",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:50.966Z"
+    },
+    {
+      "module": "Digital Portfolio",
+      "test": "Access Portfolio as parent",
+      "status": "INFO",
+      "details": "Skipped (requires child ID parameter)",
+      "timestamp": "2025-10-03T08:58:51.471Z"
+    },
+    {
+      "module": "Digital Portfolio",
+      "test": "Access Portfolio as teacher",
+      "status": "INFO",
+      "details": "Skipped (requires child ID parameter)",
+      "timestamp": "2025-10-03T08:58:51.971Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as super_admin",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:52.478Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as owner",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:52.995Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as admin",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:53.502Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as center_director",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:54.011Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as financial_manager",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:54.516Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as teacher",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:55.025Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as parent",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:55.530Z"
+    }
+  ],
+  "details": [
+    {
+      "module": "Backend",
+      "test": "Health Check",
+      "status": "PASS",
+      "details": "Service: preschool-erp-api, Uptime: 3722.7503754s",
+      "timestamp": "2025-10-03T08:58:39.915Z"
+    },
+    {
+      "module": "Authentication",
+      "test": "Login as super_admin",
+      "status": "PASS",
+      "details": "Token received: eyJhbGciOiJIUzI1NiIs...",
+      "timestamp": "2025-10-03T08:58:40.155Z"
+    },
+    {
+      "module": "Authentication",
+      "test": "Login as owner",
+      "status": "PASS",
+      "details": "Token received: eyJhbGciOiJIUzI1NiIs...",
+      "timestamp": "2025-10-03T08:58:40.915Z"
+    },
+    {
+      "module": "Authentication",
+      "test": "Login as admin",
+      "status": "PASS",
+      "details": "Token received: eyJhbGciOiJIUzI1NiIs...",
+      "timestamp": "2025-10-03T08:58:41.665Z"
+    },
+    {
+      "module": "Authentication",
+      "test": "Login as center_director",
+      "status": "PASS",
+      "details": "Token received: eyJhbGciOiJIUzI1NiIs...",
+      "timestamp": "2025-10-03T08:58:42.415Z"
+    },
+    {
+      "module": "Authentication",
+      "test": "Login as financial_manager",
+      "status": "PASS",
+      "details": "Token received: eyJhbGciOiJIUzI1NiIs...",
+      "timestamp": "2025-10-03T08:58:43.169Z"
+    },
+    {
+      "module": "Authentication",
+      "test": "Login as teacher",
+      "status": "PASS",
+      "details": "Token received: eyJhbGciOiJIUzI1NiIs...",
+      "timestamp": "2025-10-03T08:58:43.916Z"
+    },
+    {
+      "module": "Authentication",
+      "test": "Login as parent",
+      "status": "PASS",
+      "details": "Token received: eyJhbGciOiJIUzI1NiIs...",
+      "timestamp": "2025-10-03T08:58:44.662Z"
+    },
+    {
+      "module": "Dashboard",
+      "test": "Profile Access as super_admin",
+      "status": "PASS",
+      "details": "User: venudadi@outlook.com",
+      "timestamp": "2025-10-03T08:58:45.208Z"
+    },
+    {
+      "module": "Dashboard",
+      "test": "Profile Access as owner",
+      "status": "PASS",
+      "details": "User: owner@test.com",
+      "timestamp": "2025-10-03T08:58:45.735Z"
+    },
+    {
+      "module": "Dashboard",
+      "test": "Profile Access as admin",
+      "status": "PASS",
+      "details": "User: admintest@test.com",
+      "timestamp": "2025-10-03T08:58:46.259Z"
+    },
+    {
+      "module": "Dashboard",
+      "test": "Profile Access as center_director",
+      "status": "PASS",
+      "details": "User: director@test.com",
+      "timestamp": "2025-10-03T08:58:46.784Z"
+    },
+    {
+      "module": "Dashboard",
+      "test": "Profile Access as financial_manager",
+      "status": "PASS",
+      "details": "User: finance@test.com",
+      "timestamp": "2025-10-03T08:58:47.304Z"
+    },
+    {
+      "module": "Dashboard",
+      "test": "Profile Access as teacher",
+      "status": "PASS",
+      "details": "User: teachertest@test.com",
+      "timestamp": "2025-10-03T08:58:47.848Z"
+    },
+    {
+      "module": "Dashboard",
+      "test": "Profile Access as parent",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:48.364Z"
+    },
+    {
+      "module": "Children Management",
+      "test": "Get Children as admin",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:48.890Z"
+    },
+    {
+      "module": "Children Management",
+      "test": "Get Children as teacher",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:49.407Z"
+    },
+    {
+      "module": "Digital Portfolio",
+      "test": "Access Portfolio as admin",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:49.924Z"
+    },
+    {
+      "module": "Digital Portfolio",
+      "test": "Access Portfolio as owner",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:50.445Z"
+    },
+    {
+      "module": "Digital Portfolio",
+      "test": "Access Portfolio as super_admin",
+      "status": "FAIL",
+      "details": "Unknown error",
+      "timestamp": "2025-10-03T08:58:50.966Z"
+    },
+    {
+      "module": "Digital Portfolio",
+      "test": "Access Portfolio as parent",
+      "status": "INFO",
+      "details": "Skipped (requires child ID parameter)",
+      "timestamp": "2025-10-03T08:58:51.471Z"
+    },
+    {
+      "module": "Digital Portfolio",
+      "test": "Access Portfolio as teacher",
+      "status": "INFO",
+      "details": "Skipped (requires child ID parameter)",
+      "timestamp": "2025-10-03T08:58:51.971Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as super_admin",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:52.478Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as owner",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:52.995Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as admin",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:53.502Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as center_director",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:54.011Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as financial_manager",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:54.516Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as teacher",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:55.025Z"
+    },
+    {
+      "module": "Messaging",
+      "test": "Get Messages as parent",
+      "status": "INFO",
+      "details": "Access forbidden (expected for some roles)",
+      "timestamp": "2025-10-03T08:58:55.530Z"
+    },
+    {
+      "module": "Financial",
+      "test": "Get Invoices as financial_manager",
+      "status": "PASS",
+      "details": "Retrieved unknown invoices",
+      "timestamp": "2025-10-03T08:58:56.069Z"
+    },
+    {
+      "module": "Financial",
+      "test": "Get Invoices as owner",
+      "status": "PASS",
+      "details": "Retrieved unknown invoices",
+      "timestamp": "2025-10-03T08:58:56.597Z"
+    }
+  ]
+}

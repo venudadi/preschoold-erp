@@ -26,7 +26,8 @@ import {
     Class,
     MonetizationOn,
     Assessment,
-    Settings
+    Settings,
+    PhotoLibrary
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getAnalyticsOverview, getAnalyticsCenterComparison, getAnalyticsFinancialOverview } from '../services/api';
@@ -146,6 +147,13 @@ const OwnerDashboard = ({ user, ...props }) => {
             icon: <Settings />,
             action: () => navigate('/settings'),
             color: 'info'
+        },
+        {
+            title: 'Digital Portfolios',
+            description: 'View and manage student portfolios across centers',
+            icon: <PhotoLibrary />,
+            action: () => navigate('/admin/portfolios'),
+            color: 'success'
         }
     ];
 

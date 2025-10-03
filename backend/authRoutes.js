@@ -103,6 +103,27 @@ router.post(
         });
       }
 
+      // Check if 2FA is enabled
+      if (user.two_fa_enabled) {
+        // Create a temporary 2FA session
+        const sessionId = uuidv4();
+        const twoFaSessionToken = uuidv4();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        await pool.query(
+          `INSERT INTO two_fa_sessions (id, user_id, session_token, expires_at, verified)
+           VALUES (?, ?, ?, ?, FALSE)`,
+          [sessionId, user.id, twoFaSessionToken, expiresAt]
+        );
+
+        return res.status(200).json({
+          message: 'Two-factor authentication required',
+          require2FA: true,
+          sessionToken: twoFaSessionToken,
+          expiresIn: 600 // seconds
+        });
+      }
+
       const token = jwt.sign(
         { userId: user.id, role: user.role },
         process.env.JWT_SECRET,
@@ -238,6 +259,49 @@ router.delete('/test/cleanup-user', async (req, res) => {
   } catch (error) {
     console.error('Cleanup Error:', error);
     res.status(500).json({ message: 'Server error during cleanup.' });
+  }
+});
+
+// --- SUPER ADMIN: FORCE PASSWORD RESET FOR ANY USER ---
+router.post('/admin/reset-user-password', protect, async (req, res) => {
+  try {
+    // Only super_admin can reset other users' passwords
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Forbidden: Only super admins can reset user passwords.' });
+    }
+
+    const { userId, newPassword } = req.body;
+
+    if (!userId || !newPassword) {
+      return res.status(400).json({ message: 'userId and newPassword are required.' });
+    }
+
+    // Validate password strength
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(12);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    // Update user password and set must_reset_password flag
+    await pool.query(
+      `UPDATE users
+       SET password_hash = ?,
+           must_reset_password = 1,
+           updated_at = NOW()
+       WHERE id = ?`,
+      [passwordHash, userId]
+    );
+
+    res.status(200).json({
+      message: 'Password reset successfully. User will be required to change password on next login.',
+      userId
+    });
+  } catch (error) {
+    console.error('Admin password reset error:', error);
+    res.status(500).json({ message: 'Server error during password reset.' });
   }
 });
 

@@ -2,8 +2,22 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import pool from './db.js';
+import { globalErrorHandler } from './utils/errorHandler.js';
+import { initializeAllTables } from './utils/dbTableValidator.js';
+
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
+});
+
 const PORT = process.env.PORT || 5001;
 import parentModuleRoutes from './parentModuleRoutes.js';
 import observationLogRoutes from './observationLogRoutes.js';
@@ -42,14 +56,110 @@ import messagingRoutes from './messagingRoutes.js';
 import digitalPortfolioRoutes from './digitalPortfolioRoutes.js';
 import classroomAnnouncementRoutes from './classroomAnnouncementRoutes.js';
 import adminClassPromotionRoutes from './adminClassPromotionRoutes.js';
+import centerDirectorRoutes from './centerDirectorRoutes.js';
+import financialManagerRoutes from './financialManagerRoutes.js';
+import healthRoutes from './healthRoutes.js';
+import passwordResetRoutes from './passwordResetRoutes.js';
+import twoFactorRoutes from './twoFactorRoutes.js';
+import claudeRoutes from './claudeRoutes.js';
+import debugRoutes from './debugRoutes.js';
 
 // --- MIDDLEWARE ---
-app.use(cors());
-app.use(express.json());
+// Production-ready CORS configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+
+    // Build allowed list (normalize values)
+    const envOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || '')
+      .split(',')
+      .map(o => o.trim())
+      .filter(Boolean);
+
+    const defaultDevOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175'
+    ];
+
+    const allowedOrigins = process.env.NODE_ENV === 'production'
+      ? envOrigins
+      : Array.from(new Set([...envOrigins, ...defaultDevOrigins]));
+
+    // Normalize incoming origin (remove trailing slash)
+    const normalizedOrigin = origin.replace(/\/$/, '');
+
+    // Quick exact-match check
+    if (allowedOrigins.includes(normalizedOrigin)) return callback(null, true);
+
+    // Allow localhost on configured dev ports as a fallback (handles variations like http://127.0.0.1:5174)
+    try {
+      const url = new URL(normalizedOrigin);
+      if ((url.hostname === 'localhost' || url.hostname === '127.0.0.1') && /^(3000|3001|517[3-5])$/.test(url.port)) {
+        return callback(null, true);
+      }
+    } catch (e) {
+      // fall through to rejection
+    }
+
+    console.warn(`CORS blocked request from origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-session-token', 'x-csrf-token'],
+  exposedHeaders: ['x-csrf-token']
+};
+
+app.use(cors(corsOptions));
+
+// Compression middleware for better performance
+app.use(compression({
+  level: 6, // Compression level (0-9)
+  threshold: 1024, // Only compress responses > 1KB
+  filter: (req, res) => {
+    // Don't compress if the request includes a Cache-Control: no-transform directive
+    if (req.headers['cache-control'] && req.headers['cache-control'].includes('no-transform')) {
+      return false;
+    }
+    // Compress everything else
+    return compression.filter(req, res);
+  }
+}));
+
+// Security headers
+app.use((req, res, next) => {
+  res.header('X-Frame-Options', 'DENY');
+  res.header('X-Content-Type-Options', 'nosniff');
+  res.header('X-XSS-Protection', '1; mode=block');
+  res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  // Performance-related headers
+  if (process.env.NODE_ENV === 'production') {
+    res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.header('Pragma', 'no-cache');
+    res.header('Expires', '0');
+  }
+
+  next();
+});
+
+// Body parsing with size limits
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // --- ROUTES (Each one should only be listed once) ---
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Alias routes for common endpoints (for backward compatibility)
+app.use('/api/children', adminRoutes);  // children routes are in adminRoutes
+app.use('/api/classrooms', adminRoutes); // classrooms routes are in adminRoutes
+
 app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/admissions', admissionRoutes);
@@ -73,7 +183,78 @@ app.use('/api/observation-logs', observationLogRoutes);
 app.use('/api/digital-portfolio', digitalPortfolioRoutes);
 app.use('/api/classroom-announcements', classroomAnnouncementRoutes);
 app.use('/api/admin-class/promotion', adminClassPromotionRoutes);
-// --- SERVER LISTENER ---
-app.listen(PORT, () => {
-  console.log(`✅ Server is running on port ${PORT}`);
+app.use('/api/center-director', centerDirectorRoutes);
+app.use('/api/financial-manager', financialManagerRoutes);
+app.use('/api/health', healthRoutes);
+app.use('/api/auth', passwordResetRoutes);
+app.use('/api/auth', twoFactorRoutes);
+app.use('/api/claude', claudeRoutes);
+app.use('/api/debug', debugRoutes);
+// --- WEBSOCKET CONFIGURATION ---
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
+
+  // Join center-specific rooms for targeted updates
+  socket.on('join-center', (centerId) => {
+    socket.join(`center-${centerId}`);
+    console.log(`Client ${socket.id} joined center room: center-${centerId}`);
+  });
+
+  // Handle real-time dashboard subscriptions
+  socket.on('subscribe-dashboard', (data) => {
+    const { centerId, userId } = data;
+    socket.join(`dashboard-${centerId}`);
+    console.log(`Client ${socket.id} subscribed to dashboard updates for center ${centerId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
 });
+
+// Make io available globally for use in routes
+global.io = io;
+
+// --- ERROR HANDLING MIDDLEWARE ---
+// This must be AFTER all routes
+app.use(globalErrorHandler);
+
+// --- 404 HANDLER ---
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: {
+      message: `Route ${req.originalUrl} not found`,
+      code: 'ROUTE_NOT_FOUND',
+      timestamp: new Date().toISOString()
+    }
+  });
+});
+
+// --- DATABASE INITIALIZATION ---
+async function initializeServer() {
+  try {
+    // Test database connection
+    const connection = await pool.getConnection();
+    console.log('✅ Database connected successfully!');
+    connection.release();
+    
+    // Initialize all required tables
+    await initializeAllTables();
+    
+    // Start the server
+    server.listen(PORT, () => {
+      console.log(`✅ Server is running on port ${PORT}`);
+      console.log(`🔌 WebSocket server ready for real-time updates`);
+      console.log(`🛡️  Global error handling enabled`);
+      console.log(`📊 Database tables validated and ready`);
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to initialize server:', error);
+    process.exit(1);
+  }
+}
+
+// Initialize server
+initializeServer();

@@ -1,0 +1,293 @@
+================================================================================
+PRESCHOOL ERP - QUICK START GUIDE
+================================================================================
+
+📅 Last Updated: 2025-10-03
+🎯 Purpose: Complete guide to start testing the Preschool ERP system
+
+================================================================================
+STEP 1: VERIFY SERVERS ARE RUNNING
+================================================================================
+
+✓ Backend Server:
+  Port:     5001
+  URL:      http://localhost:5001
+  Status:   Check for "✅ Server is running on port 5001"
+
+✓ Frontend Server:
+  Port:     5173 (or 5174, 5175 if occupied)
+  URL:      http://localhost:5173
+  Status:   Check for "VITE ready in XXXms"
+
+To start servers:
+  Backend:  cd backend && npm run dev
+  Frontend: cd frontend && npm run dev
+
+================================================================================
+STEP 2: ACCESS THE APPLICATION
+================================================================================
+
+1. Open your browser
+2. Navigate to: http://localhost:5173
+3. You should see the login page with purple gradient background
+
+================================================================================
+STEP 3: LOGIN WITH TEST CREDENTIALS
+================================================================================
+
+All test users share the same password: Test@123
+
+RECOMMENDED ACCOUNTS FOR TESTING:
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ SUPER ADMIN (Full Access)                                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Email:    superadmin@preschool.com                                       │
+│ Password: Test@123                                                       │
+│ Access:   Everything - Use this for initial setup and testing            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ TEACHER (Classroom Focus)                                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Email:    teacher@preschool.com                                          │
+│ Password: Test@123                                                       │
+│ Access:   Lesson plans, assignments, student observations, portfolios   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ PARENT (Student View)                                                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Email:    parent@preschool.com                                           │
+│ Password: Test@123                                                       │
+│ Access:   View child info, portfolios, messages, invoices               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+📄 See TEST_CREDENTIALS.txt for all 8 test accounts
+
+================================================================================
+STEP 4: EXPLORE KEY FEATURES
+================================================================================
+
+AS SUPER ADMIN:
+  ✓ User Management     - Create/edit users for all roles
+  ✓ Center Management   - Add/configure preschool centers
+  ✓ Settings            - System configuration
+  ✓ Financial Overview  - View all financial data
+
+AS TEACHER:
+  ✓ Lesson Plans        - Create weekly lesson plans
+  ✓ Assignments         - Assign tasks to students
+  ✓ Digital Portfolio   - Upload student work samples
+  ✓ Observations        - Record student development notes
+  ✓ Messaging           - Communicate with parents
+
+AS PARENT:
+  ✓ My Children         - View child information
+  ✓ Portfolio           - See uploaded work samples
+  ✓ Messages            - Chat with teachers
+  ✓ Invoices            - View and pay fees
+
+================================================================================
+COMMON TESTING SCENARIOS
+================================================================================
+
+SCENARIO 1: USER MANAGEMENT
+  1. Login as super admin
+  2. Navigate to "User Management"
+  3. Click "Add User"
+  4. Fill in details and assign role
+  5. Test login with the new user
+
+SCENARIO 2: PASSWORD RESET (SUPER ADMIN FEATURE)
+  1. Login as super admin
+  2. Go to User Management
+  3. Click "Reset Password" on any user
+  4. Enter new password
+  5. Test login with new password
+
+SCENARIO 3: CLASSROOM WORKFLOW
+  1. Login as teacher
+  2. Create a lesson plan
+  3. Add an assignment
+  4. Record student observations
+  5. Upload to digital portfolio
+
+SCENARIO 4: PARENT COMMUNICATION
+  1. Login as teacher
+  2. Navigate to Messages
+  3. Start conversation with parent
+  4. Login as parent
+  5. View and reply to message
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+🔴 LOGIN FAILS WITH 500 ERROR
+  → Check backend is running on port 5001
+  → Verify database connection
+  → Check backend console for errors
+
+🔴 LOGIN FAILS WITH 401/403 ERROR
+  → Verify you're using correct credentials
+  → Check TEST_CREDENTIALS.txt for latest passwords
+  → All test passwords are: Test@123
+
+🔴 BLANK PAGE OR MODULE NOT LOADING
+  → Check browser console (F12)
+  → Look for red errors
+  → Verify all database tables exist
+
+🔴 CORS ERRORS
+  → Backend should allow ports 5173, 5174, 5175
+  → Restart backend server
+  → Clear browser cache
+
+🔴 DATABASE ERRORS
+  → Run: cd backend && node check_and_run_migrations.js
+  → Verify MySQL is running
+  → Check database credentials in backend/.env
+
+================================================================================
+DATABASE INFORMATION
+================================================================================
+
+Connection Details:
+  Host:     localhost
+  Database: neldrac_admin
+  User:     wsl_user
+  Password: Delta@4599
+
+Required Tables (all created):
+  ✓ users
+  ✓ centers
+  ✓ children
+  ✓ classrooms
+  ✓ invoice_requests
+  ✓ expenses
+  ✓ lesson_plans
+  ✓ assignments
+  ✓ messages
+  ✓ observation_logs
+  ✓ digital_portfolio / digital_portfolios
+  ✓ classroom_announcements
+  ✓ emergency_alerts
+  ✓ password_reset_tokens
+  ✓ claude_context_cache
+
+================================================================================
+SECURITY NOTES
+================================================================================
+
+⚠️  IMPORTANT: This is a development/testing environment!
+
+✓ All test users share password: Test@123
+✓ Passwords are bcrypt hashed (12 rounds)
+✓ Session management is active (JWT + Session tokens)
+✓ CSRF protection is enabled
+✓ Account lockout after failed attempts
+
+FOR PRODUCTION:
+  ✗ Change all default passwords
+  ✗ Update environment variables
+  ✗ Enable HTTPS
+  ✗ Configure proper CORS origins
+  ✗ Set up proper backup strategy
+  ✗ Review and harden security settings
+
+================================================================================
+USEFUL COMMANDS
+================================================================================
+
+# Reset all test user passwords to Test@123
+cd backend && node reset_test_passwords.js
+
+# Create fresh test users
+cd backend && node create_complete_test_users.js
+
+# Check database tables
+cd backend && node check_and_run_migrations.js
+
+# Restart backend
+cd backend && npm run dev
+
+# Restart frontend
+cd frontend && npm run dev
+
+================================================================================
+SUPPORT & DOCUMENTATION
+================================================================================
+
+📁 Project Files:
+  TEST_CREDENTIALS.txt          - All login credentials
+  CRITICAL_FIXES_APPLIED.md     - Bug fixes and changes log
+  E2E_TEST_SUMMARY.md           - Testing results
+  COMPREHENSIVE_PRD.md          - Product requirements
+
+🔧 Configuration:
+  backend/.env                   - Backend environment variables
+  frontend/vite.config.js        - Frontend proxy settings
+
+📚 Additional Resources:
+  - All backend API routes in backend/*Routes.js
+  - All frontend pages in frontend/src/pages/
+  - All components in frontend/src/components/
+
+================================================================================
+FEATURE STATUS
+================================================================================
+
+✅ FULLY OPERATIONAL:
+  ✓ User Authentication & Authorization
+  ✓ User Management (all roles)
+  ✓ Center Management
+  ✓ Student/Children Management
+  ✓ Classroom Management
+  ✓ Invoice Management
+  ✓ Expense Tracking
+  ✓ Lesson Plans
+  ✓ Assignments
+  ✓ Messaging System
+  ✓ Digital Portfolio
+  ✓ Observation Logs
+  ✓ Emergency Alerts
+  ✓ Password Reset System
+  ✓ Dashboard Analytics
+
+🚧 REQUIRES SETUP:
+  - Initial center creation
+  - Student data population
+  - Classroom setup
+  - Teacher-student assignments
+
+================================================================================
+CONTACT & FEEDBACK
+================================================================================
+
+For bugs or issues:
+  1. Check browser console (F12) for errors
+  2. Check backend terminal for error logs
+  3. Review CRITICAL_FIXES_APPLIED.md for known issues
+  4. Check GitHub issues (if applicable)
+
+Performance Metrics:
+  - Backend health: http://localhost:5001/api/health
+  - Database queries: Check backend console logs
+
+================================================================================
+HAPPY TESTING! 🎉
+================================================================================
+
+This system represents a comprehensive preschool management solution with
+role-based access control, financial management, academic planning, and
+parent-teacher communication features.
+
+Start with the Super Admin account to explore all features, then test
+specific workflows with role-specific accounts.
+
+All feedback and bug reports are welcome for continuous improvement!
+
+================================================================================
+END OF QUICK START GUIDE
+================================================================================

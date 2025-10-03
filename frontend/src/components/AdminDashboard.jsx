@@ -23,7 +23,8 @@ import {
     Class,
     Assignment,
     Description,
-    AdminPanelSettings
+    AdminPanelSettings,
+    PhotoLibrary
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getAnalyticsOverview } from '../services/api';
@@ -38,6 +39,15 @@ const AdminDashboard = ({ user, ...props }) => {
         const fetchDashboardData = async () => {
             try {
                 setLoading(true);
+
+                // Ensure tokens are available before making API calls
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    console.warn('No auth token found, skipping dashboard data fetch');
+                    setLoading(false);
+                    return;
+                }
+
                 const analyticsData = await getAnalyticsOverview();
                 setAnalytics(analyticsData);
             } catch (error) {
@@ -131,6 +141,12 @@ const AdminDashboard = ({ user, ...props }) => {
             description: 'Upload and manage documents',
             icon: <Description />,
             action: () => navigate('/documents')
+        },
+        {
+            title: 'Digital Portfolio',
+            description: 'View and manage all student portfolios',
+            icon: <PhotoLibrary />,
+            action: () => navigate('/admin/portfolios')
         }
     ];
 

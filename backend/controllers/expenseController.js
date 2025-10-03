@@ -35,6 +35,35 @@ import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
 
+// Helper: generate next invoice number per type (atomic)
+async function generateInvoiceNumber(type) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    // initialize row if not exists
+    await conn.query(
+      `INSERT INTO expense_sequences (type, last_seq) VALUES (?, 0) ON DUPLICATE KEY UPDATE last_seq=last_seq`,
+      [type]
+    );
+    const [rows] = await conn.query('SELECT last_seq FROM expense_sequences WHERE type=? FOR UPDATE', [type]);
+    let last = 0;
+    if (rows && rows.length > 0) last = rows[0].last_seq || 0;
+    const next = last + 1;
+    await conn.query('UPDATE expense_sequences SET last_seq=? WHERE type=?', [next, type]);
+    await conn.commit();
+    // Format invoice number: TYPE-YYYYMM-00000
+    const now = new Date();
+    const ym = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`;
+    const padded = String(next).padStart(5, '0');
+    return `${type.toUpperCase()}-${ym}-${padded}`;
+  } catch (err) {
+    try { await conn.rollback(); } catch(e){}
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
 // Helper: Audit log
 async function logAudit(expense_id, action, performed_by, details) {
   await pool.query(
@@ -47,18 +76,24 @@ async function logAudit(expense_id, action, performed_by, details) {
 export async function logExpense(req, res) {
   try {
     const {
-      date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url,
-      recurring, recurring_type, next_due_date, GST, proforma_invoice_number
+      date, amount, description, category, subcategory, payment_mode = 'online', vendor, receipt_image_url,
+      recurring = 'No', recurring_type = null, next_due_date = null, GST = 0, proforma_invoice_number = null
     } = req.body;
     const created_by = req.user.id;
     const raised_by_role = 'financial_manager';
+
+    // Prepare expense id and invoice number
+    const expense_id = uuidv4();
+    const invoice_type = payment_mode || 'online';
+    const invoice_number = await generateInvoiceNumber(invoice_type);
+
     const [result] = await pool.query(
-      `INSERT INTO expenses (date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')`,
-      [date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number]
+      `INSERT INTO expenses (expense_id, invoice_number, date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')`,
+      [expense_id, invoice_number, date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number]
     );
-    await logAudit(result.insertId, 'log', created_by, 'Logged new expense');
-    res.status(201).json({ success: true, expense_id: result.insertId });
+    await logAudit(expense_id, 'log', created_by, `Logged new expense, invoice:${invoice_number}`);
+    res.status(201).json({ success: true, expense_id, invoice_number });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -96,13 +131,18 @@ export async function raiseExpenseRequest(req, res) {
     } = req.body;
     const created_by = req.user.id;
     const raised_by_role = req.user.role;
+    // Prepare expense id and invoice number (for pending requests we'll still reserve an invoice)
+    const expense_id = uuidv4();
+    const invoice_type = payment_mode || 'online';
+    const invoice_number = await generateInvoiceNumber(invoice_type);
+
     const [result] = await pool.query(
-      `INSERT INTO expenses (date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-      [date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number]
+      `INSERT INTO expenses (expense_id, invoice_number, date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      [expense_id, invoice_number, date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number]
     );
-    await logAudit(result.insertId, 'request', created_by, 'Raised expense request');
-    res.status(201).json({ success: true, expense_id: result.insertId });
+    await logAudit(expense_id, 'request', created_by, `Raised expense request invoice:${invoice_number}`);
+    res.status(201).json({ success: true, expense_id, invoice_number });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -114,7 +154,7 @@ export async function approveExpenseRequest(req, res) {
     const expenseId = req.params.expenseId;
     const approved_by = req.user.id;
     await pool.query(
-      `UPDATE expenses SET status='approved', approved_by=? WHERE expense_id=?`,
+      `UPDATE expenses SET status='approved', approved_by=?, updated_at=CURRENT_TIMESTAMP WHERE expense_id=?`,
       [approved_by, expenseId]
     );
     await logAudit(expenseId, 'approve', approved_by, 'Approved expense request');
@@ -131,7 +171,7 @@ export async function rejectExpenseRequest(req, res) {
     const approved_by = req.user.id;
     const { approval_notes } = req.body;
     await pool.query(
-      `UPDATE expenses SET status='rejected', approved_by=?, approval_notes=? WHERE expense_id=?`,
+      `UPDATE expenses SET status='rejected', approved_by=?, approval_notes=?, updated_at=CURRENT_TIMESTAMP WHERE expense_id=?`,
       [approved_by, approval_notes, expenseId]
     );
     await logAudit(expenseId, 'reject', approved_by, 'Rejected expense request');
@@ -148,7 +188,7 @@ export async function removeRecurringExpense(req, res) {
     const { recurring_remove_reason } = req.body;
     const userId = req.user.id;
     await pool.query(
-      `UPDATE expenses SET recurring='No', recurring_remove_reason=? WHERE expense_id=?`,
+      `UPDATE expenses SET recurring='No', recurring_remove_reason=?, updated_at=CURRENT_TIMESTAMP WHERE expense_id=?`,
       [recurring_remove_reason, expenseId]
     );
     await logAudit(expenseId, 'remove_recurring', userId, 'Removed recurring expense');
@@ -162,7 +202,16 @@ export async function removeRecurringExpense(req, res) {
 export async function getExpenses(req, res) {
   try {
     // Add filters as needed (date, category, status, etc.)
-    const [rows] = await pool.query('SELECT * FROM expenses');
+    const filters = [];
+    const params = [];
+    if (req.query.status) { filters.push('status=?'); params.push(req.query.status); }
+    if (req.query.category) { filters.push('category=?'); params.push(req.query.category); }
+    if (req.query.start_date) { filters.push('date>=?'); params.push(req.query.start_date); }
+    if (req.query.end_date) { filters.push('date<=?'); params.push(req.query.end_date); }
+    let sql = 'SELECT * FROM expenses';
+    if (filters.length) sql += ' WHERE ' + filters.join(' AND ');
+    sql += ' ORDER BY created_at DESC LIMIT 500';
+    const [rows] = await pool.query(sql, params);
     res.json({ success: true, expenses: rows });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -172,19 +221,32 @@ export async function getExpenses(req, res) {
 // Export expenses to Excel
 export async function exportExpenses(req, res) {
   try {
-    // Add filters as needed
-    const [rows] = await pool.query('SELECT * FROM expenses');
+    // Support filters: start_date, end_date, category, status
+    const filters = [];
+    const params = [];
+    if (req.query.start_date) { filters.push('date >= ?'); params.push(req.query.start_date); }
+    if (req.query.end_date) { filters.push('date <= ?'); params.push(req.query.end_date); }
+    if (req.query.category) { filters.push('category = ?'); params.push(req.query.category); }
+    if (req.query.status) { filters.push('status = ?'); params.push(req.query.status); }
+
+    let sql = 'SELECT * FROM expenses';
+    if (filters.length) sql += ' WHERE ' + filters.join(' AND ');
+    sql += ' ORDER BY created_at DESC';
+    const [rows] = await pool.query(sql, params);
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Expenses');
     if (rows.length > 0) {
       worksheet.columns = Object.keys(rows[0]).map(key => ({ header: key, key }));
       worksheet.addRows(rows);
     }
-    const filePath = path.join(process.cwd(), 'tmp', `expenses_export_${Date.now()}.xlsx`);
+    const startLabel = req.query.start_date ? req.query.start_date.replace(/-/g,'') : '';
+    const endLabel = req.query.end_date ? req.query.end_date.replace(/-/g,'') : '';
+    const rangeLabel = startLabel || endLabel ? `_${startLabel || 'any'}-${endLabel || 'any'}` : '';
+    const filePath = path.join(process.cwd(), 'tmp', `expenses_export${rangeLabel}_${Date.now()}.xlsx`);
     // Ensure tmp directory exists
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     await workbook.xlsx.writeFile(filePath);
-    res.download(filePath, 'expenses.xlsx', () => {
+    res.download(filePath, path.basename(filePath), () => {
       fs.unlinkSync(filePath);
     });
   } catch (err) {

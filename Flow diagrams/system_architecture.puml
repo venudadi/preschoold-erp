@@ -1,93 +1,276 @@
 @startuml system_architecture
 !theme spacelab
-title Preschool ERP System Architecture
+title Preschool ERP System Architecture v2.1.0
+skinparam componentStyle rectangle
+skinparam backgroundColor #F8F9FA
+skinparam shadowing false
 
-package "Frontend Layer" {
-  component "React App (Vite)" as React {
-    - App.jsx
-    - Role-based Dashboards
-    - 40+ UI Components
-    - 20+ Pages
-    - API Service Layer
+' ================================
+' FRONTEND LAYER
+' ================================
+package "Frontend Layer (React + Vite)" #E3F2FD {
+  component "React Application" as ReactApp #BBDEFB {
+    [Router]
+    [Dashboard Pages (8)]
+    [Management Pages (15)]
+    [Components (55+)]
+  }
+
+  package "Core Features" #B3E5FC {
+    component "Authentication" as FrontAuth #81D4FA
+    component "Role-Based UI" as RBUI #4FC3F7
+    component "API Client (Axios)" as ApiClient #29B6F6
+    component "WebSocket Client" as WSClient #0288D1
+  }
+
+  package "Key Modules" #B2EBF2 {
+    [Student Management]
+    [Staff Management]
+    [Fee & Billing]
+    [Digital Portfolio]
+    [Attendance]
+    [Messaging]
+    [Academic Tools]
+    [Documents]
   }
 }
 
-package "Backend Layer" {
-  component "Node.js/Express Server" as Backend {
-    - Authentication & Authorization
-    - Role-based Access Control
-    - JWT + Session Management
-    - Rate Limiting & Security
+' ================================
+' BACKEND LAYER
+' ================================
+package "Backend Layer (Node.js + Express)" #F3E5F5 {
+
+  component "Express Server" as ExpressServer #CE93D8 {
+    [HTTP Server]
+    [WebSocket Server]
+    [Compression]
   }
 
-  component "API Routes (26 modules)" as Routes {
-    - Auth & User Management
-    - Academic Operations
-    - Financial Management
-    - Communication System
-    - Administrative Functions
-    - System Management
+  package "Middleware Stack" #E1BEE7 {
+    component "Security" as SecurityMW #BA68C8 {
+      - CORS Protection
+      - Rate Limiting
+      - Helmet Security Headers
+      - CSRF Validation
+    }
+
+    component "Authentication" as AuthMW #AB47BC {
+      - JWT Verification
+      - Session Validation
+      - Permission Checking
+      - Audit Logging
+    }
   }
 
-  component "Middleware" as Middleware {
-    - Authentication Middleware
-    - Security Middleware
-    - Permission Gates
-    - Audit Logging
+  package "API Routes (30+ modules)" #F8BBD0 {
+    [Auth Routes]
+    [Admin Routes]
+    [Student Routes]
+    [Staff Routes]
+    [Attendance Routes]
+    [Invoice Routes]
+    [Expense Routes]
+    [Center Routes]
+    [Document Routes]
+    [Digital Portfolio Routes]
+    [Messaging Routes]
+    [Parent Module Routes]
+    [Financial Manager Routes]
+    [Center Director Routes]
+    [Password Reset Routes]
+    [...15 more routes]
   }
 
-  component "Cloud Storage" as Storage {
-    - Document Management
-    - Digital Portfolio
-    - Receipt Storage
-    - File Versioning
+  package "Controllers & Services" #FCE4EC {
+    component "Business Logic" as Controllers #F48FB1 {
+      - Password Reset
+      - Digital Portfolio
+      - Class Promotion
+      - Expense Management
+      - Parent Module
+    }
+
+    component "Utility Services" as Utils #F06292 {
+      - Security Utils
+      - Challenge Code Generator
+      - Email Service
+      - File Upload (Multer)
+    }
+  }
+
+  package "Cloud Storage Integration" #FFF9C4 {
+    component "AWS S3" as S3Client #FFF176 {
+      - Document Storage
+      - Portfolio Images
+      - Receipt Storage
+      - Multi-region Support
+    }
   }
 }
 
-package "Database Layer" {
-  database "MySQL Database" as DB {
-    - User Management Tables
-    - Academic Data
-    - Financial Records
-    - Communication Logs
-    - Audit Trails
-    - Session Management
+' ================================
+' DATABASE LAYER
+' ================================
+package "Database Layer (MySQL)" #C8E6C9 {
+  database "MySQL Database" as MySQL #81C784 {
+    **Core Tables (50+)**
+    ----
+    • users, roles, user_roles
+    • centers, user_centers_mapping
+    • students, parents, staff
+    • fee_structures, invoices
+    • attendance, exit_records
+    • digital_portfolio
+    • documents
+    • messages, assignments
+    • lesson_plans, observation_logs
+    • expenses, invoice_requests
+    • audit_logs, security_events
+    • sessions, csrf_tokens
+    • password_reset_requests
+    • emergency_alerts
+    • student_pauses
+  }
+
+  component "Connection Pool" as Pool #66BB6A {
+    - Max 25 connections (prod)
+    - Idle timeout: 15 min
+    - Leak detection
+    - UTF8MB4 charset
   }
 }
 
-package "External Services" {
-  component "Email Service" as Email
-  component "SMS Service" as SMS
-  component "PDF Generator" as PDF
+' ================================
+' EXTERNAL SERVICES
+' ================================
+package "External Services" #FFECB3 {
+  component "Email Service" as EmailSvc #FFD54F {
+    Nodemailer
+    ----
+    - Transactional emails
+    - Password reset
+    - Notifications
+  }
+
+  component "PDF Generation" as PDFSvc #FFCA28 {
+    PDFKit
+    ----
+    - Invoices
+    - Reports
+    - Documents
+  }
+
+  component "Image Processing" as ImgSvc #FFC107 {
+    Sharp + Jimp
+    ----
+    - Compression
+    - Resizing
+    - EXIF rotation
+  }
+
+  component "QR Code" as QRSvc #FFB300 {
+    qrcode library
+    ----
+    - Attendance QR
+    - Document tracking
+  }
 }
 
-' Connections
-React --> Backend : REST API (Axios)\nAuthenticated Requests
-Backend --> Routes : Route Handling
-Backend --> Middleware : Request Processing
-Routes --> DB : SQL Queries\nTransactions
-Backend --> Storage : File Operations
-Backend --> Email : Notifications
-Backend --> SMS : Alerts
-Backend --> PDF : Invoice Generation
+' ================================
+' RELATIONSHIPS
+' ================================
 
-note right of Backend
-  Security Features:
-  - JWT with Refresh Tokens
-  - Role-based Permissions
-  - Rate Limiting
-  - Input Validation
-  - SQL Injection Prevention
-  - 2FA for Sensitive Operations
+' Frontend to Backend
+ReactApp --> ExpressServer : REST API\n(HTTPS/WSS)
+ApiClient --> AuthMW : Bearer Token +\nSession Token
+WSClient --> ExpressServer : Real-time Updates\n(Socket.io)
+
+' Backend Flow
+ExpressServer --> SecurityMW : All Requests
+SecurityMW --> AuthMW : Protected Routes
+AuthMW --> [API Routes (30+ modules)] : Authorized Requests
+[API Routes (30+ modules)] --> Controllers : Route Handlers
+Controllers --> Pool : Database Queries
+Pool --> MySQL : Connection Pool
+
+' Storage & Services
+Controllers --> S3Client : File Upload/Download
+Controllers --> EmailSvc : Send Emails
+Controllers --> PDFSvc : Generate PDFs
+Controllers --> ImgSvc : Process Images
+Controllers --> QRSvc : Generate QR Codes
+
+' Real-time Communication
+ExpressServer ..> MySQL : Session Store
+WSClient ..> ExpressServer : Live Dashboard\nUpdates
+
+' ================================
+' SECURITY NOTES
+' ================================
+note right of AuthMW
+  **Security Features**
+  ✓ JWT + Session Tokens
+  ✓ CSRF Protection
+  ✓ Rate Limiting
+  ✓ Account Lockout
+  ✓ Password Reset Flow
+  ✓ Audit Logging
+  ✓ SQL Injection Prevention
+  ✓ XSS Protection
+  ✓ CORS Configuration
 end note
 
-note right of DB
-  Multi-tenant Architecture:
-  - Center-based Data Isolation
-  - Role-based Access Control
-  - Audit Logging
-  - Soft Deletes
-  - Performance Indexes
+note right of MySQL
+  **Database Features**
+  ✓ Multi-center Support
+  ✓ Role-based Access Control
+  ✓ Soft Deletes
+  ✓ Performance Indexes
+  ✓ 33+ Migrations Applied
+  ✓ Audit Trail Tables
+  ✓ Emergency Alerts System
+  ✓ Student Pause Functionality
+end note
+
+note bottom of ReactApp
+  **Frontend Tech Stack**
+  • React 18.2
+  • Material-UI v5
+  • React Router v6
+  • Socket.io Client
+  • Axios HTTP Client
+  • Vite Build Tool
+  • Recharts (Analytics)
+  • React Webcam
+end note
+
+note bottom of ExpressServer
+  **Backend Tech Stack**
+  • Node.js + Express
+  • MySQL2 Promise Pool
+  • JWT + Bcrypt
+  • Socket.io Server
+  • AWS SDK v3
+  • Compression
+  • Helmet Security
+  • Express Validator
+end note
+
+' ================================
+' USER ROLES
+' ================================
+note left of RBUI
+  **Supported User Roles**
+  1. Super Admin
+  2. Owner
+  3. Center Director
+  4. Financial Manager
+  5. Admin
+  6. Teacher
+  7. Parent
+
+  Each role has specific
+  permissions and UI access
 end note
 
 @enduml

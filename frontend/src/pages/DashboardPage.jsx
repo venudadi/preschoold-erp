@@ -41,6 +41,7 @@ import ParentDashboard from '../components/ParentDashboard.jsx';
 import OwnerDashboard from '../components/OwnerDashboard.jsx';
 import SuperAdminDashboard from '../components/SuperAdminDashboard.jsx';
 import FinancialManagerDashboard from '../components/FinancialManagerDashboard.jsx';
+import CenterDirectorDashboard from '../components/CenterDirectorDashboard.jsx';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
@@ -56,6 +57,8 @@ const DashboardPage = () => {
   switch (user.role) {
     case 'admin':
       return <AdminDashboard user={user} />;
+    case 'center_director':
+      return <CenterDirectorDashboard user={user} />;
     case 'teacher':
       return <TeacherDashboard user={user} />;
     case 'parent':

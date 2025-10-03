@@ -114,7 +114,7 @@ router.post(
 
 // URL: GET /api/admin/children
 // Retrieves a list of all enrolled children.
-router.get('/children', async (req, res) => {
+router.get('/children', protect, async (req, res) => {
     if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
         return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
     }

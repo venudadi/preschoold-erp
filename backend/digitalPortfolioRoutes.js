@@ -10,7 +10,9 @@ import {
   deletePortfolioItem,
   toggleFavorite,
   updatePortfolioItem,
-  getPortfolioStats
+  getPortfolioStats,
+  getAllPortfolioItems,
+  getCenterPortfolioStats
 } from './controllers/digitalPortfolioController.js';
 import { protect, checkRole } from './authMiddleware.js';
 
@@ -40,11 +42,17 @@ router.post('/upload', protect, checkRole(['teacher']), upload.single('file'), u
 // Batch upload multiple portfolio items (teacher only) - for camera burst mode
 router.post('/batch-upload', protect, checkRole(['teacher']), upload.array('files', 10), batchUploadToCloud);
 
-// Get portfolio items for a child with enhanced filtering and pagination (teacher/parent)
-router.get('/child/:childId', protect, checkRole(['teacher', 'parent']), getPortfolioItems);
+// Get portfolio items for a child with enhanced filtering and pagination (teacher/parent/admin)
+router.get('/child/:childId', protect, checkRole(['teacher', 'parent', 'admin', 'owner', 'super_admin']), getPortfolioItems);
 
-// Get portfolio statistics for a child (teacher/parent)
-router.get('/stats/:childId', protect, checkRole(['teacher', 'parent']), getPortfolioStats);
+// Get portfolio statistics for a child (teacher/parent/admin)
+router.get('/stats/:childId', protect, checkRole(['teacher', 'parent', 'admin', 'owner', 'super_admin']), getPortfolioStats);
+
+// Get all portfolio items across center (admin only) - for admin dashboard
+router.get('/center/all', protect, checkRole(['admin', 'owner', 'super_admin']), getAllPortfolioItems);
+
+// Get center-wide portfolio statistics (admin only)
+router.get('/center/stats', protect, checkRole(['admin', 'owner', 'super_admin']), getCenterPortfolioStats);
 
 // Update portfolio item metadata (teacher only)
 router.put('/:id', protect, checkRole(['teacher']), updatePortfolioItem);

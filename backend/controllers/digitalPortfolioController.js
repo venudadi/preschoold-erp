@@ -506,5 +506,210 @@ export const getPortfolioStats = async (req, res) => {
   }
 };
 
+// GET /center/all - Get all portfolio items across the center (admin only)
+export const getAllPortfolioItems = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      type = 'all',
+      favorite = null,
+      sortBy = 'upload_date',
+      sortOrder = 'DESC',
+      childId = null,
+      uploadedBy = null
+    } = req.query;
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get user's center_id
+    const [userInfo] = await db.query(
+      'SELECT center_id FROM users WHERE id = ?',
+      [req.user.id]
+    );
+
+    if (!userInfo.length) {
+      throw new Error('User not found');
+    }
+
+    let whereClause = 'WHERE dp.center_id = ?';
+    let queryParams = [userInfo[0].center_id];
+
+    // Add filters
+    if (type && type !== 'all') {
+      whereClause += ' AND dp.file_type = ?';
+      queryParams.push(type);
+    }
+
+    if (favorite !== null) {
+      whereClause += ' AND dp.is_favorite = ?';
+      queryParams.push(favorite === 'true' ? 1 : 0);
+    }
+
+    if (childId) {
+      whereClause += ' AND dp.child_id = ?';
+      queryParams.push(childId);
+    }
+
+    if (uploadedBy) {
+      whereClause += ' AND dp.uploaded_by = ?';
+      queryParams.push(uploadedBy);
+    }
+
+    // Validate sort parameters
+    const allowedSortFields = ['upload_date', 'created_at', 'file_name', 'file_size', 'child_name'];
+    const allowedSortOrders = ['ASC', 'DESC'];
+    const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'upload_date';
+    const validSortOrder = allowedSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+
+    const query = `
+      SELECT
+        dp.id, dp.child_id, dp.title, dp.description,
+        dp.file_url, dp.file_name, dp.file_type, dp.file_size,
+        dp.thumbnail_url, dp.original_dimensions,
+        dp.capture_method, dp.is_favorite, dp.tags,
+        dp.upload_date, dp.created_at,
+        u.full_name as uploaded_by_name,
+        c.first_name as child_first_name,
+        c.last_name as child_last_name,
+        CONCAT(c.first_name, ' ', c.last_name) as child_name,
+        classroom.name as class_name
+      FROM digital_portfolios dp
+      LEFT JOIN users u ON dp.uploaded_by = u.id
+      LEFT JOIN children c ON dp.child_id = c.id
+      LEFT JOIN classrooms classroom ON c.classroom_id = classroom.id
+      ${whereClause}
+      ORDER BY ${validSortBy === 'child_name' ? 'CONCAT(c.first_name, " ", c.last_name)' : 'dp.' + validSortBy} ${validSortOrder}
+      LIMIT ? OFFSET ?
+    `;
+
+    queryParams.push(parseInt(limit), offset);
+
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM digital_portfolios dp
+      LEFT JOIN children c ON dp.child_id = c.id
+      ${whereClause}
+    `;
+
+    const [items] = await db.query(query, queryParams);
+    const [countResult] = await db.query(countQuery, queryParams.slice(0, -2)); // Remove limit and offset
+
+    // Parse JSON fields
+    const processedItems = items.map(item => ({
+      ...item,
+      tags: item.tags ? JSON.parse(item.tags) : null,
+      is_favorite: Boolean(item.is_favorite)
+    }));
+
+    const totalItems = countResult[0].total;
+    const totalPages = Math.ceil(totalItems / parseInt(limit));
+
+    res.json({
+      items: processedItems,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalItems,
+        itemsPerPage: parseInt(limit),
+        hasNextPage: parseInt(page) < totalPages,
+        hasPrevPage: parseInt(page) > 1
+      }
+    });
+
+  } catch (err) {
+    console.error('Get all portfolio items error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET /center/stats - Get center-wide portfolio statistics (admin only)
+export const getCenterPortfolioStats = async (req, res) => {
+  try {
+    // Get user's center_id
+    const [userInfo] = await db.query(
+      'SELECT center_id FROM users WHERE id = ?',
+      [req.user.id]
+    );
+
+    if (!userInfo.length) {
+      throw new Error('User not found');
+    }
+
+    // Get overall stats
+    const [overallStats] = await db.query(`
+      SELECT
+        COUNT(*) as total_items,
+        COUNT(CASE WHEN file_type = 'image' THEN 1 END) as images,
+        COUNT(CASE WHEN file_type = 'video' THEN 1 END) as videos,
+        COUNT(CASE WHEN is_favorite = 1 THEN 1 END) as favorites,
+        SUM(file_size) as total_size,
+        MIN(upload_date) as first_upload,
+        MAX(upload_date) as latest_upload,
+        COUNT(DISTINCT child_id) as children_with_portfolios,
+        COUNT(DISTINCT uploaded_by) as active_teachers
+      FROM digital_portfolios
+      WHERE center_id = ?
+    `, [userInfo[0].center_id]);
+
+    // Get stats by child (top 10 most active)
+    const [childStats] = await db.query(`
+      SELECT
+        c.id,
+        CONCAT(c.first_name, ' ', c.last_name) as child_name,
+        classroom.name as class_name,
+        COUNT(dp.id) as total_items,
+        COUNT(CASE WHEN dp.is_favorite = 1 THEN 1 END) as favorites,
+        MAX(dp.upload_date) as latest_upload
+      FROM children c
+      LEFT JOIN digital_portfolios dp ON c.id = dp.child_id
+      LEFT JOIN classrooms classroom ON c.classroom_id = classroom.id
+      WHERE c.center_id = ? AND dp.id IS NOT NULL
+      GROUP BY c.id, c.first_name, c.last_name, classroom.name
+      ORDER BY total_items DESC
+      LIMIT 10
+    `, [userInfo[0].center_id]);
+
+    // Get stats by teacher (uploaders)
+    const [teacherStats] = await db.query(`
+      SELECT
+        u.id,
+        u.full_name as teacher_name,
+        COUNT(dp.id) as total_uploads,
+        COUNT(CASE WHEN dp.is_favorite = 1 THEN 1 END) as favorites_marked,
+        MAX(dp.upload_date) as latest_upload
+      FROM users u
+      LEFT JOIN digital_portfolios dp ON u.id = dp.uploaded_by
+      WHERE u.center_id = ? AND u.role = 'teacher' AND dp.id IS NOT NULL
+      GROUP BY u.id, u.full_name
+      ORDER BY total_uploads DESC
+      LIMIT 10
+    `, [userInfo[0].center_id]);
+
+    // Get recent activity (last 7 days)
+    const [recentActivity] = await db.query(`
+      SELECT
+        DATE(dp.upload_date) as upload_date,
+        COUNT(*) as items_count
+      FROM digital_portfolios dp
+      WHERE dp.center_id = ? AND dp.upload_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+      GROUP BY DATE(dp.upload_date)
+      ORDER BY upload_date DESC
+    `, [userInfo[0].center_id]);
+
+    res.json({
+      overall: overallStats[0] || {},
+      topChildren: childStats || [],
+      activeTeachers: teacherStats || [],
+      recentActivity: recentActivity || []
+    });
+
+  } catch (err) {
+    console.error('Get center portfolio stats error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // Legacy compatibility - maintain existing API
 export { uploadToCloud as uploadToCloudLegacy };

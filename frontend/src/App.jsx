@@ -13,20 +13,31 @@ import SettingsPage from './pages/SettingsPage.jsx';
 import DocumentManagementPage from './pages/DocumentManagementPage.jsx';
 import FeeManagementPage from './pages/FeeManagementPage.jsx';
 import UserManagementPage from './pages/OwnersManagementPage.jsx'; // Comprehensive User Management
+import StaffManagementPage from './pages/StaffManagementPage.jsx';
 import LessonPlansPage from './pages/LessonPlansPage.jsx';
 import AssignmentsPage from './pages/AssignmentsPage.jsx';
 import MessagingPage from './pages/MessagingPage.jsx';
 import ObservationLogsPage from './pages/ObservationLogsPage.jsx';
 import DigitalPortfolioPage from './pages/DigitalPortfolioPage.jsx';
 import ClassroomAnnouncementsPage from './pages/ClassroomAnnouncementsPage.jsx';
+import AdminPortfolioPage from './pages/AdminPortfolioPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
+import VerifyResetCodePage from './pages/VerifyResetCodePage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import { Typography } from '@mui/material';
 
 function App() {
   return (
     <Router>
       <Routes>
-  <Route path="/login" element={<LoginRoute />} />
-  <Route path="/auto-login" element={<AutoLogin />} />
+        {/* Public Authentication Routes */}
+        <Route path="/login" element={<LoginRoute />} />
+        <Route path="/auto-login" element={<AutoLogin />} />
+
+        {/* Password Reset Routes */}
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/verify-reset-code" element={<VerifyResetCodePage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* All protected routes are now children of the DashboardLayout */}
         <Route
@@ -50,12 +61,14 @@ function App() {
           <Route path="documents" element={<DocumentManagementPage />} />
           <Route path="fees" element={<FeeManagementPage />} />
           <Route path="users" element={<UserManagementPage />} /> {/* User Management (All Roles) */}
+          <Route path="staff" element={<StaffManagementPage />} /> {/* Staff Management */}
           <Route path="lesson-plans" element={<LessonPlansPage />} />
           <Route path="assignments" element={<AssignmentsPage />} />
           <Route path="messaging" element={<MessagingPage />} />
           <Route path="observation-logs" element={<ObservationLogsPage />} />
           <Route path="digital-portfolio" element={<DigitalPortfolioPage />} />
           <Route path="classroom-announcements" element={<ClassroomAnnouncementsPage />} />
+          <Route path="admin/portfolios" element={<AdminPortfolioPage />} />
         </Route>
       </Routes>
     </Router>

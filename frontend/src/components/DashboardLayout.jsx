@@ -58,6 +58,20 @@ const DashboardLayout = () => {
         user = {};
     }
 
+    // Apply parent theme class to body if user is a parent
+    React.useEffect(() => {
+        if (user?.role === 'parent') {
+            document.body.classList.add('parent-theme');
+        } else {
+            document.body.classList.remove('parent-theme');
+        }
+
+        // Cleanup on unmount
+        return () => {
+            document.body.classList.remove('parent-theme');
+        };
+    }, [user?.role]);
+
     // Get filtered navigation items based on user role
     const allowedNavItems = useMemo(() => {
         if (!user?.role) return [];

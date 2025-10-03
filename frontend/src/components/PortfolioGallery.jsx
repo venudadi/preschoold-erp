@@ -41,26 +41,35 @@ import {
 import PortfolioUploader from './PortfolioUploader';
 
 // Enhanced: Mobile-friendly digital portfolio gallery with filtering and favorites
-export default function PortfolioGallery({ childId, userRole = 'parent', onUpload }) {
+export default function PortfolioGallery({ childId, userRole = 'parent', onUpload, showAllChildren = false }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterFavorite, setFilterFavorite] = useState('all');
+  const [filterChild, setFilterChild] = useState('all'); // New filter for admin
+  const [filterTeacher, setFilterTeacher] = useState('all'); // New filter for admin
   const [sortBy, setSortBy] = useState('upload_date');
   const [sortOrder, setSortOrder] = useState('DESC');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({});
   const [uploaderOpen, setUploaderOpen] = useState(false);
   const [stats, setStats] = useState({});
+  const [children, setChildren] = useState([]); // For admin dropdown
+  const [teachers, setTeachers] = useState([]); // For admin dropdown
   const [error, setError] = useState('');
   const itemsPerPage = 12;
 
   useEffect(() => {
     loadPortfolioItems();
     loadPortfolioStats();
-  }, [childId, currentPage, filterType, filterFavorite, sortBy, sortOrder]);
+
+    // Load filter options for admin
+    if (showAllChildren && (userRole === 'admin' || userRole === 'owner' || userRole === 'super_admin')) {
+      loadFilterOptions();
+    }
+  }, [childId, currentPage, filterType, filterFavorite, filterChild, filterTeacher, sortBy, sortOrder, showAllChildren]);
 
   const loadPortfolioItems = async () => {
     setLoading(true);
@@ -75,7 +84,22 @@ export default function PortfolioGallery({ childId, userRole = 'parent', onUploa
         sortOrder
       });
 
-      const response = await fetch(`/api/digital-portfolio/child/${childId}?${params}`, {
+      // Add admin-specific filters
+      if (showAllChildren && (userRole === 'admin' || userRole === 'owner' || userRole === 'super_admin')) {
+        if (filterChild !== 'all') {
+          params.set('childId', filterChild);
+        }
+        if (filterTeacher !== 'all') {
+          params.set('uploadedBy', filterTeacher);
+        }
+      }
+
+      // Use different endpoint for admin viewing all children vs specific child
+      const endpoint = showAllChildren && (userRole === 'admin' || userRole === 'owner' || userRole === 'super_admin')
+        ? `/api/digital-portfolio/center/all?${params}`
+        : `/api/digital-portfolio/child/${childId}?${params}`;
+
+      const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -99,7 +123,12 @@ export default function PortfolioGallery({ childId, userRole = 'parent', onUploa
 
   const loadPortfolioStats = async () => {
     try {
-      const response = await fetch(`/api/digital-portfolio/stats/${childId}`, {
+      // Use different stats endpoint for admin viewing all children
+      const endpoint = showAllChildren && (userRole === 'admin' || userRole === 'owner' || userRole === 'super_admin')
+        ? `/api/digital-portfolio/center/stats`
+        : `/api/digital-portfolio/stats/${childId}`;
+
+      const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -111,6 +140,36 @@ export default function PortfolioGallery({ childId, userRole = 'parent', onUploa
       }
     } catch (err) {
       console.error('Error loading portfolio stats:', err);
+    }
+  };
+
+  const loadFilterOptions = async () => {
+    try {
+      // Load children for filter dropdown
+      const childrenResponse = await fetch('/api/students', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (childrenResponse.ok) {
+        const childrenData = await childrenResponse.json();
+        setChildren(childrenData);
+      }
+
+      // Load teachers for filter dropdown
+      const teachersResponse = await fetch('/api/admin/users?role=teacher', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (teachersResponse.ok) {
+        const teachersData = await teachersResponse.json();
+        setTeachers(teachersData);
+      }
+    } catch (err) {
+      console.error('Error loading filter options:', err);
     }
   };
 
@@ -187,8 +246,10 @@ export default function PortfolioGallery({ childId, userRole = 'parent', onUploa
     <Box p={1}>
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h6">Digital Portfolio</Typography>
-        {userRole === 'teacher' && (
+        <Typography variant="h6">
+          {showAllChildren ? 'Center Digital Portfolios' : 'Digital Portfolio'}
+        </Typography>
+        {userRole === 'teacher' && !showAllChildren && (
           <Button
             variant="contained"
             startIcon={<Add />}
@@ -201,25 +262,55 @@ export default function PortfolioGallery({ childId, userRole = 'parent', onUploa
       </Box>
 
       {/* Stats */}
-      {stats.total_items > 0 && (
+      {(stats.total_items > 0 || stats.overall?.total_items > 0) && (
         <Box mb={2}>
           <Stack direction="row" spacing={1} flexWrap="wrap">
-            <Chip
-              label={`${stats.total_items || 0} Total`}
-              size="small"
-              variant="outlined"
-            />
-            <Chip
-              label={`${stats.favorites || 0} Favorites`}
-              size="small"
-              variant="outlined"
-              color="primary"
-            />
-            <Chip
-              label={`${stats.images || 0} Images`}
-              size="small"
-              variant="outlined"
-            />
+            {showAllChildren ? (
+              <>
+                <Chip
+                  label={`${stats.overall?.total_items || 0} Total`}
+                  size="small"
+                  variant="outlined"
+                />
+                <Chip
+                  label={`${stats.overall?.favorites || 0} Favorites`}
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                />
+                <Chip
+                  label={`${stats.overall?.children_with_portfolios || 0} Children`}
+                  size="small"
+                  variant="outlined"
+                  color="secondary"
+                />
+                <Chip
+                  label={`${stats.overall?.active_teachers || 0} Teachers`}
+                  size="small"
+                  variant="outlined"
+                  color="info"
+                />
+              </>
+            ) : (
+              <>
+                <Chip
+                  label={`${stats.total_items || 0} Total`}
+                  size="small"
+                  variant="outlined"
+                />
+                <Chip
+                  label={`${stats.favorites || 0} Favorites`}
+                  size="small"
+                  variant="outlined"
+                  color="primary"
+                />
+                <Chip
+                  label={`${stats.images || 0} Images`}
+                  size="small"
+                  variant="outlined"
+                />
+              </>
+            )}
           </Stack>
         </Box>
       )}
@@ -227,7 +318,7 @@ export default function PortfolioGallery({ childId, userRole = 'parent', onUploa
       {/* Search and Filters */}
       <Box mb={2}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={showAllChildren ? 4 : 6}>
             <TextField
               fullWidth
               size="small"
@@ -243,7 +334,48 @@ export default function PortfolioGallery({ childId, userRole = 'parent', onUploa
               }}
             />
           </Grid>
-          <Grid item xs={6} sm={3}>
+
+          {/* Admin-specific filters */}
+          {showAllChildren && (userRole === 'admin' || userRole === 'owner' || userRole === 'super_admin') && (
+            <>
+              <Grid item xs={6} sm={2}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Child</InputLabel>
+                  <Select
+                    value={filterChild}
+                    onChange={(e) => setFilterChild(e.target.value)}
+                    label="Child"
+                  >
+                    <MenuItem value="all">All Children</MenuItem>
+                    {children.map(child => (
+                      <MenuItem key={child.id} value={child.id}>
+                        {child.first_name} {child.last_name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6} sm={2}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Teacher</InputLabel>
+                  <Select
+                    value={filterTeacher}
+                    onChange={(e) => setFilterTeacher(e.target.value)}
+                    label="Teacher"
+                  >
+                    <MenuItem value="all">All Teachers</MenuItem>
+                    {teachers.map(teacher => (
+                      <MenuItem key={teacher.id} value={teacher.id}>
+                        {teacher.full_name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </>
+          )}
+
+          <Grid item xs={6} sm={showAllChildren ? 2 : 3}>
             <FormControl fullWidth size="small">
               <InputLabel>Type</InputLabel>
               <Select
@@ -257,7 +389,7 @@ export default function PortfolioGallery({ childId, userRole = 'parent', onUploa
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={6} sm={3}>
+          <Grid item xs={6} sm={showAllChildren ? 2 : 3}>
             <FormControl fullWidth size="small">
               <InputLabel>Favorites</InputLabel>
               <Select
@@ -341,13 +473,31 @@ export default function PortfolioGallery({ childId, userRole = 'parent', onUploa
                 <Typography variant="body2" noWrap>
                   {item.title || item.description || item.file_name}
                 </Typography>
+
+                {/* Show child name for admin view */}
+                {showAllChildren && item.child_name && (
+                  <Typography variant="caption" color="primary.main" display="block">
+                    {item.child_name} {item.class_name && `(${item.class_name})`}
+                  </Typography>
+                )}
+
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Typography variant="caption" color="text.secondary">
                     {new Date(item.upload_date || item.created_at).toLocaleDateString()}
                   </Typography>
-                  {item.capture_method === 'camera' && (
-                    <Chip label="Camera" size="small" color="secondary" />
-                  )}
+                  <Stack direction="row" spacing={0.5}>
+                    {item.capture_method === 'camera' && (
+                      <Chip label="Camera" size="small" color="secondary" />
+                    )}
+                    {showAllChildren && item.uploaded_by_name && (
+                      <Chip
+                        label={item.uploaded_by_name.split(' ')[0]}
+                        size="small"
+                        variant="outlined"
+                        title={`Uploaded by ${item.uploaded_by_name}`}
+                      />
+                    )}
+                  </Stack>
                 </Stack>
               </CardContent>
             </Card>

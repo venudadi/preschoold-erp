@@ -1,0 +1,13 @@
+{
+  "caching": {
+    "enabled": true,
+    "cacheablePatterns": [
+      "backend/**/*.js",
+      "frontend/src/**/*.{js,jsx}",
+      "backend/migrations/**/*.sql",
+      "*.md",
+      "package.json"
+    ],
+    "systemPromptCaching": true
+  }
+}

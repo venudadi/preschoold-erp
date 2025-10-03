@@ -32,20 +32,62 @@ export const protect = async (req, res, next) => {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             const userId = decoded.userId || decoded.id;
 
-            // --- SESSION VALIDATION (TEMPORARILY DISABLED) ---
+            // --- SESSION VALIDATION ---
             const sessionToken = req.headers['x-session-token'];
-            // Temporarily allow any session token for testing
             if (!sessionToken) {
+                await logEventSafe(
+                    userId,
+                    'AUTH_FAILED_NO_SESSION',
+                    req.ip,
+                    req.get('User-Agent'),
+                    { reason: 'No session token provided' },
+                    'warning'
+                );
                 return res.status(401).json({ message: 'Session token required', code: 'NO_SESSION' });
             }
-            // Skip actual session validation for now (quiet)
-            // console.debug('Accepting session token:', sessionToken);
 
-            // --- CSRF VALIDATION (TEMPORARILY DISABLED) ---
+            // Validate session token
+            const sessionValid = await validateSession(sessionToken);
+            if (!sessionValid) {
+                await logEventSafe(
+                    userId,
+                    'AUTH_FAILED_INVALID_SESSION',
+                    req.ip,
+                    req.get('User-Agent'),
+                    { reason: 'Invalid session token' },
+                    'warning'
+                );
+                return res.status(401).json({ message: 'Invalid session token', code: 'INVALID_SESSION' });
+            }
+
+            // --- CSRF VALIDATION ---
             if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
                 const csrfToken = req.headers['x-csrf-token'];
-                // Temporarily skip CSRF validation for testing (quiet)
-                // console.debug('Accepting CSRF token:', csrfToken);
+                if (!csrfToken) {
+                    await logEventSafe(
+                        userId,
+                        'AUTH_FAILED_NO_CSRF',
+                        req.ip,
+                        req.get('User-Agent'),
+                        { reason: 'No CSRF token provided', method: req.method, endpoint: req.originalUrl },
+                        'warning'
+                    );
+                    return res.status(403).json({ message: 'CSRF token required', code: 'NO_CSRF' });
+                }
+
+                // Validate CSRF token
+                const csrfValid = await validateCSRFToken(csrfToken, userId);
+                if (!csrfValid) {
+                    await logEventSafe(
+                        userId,
+                        'AUTH_FAILED_INVALID_CSRF',
+                        req.ip,
+                        req.get('User-Agent'),
+                        { reason: 'Invalid CSRF token', method: req.method, endpoint: req.originalUrl },
+                        'warning'
+                    );
+                    return res.status(403).json({ message: 'Invalid CSRF token', code: 'INVALID_CSRF' });
+                }
             }
 
             // Fetch fresh user data from database to ensure user still exists and is active
@@ -193,10 +235,28 @@ export const protect = async (req, res, next) => {
 };
 
 export const adminOnly = (req, res, next) => {
-    if (req.user && (req.user.role === 'admin' || req.user.role === 'super_admin' || req.user.role === 'owner')) {
+    if (req.user && (req.user.role === 'admin' || req.user.role === 'center_director' || req.user.role === 'super_admin' || req.user.role === 'owner')) {
         next();
     } else {
         res.status(403).json({ message: 'Access restricted to administrators' });
+    }
+};
+
+export const centerDirectorOrAbove = (req, res, next) => {
+    const allowedRoles = ['center_director', 'owner', 'super_admin'];
+    if (req.user && allowedRoles.includes(req.user.role)) {
+        next();
+    } else {
+        res.status(403).json({ message: 'Access restricted to center directors and above' });
+    }
+};
+
+export const financialManagerOrAbove = (req, res, next) => {
+    const allowedRoles = ['financial_manager', 'owner', 'super_admin'];
+    if (req.user && allowedRoles.includes(req.user.role)) {
+        next();
+    } else {
+        res.status(403).json({ message: 'Access restricted to financial managers and above' });
     }
 };
 

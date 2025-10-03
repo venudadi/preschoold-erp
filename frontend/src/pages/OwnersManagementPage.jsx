@@ -12,7 +12,10 @@ import { getOwners, createOwner, getOwnerCenters, updateOwnerCenters, getAllCent
 const UserManagementPage = () => {
   const [users, setUsers] = useState([]);
   const [centers, setCenters] = useState([]);
-  const [availableRoles, setAvailableRoles] = useState([]);
+  const [availableRoles, setAvailableRoles] = useState([
+    'owner', 'admin', 'financial_manager', 'center_director',
+    'academic_coordinator', 'teacher', 'parent'
+  ]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -33,8 +36,16 @@ const UserManagementPage = () => {
   // Load available roles from backend
   const loadRoles = async () => {
     try {
+      const token = localStorage.getItem('token');
+      const sessionToken = localStorage.getItem('sessionToken');
+      const csrfToken = localStorage.getItem('csrfToken');
+
       const response = await fetch('/api/owners/roles', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'X-Session-Token': sessionToken,
+          'X-CSRF-Token': csrfToken
+        }
       });
       if (response.ok) {
         const data = await response.json();

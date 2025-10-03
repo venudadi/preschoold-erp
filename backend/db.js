@@ -9,15 +9,27 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 dotenv.config();
 
-// Create a connection pool for MySQL
+// Create a connection pool for MySQL with production-ready settings
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   waitForConnections: true,
-  connectionLimit: 10, // Max connections in pool
+  connectionLimit: process.env.NODE_ENV === 'production' ? 25 : 10, // More connections for production
   queueLimit: 0, // Unlimited queued requests
+  // acquireTimeout: 60000, // Invalid for MySQL2 - not supported in connection pools
+  // timeout: 60000, // Invalid for MySQL2 - use acquireTimeout for pool
+  // reconnect: true, // Invalid for MySQL2 - handled automatically
+  // Performance optimizations
+  charset: 'utf8mb4',
+  timezone: 'Z', // Use UTC
+  supportBigNumbers: true,
+  bigNumberStrings: true,
+  dateStrings: false,
+  // Connection pool management
+  idleTimeout: 900000, // 15 minutes
+  maxIdle: 10, // Max idle connections
   // Optional: enable namedPlaceholders if needed
   // namedPlaceholders: true
 });

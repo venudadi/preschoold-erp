@@ -4,10 +4,11 @@ import { protect } from './authMiddleware.js';
 
 const router = express.Router();
 
-// Middleware to ensure only owners and superadmins can access analytics
+// Middleware to ensure authorized roles can access analytics
 const analyticsAccess = (req, res, next) => {
-    if (!['owner', 'super_admin'].includes(req.user.role)) {
-        return res.status(403).json({ message: 'Forbidden: Access restricted to owners and superadmins.' });
+    const allowedRoles = ['owner', 'super_admin', 'center_director', 'admin', 'financial_manager', 'academic_coordinator', 'teacher', 'parent'];
+    if (!allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({ message: 'Forbidden: Access restricted.' });
     }
     next();
 };

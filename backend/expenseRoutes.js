@@ -26,9 +26,13 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
+import { protect } from './authMiddleware.js';
 import { requireRole } from './middleware/security.js';
 
 const router = express.Router();
+
+// Apply authentication to all routes
+router.use(protect);
 
 // Log a new expense (financial manager)
 router.post('/log', requireRole(['financial_manager']), logExpense);

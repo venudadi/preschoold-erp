@@ -12,10 +12,33 @@ export default function PromoteAssignStudentModal({ open, onClose, studentId, cu
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    // Fetch centers and classes (replace with real API calls)
-    fetch('/api/centers').then(res => res.json()).then(setCenters);
+    // Fetch centers and classes with auth headers
+    const token = localStorage.getItem('token');
+    const sessionToken = localStorage.getItem('sessionToken');
+    const csrfToken = localStorage.getItem('csrfToken');
+
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'X-Session-Token': sessionToken,
+      'X-CSRF-Token': csrfToken
+    };
+
+    fetch('/api/centers', { headers })
+      .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch centers'))
+      .then(data => setCenters(Array.isArray(data) ? data : []))
+      .catch(err => {
+        console.error('Error fetching centers:', err);
+        setCenters([]);
+      });
+
     if (centerId) {
-      fetch(`/api/classrooms?center_id=${centerId}`).then(res => res.json()).then(setClasses);
+      fetch(`/api/classrooms?center_id=${centerId}`, { headers })
+        .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch classrooms'))
+        .then(data => setClasses(Array.isArray(data) ? data : []))
+        .catch(err => {
+          console.error('Error fetching classrooms:', err);
+          setClasses([]);
+        });
     }
   }, [centerId, open]);
 

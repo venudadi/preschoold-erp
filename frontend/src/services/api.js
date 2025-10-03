@@ -616,5 +616,22 @@ export const getExpenseAnalytics = async () => {
     }
 };
 
+// Export expenses (returns a Blob for download)
+export const exportExpenses = async (params = {}) => {
+    try {
+        const query = new URLSearchParams(params).toString();
+        const response = await api.get(`/expenses/export?${query}`, { responseType: 'blob' });
+        return response;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
 export default api;
 

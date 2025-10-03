@@ -198,18 +198,19 @@ const CenterManagement = () => {
                                             <Typography variant="h6">
                                                 {center.center_name}
                                             </Typography>
-                                            <Chip 
+                                            <Chip
                                                 label={`${center.total_students || 0} Students`}
                                                 color="primary"
                                                 size="small"
                                             />
-                                            <Chip 
+                                            <Chip
                                                 label={`${center.total_classrooms || 0} Classrooms`}
                                                 color="secondary"
                                                 size="small"
                                             />
                                         </Box>
                                     }
+                                    primaryTypographyProps={{ component: 'div' }}
                                     secondary={
                                         <Grid container spacing={2} sx={{ mt: 1 }}>
                                             <Grid item xs={12} sm={6}>
@@ -245,6 +246,7 @@ const CenterManagement = () => {
                                             </Grid>
                                         </Grid>
                                     }
+                                    secondaryTypographyProps={{ component: 'div' }}
                                 />
                                 <ListItemSecondaryAction>
                                     <IconButton

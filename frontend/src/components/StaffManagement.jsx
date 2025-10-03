@@ -57,7 +57,15 @@ const StaffManagement = () => {
     const fetchStaff = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await api.get('/staff/center/' + localStorage.getItem('centerId'));
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const centerId = user.center_id || localStorage.getItem('centerId');
+
+            // Super admin or owner can see all staff, or filter by center
+            const endpoint = (user.role === 'super_admin' || user.role === 'owner')
+                ? '/staff'
+                : `/staff/center/${centerId}`;
+
+            const response = await api.get(endpoint);
             setStaff(response.data);
             setError(null);
         } catch (error) {
