@@ -1,0 +1,100 @@
+name: preschool-erp-staging
+region: nyc
+
+# Database - Managed MySQL (Staging)
+databases:
+  - name: preschool-db-staging
+    engine: MYSQL
+    version: "8"
+    production: false
+    cluster_name: preschool-db-staging-cluster
+
+# Backend API Service
+services:
+  - name: backend-staging
+    github:
+      repo: venudadi/preschoold-erp
+      branch: staging
+      deploy_on_push: true
+    source_dir: /backend
+    build_command: npm ci --legacy-peer-deps
+    run_command: node index.js
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    http_port: 5001
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 20
+      period_seconds: 10
+      timeout_seconds: 3
+      success_threshold: 1
+      failure_threshold: 3
+    envs:
+      - key: NODE_ENV
+        value: staging
+      - key: PORT
+        value: "5001"
+      - key: DB_HOST
+        value: ${preschool-db-staging.HOSTNAME}
+      - key: DB_PORT
+        value: ${preschool-db-staging.PORT}
+      - key: DB_USER
+        value: ${preschool-db-staging.USERNAME}
+      - key: DB_PASSWORD
+        value: ${preschool-db-staging.PASSWORD}
+      - key: DB_NAME
+        value: ${preschool-db-staging.DATABASE}
+      - key: JWT_SECRET
+        type: SECRET
+        value: staging_jwt_secret_change_this
+      - key: DATABASE_URL
+        value: ${preschool-db-staging.DATABASE_URL}
+
+# Frontend Static Site
+static_sites:
+  - name: frontend-staging
+    github:
+      repo: venudadi/preschoold-erp
+      branch: staging
+      deploy_on_push: true
+    source_dir: /frontend
+    build_command: npm ci --legacy-peer-deps && npm run build
+    output_dir: /dist
+    environment_slug: node-js
+    index_document: index.html
+    error_document: index.html
+    catchall_document: index.html
+    envs:
+      - key: VITE_API_URL
+        value: ${backend-staging.PUBLIC_URL}
+    routes:
+      - path: /
+
+# Jobs for migrations (run on deploy)
+jobs:
+  - name: migrations-staging
+    kind: PRE_DEPLOY
+    github:
+      repo: venudadi/preschoold-erp
+      branch: staging
+      deploy_on_push: true
+    source_dir: /backend
+    build_command: npm ci --legacy-peer-deps
+    run_command: node migrate.js
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    envs:
+      - key: NODE_ENV
+        value: staging
+      - key: DB_HOST
+        value: ${preschool-db-staging.HOSTNAME}
+      - key: DB_PORT
+        value: ${preschool-db-staging.PORT}
+      - key: DB_USER
+        value: ${preschool-db-staging.USERNAME}
+      - key: DB_PASSWORD
+        value: ${preschool-db-staging.PASSWORD}
+      - key: DB_NAME
+        value: ${preschool-db-staging.DATABASE}
