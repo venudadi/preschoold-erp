@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: ${DOCKERHUB_USERNAME:-yourusername}/preschool-erp-frontend:production-latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+    networks:
+      - preschool-network
+
+  backend:
+    image: ${DOCKERHUB_USERNAME:-yourusername}/preschool-erp-backend:production-latest
+    restart: always
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env.production
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - backend_uploads:/app/uploads
+    networks:
+      - preschool-network
+
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_CHARACTER_SET_SERVER=utf8mb4
+      - MYSQL_COLLATION_SERVER=utf8mb4_unicode_ci
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+      - ./backups:/backups
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - preschool-network
+
+volumes:
+  mysql_prod_data:
+    driver: local
+  backend_uploads:
+    driver: local
+
+networks:
+  preschool-network:
+    driver: bridge
