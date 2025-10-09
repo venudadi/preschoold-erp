@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Card, CardContent, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Grid, Chip, CircularProgress
+  Card, CardContent, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Grid, Chip, CircularProgress, Alert, Box
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -13,25 +13,47 @@ const LessonPlanForm = ({ open, onClose, onSave, initialData, readOnly }) => {
     topic: '', objectives: '', activities: '', resources: '', date: ''
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setForm(initialData || { topic: '', objectives: '', activities: '', resources: '', date: '' });
+    setError('');
   }, [initialData]);
 
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError('');
   };
 
   const handleSubmit = async () => {
+    // Validation
+    if (!form.topic?.trim()) {
+      setError('Topic is required');
+      return;
+    }
+
+    if (!form.date) {
+      setError('Date is required');
+      return;
+    }
+
     setLoading(true);
-    await onSave(form);
-    setLoading(false);
+    setError('');
+
+    try {
+      await onSave(form);
+    } catch (err) {
+      console.error('Error saving lesson plan:', err);
+      setError('Failed to save lesson plan. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{initialData ? (readOnly ? 'Lesson Plan' : 'Edit Lesson Plan') : 'Lesson Plan'}</DialogTitle>
       <DialogContent>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <TextField margin="dense" label="Topic" name="topic" value={form.topic} onChange={handleChange} fullWidth required disabled={readOnly} />
         <TextField margin="dense" label="Objectives" name="objectives" value={form.objectives} onChange={handleChange} fullWidth multiline disabled={readOnly} />
         <TextField margin="dense" label="Activities" name="activities" value={form.activities} onChange={handleChange} fullWidth multiline disabled={readOnly} />
@@ -49,17 +71,42 @@ const LessonPlanForm = ({ open, onClose, onSave, initialData, readOnly }) => {
 const LessonPlanList = () => {
   const [lessonPlans, setLessonPlans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [checkoffOpen, setCheckoffOpen] = useState(false);
   const [checkoffData, setCheckoffData] = useState({});
+  const [actionError, setActionError] = useState('');
+  const [actionSuccess, setActionSuccess] = useState('');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   const fetchLessonPlans = async () => {
-    setLoading(true);
-    const res = await api.get('/lesson-plans');
-    setLessonPlans(res.data.lesson_plans || []);
-    setLoading(false);
+    try {
+      setLoading(true);
+      setError('');
+      const res = await api.get('/lesson-plans');
+      setLessonPlans(res.data.lesson_plans || []);
+    } catch (err) {
+      console.error('Error fetching lesson plans:', err);
+
+      if (err.response) {
+        if (err.response.status === 401) {
+          setError('Please log in again to view lesson plans');
+        } else if (err.response.status === 403) {
+          setError('You do not have permission to view lesson plans');
+        } else if (err.response.status === 500) {
+          setError('Server error. Please try again later');
+        } else {
+          setError(err.response.data?.message || 'Failed to load lesson plans');
+        }
+      } else if (err.request) {
+        setError('Network error. Please check your connection and try again');
+      } else {
+        setError('An unexpected error occurred. Please try again');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchLessonPlans(); }, []);
@@ -67,19 +114,71 @@ const LessonPlanList = () => {
   const handleEdit = (plan) => {
     setSelected(plan);
     setEditOpen(true);
+    setActionError('');
+    setActionSuccess('');
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Delete this lesson plan?')) {
+    if (!window.confirm('Delete this lesson plan?')) {
+      return;
+    }
+
+    try {
+      setActionError('');
       await api.delete(`/lesson-plans/${id}`);
+      setActionSuccess('Lesson plan deleted successfully');
       fetchLessonPlans();
+
+      setTimeout(() => setActionSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error deleting lesson plan:', err);
+
+      if (err.response) {
+        if (err.response.status === 401) {
+          setActionError('Please log in again to delete lesson plans');
+        } else if (err.response.status === 403) {
+          setActionError('You do not have permission to delete this lesson plan');
+        } else if (err.response.status === 500) {
+          setActionError('Server error. Please try again');
+        } else {
+          setActionError(err.response.data?.message || 'Failed to delete lesson plan');
+        }
+      } else if (err.request) {
+        setActionError('Network error. Please check your connection and try again');
+      } else {
+        setActionError('An unexpected error occurred. Please try again');
+      }
     }
   };
 
   const handleSave = async (form) => {
-    await api.put(`/lesson-plans/${selected.id}`, form);
-    setEditOpen(false);
-    fetchLessonPlans();
+    try {
+      await api.put(`/lesson-plans/${selected.id}`, form);
+      setEditOpen(false);
+      setActionSuccess('Lesson plan saved successfully');
+      fetchLessonPlans();
+
+      setTimeout(() => setActionSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error saving lesson plan:', err);
+
+      let errorMessage = 'Failed to save lesson plan';
+      if (err.response) {
+        if (err.response.status === 401) {
+          errorMessage = 'Please log in again to save lesson plans';
+        } else if (err.response.status === 403) {
+          errorMessage = 'You do not have permission to save this lesson plan';
+        } else if (err.response.status === 500) {
+          errorMessage = 'Server error. Please try again';
+        } else {
+          errorMessage = err.response.data?.message || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = 'Network error. Please check your connection and try again';
+      }
+
+      throw new Error(errorMessage);
+    }
   };
 
   // Teacher check-off logic
@@ -87,21 +186,66 @@ const LessonPlanList = () => {
     setSelected(plan);
     setCheckoffData(plan.checkoff_status ? JSON.parse(plan.checkoff_status) : { objectives_done: false, activities_done: false, resources_done: false });
     setCheckoffOpen(true);
+    setActionError('');
+    setActionSuccess('');
   };
+
   const handleCheckoffChange = (e) => {
     setCheckoffData({ ...checkoffData, [e.target.name]: e.target.checked });
   };
+
   const handleCheckoffSave = async () => {
-    await api.patch(`/lesson-plans/${selected.id}/checkoff`, checkoffData);
-    setCheckoffOpen(false);
-    fetchLessonPlans();
+    try {
+      await api.patch(`/lesson-plans/${selected.id}/checkoff`, checkoffData);
+      setCheckoffOpen(false);
+      setActionSuccess('Check-off status updated successfully');
+      fetchLessonPlans();
+
+      setTimeout(() => setActionSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error updating check-off status:', err);
+
+      if (err.response) {
+        if (err.response.status === 401) {
+          setActionError('Please log in again to update check-off status');
+        } else if (err.response.status === 403) {
+          setActionError('You do not have permission to update check-off status');
+        } else if (err.response.status === 500) {
+          setActionError('Server error. Please try again');
+        } else {
+          setActionError(err.response.data?.message || 'Failed to update check-off status');
+        }
+      } else if (err.request) {
+        setActionError('Network error. Please check your connection and try again');
+      } else {
+        setActionError('An unexpected error occurred. Please try again');
+      }
+    }
   };
 
-  if (loading) return <CircularProgress />;
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box p={2}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
 
   return (
     <div>
       <Typography variant="h5" gutterBottom>My Lesson Plans</Typography>
+
+      {actionSuccess && <Alert severity="success" sx={{ mb: 2 }}>{actionSuccess}</Alert>}
+      {actionError && <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>}
+
       <Grid container spacing={2}>
         {lessonPlans.map(plan => (
           <Grid item xs={12} sm={6} md={4} key={plan.id}>

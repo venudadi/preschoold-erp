@@ -71,7 +71,10 @@ import {
     NotificationsActive as AlertIcon,
     Dashboard as DashboardIcon,
     ExpandMore as ExpandMoreIcon,
-    ExpandLess as ExpandLessIcon
+    ExpandLess as ExpandLessIcon,
+    Receipt as ReceiptIcon,
+    AttachFile as AttachFileIcon,
+    CloudUpload as UploadIcon
 } from '@mui/icons-material';
 import { exportExpenses } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line, Area, AreaChart } from 'recharts';
@@ -112,8 +115,25 @@ const FinancialManagerDashboard = ({ user }) => {
     const [anchorEl, setAnchorEl] = useState(null);
     const [expandedCards, setExpandedCards] = useState({});
 
+    // Expense logging state
+    const [expenseForm, setExpenseForm] = useState({
+        amount: '',
+        category: '',
+        subcategory: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0],
+        payment_mode: 'online',
+        vendor: '',
+        GST: '',
+        receipt: null
+    });
+    const [expenses, setExpenses] = useState([]);
+    const [loadingExpenses, setLoadingExpenses] = useState(false);
+    const [submittingExpense, setSubmittingExpense] = useState(false);
+
     useEffect(() => {
         fetchDashboardData();
+        fetchExpenses();
     }, []);
 
     const fetchDashboardData = async (showRefreshIndicator = false) => {
@@ -264,6 +284,128 @@ const FinancialManagerDashboard = ({ user }) => {
             setSelectedApprovals([]);
         } else {
             setSelectedApprovals(dashboardData.pendingApprovals.map(a => a.id));
+        }
+    };
+
+    const fetchExpenses = async () => {
+        try {
+            setLoadingExpenses(true);
+            const token = localStorage.getItem('token');
+            const sessionToken = localStorage.getItem('sessionToken');
+            const csrfToken = localStorage.getItem('csrfToken');
+
+            const response = await fetch('/api/expenses', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'X-Session-Token': sessionToken,
+                    'X-CSRF-Token': csrfToken
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setExpenses(data.expenses || []);
+            }
+        } catch (error) {
+            console.error('Error fetching expenses:', error);
+        } finally {
+            setLoadingExpenses(false);
+        }
+    };
+
+    const handleExpenseSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!expenseForm.amount || !expenseForm.category || !expenseForm.description) {
+            setSnackbar({ open: true, message: 'Please fill in all required fields', severity: 'warning' });
+            return;
+        }
+
+        try {
+            setSubmittingExpense(true);
+
+            const token = localStorage.getItem('token');
+            const sessionToken = localStorage.getItem('sessionToken');
+            const csrfToken = localStorage.getItem('csrfToken');
+
+            // Upload receipt if exists
+            let receiptPath = null;
+            if (expenseForm.receipt) {
+                const formData = new FormData();
+                formData.append('receipt', expenseForm.receipt);
+
+                const uploadResponse = await fetch('/api/expenses/upload-receipt', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'X-Session-Token': sessionToken,
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: formData
+                });
+
+                if (uploadResponse.ok) {
+                    const uploadData = await uploadResponse.json();
+                    receiptPath = uploadData.path;
+                }
+            }
+
+            // Submit expense
+            const response = await fetch('/api/expenses/log', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'X-Session-Token': sessionToken,
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({
+                    date: expenseForm.date,
+                    amount: expenseForm.amount,
+                    description: expenseForm.description,
+                    category: expenseForm.category,
+                    subcategory: expenseForm.subcategory || null,
+                    payment_mode: expenseForm.payment_mode,
+                    vendor: expenseForm.vendor || null,
+                    receipt_image_url: receiptPath,
+                    GST: expenseForm.GST || null,
+                    recurring: 'No'
+                })
+            });
+
+            if (response.ok) {
+                setSnackbar({ open: true, message: 'Expense logged successfully', severity: 'success' });
+                setExpenseForm({
+                    amount: '',
+                    category: '',
+                    subcategory: '',
+                    description: '',
+                    date: new Date().toISOString().split('T')[0],
+                    payment_mode: 'online',
+                    vendor: '',
+                    GST: '',
+                    receipt: null
+                });
+                fetchExpenses();
+            } else {
+                throw new Error('Failed to log expense');
+            }
+        } catch (error) {
+            console.error('Error logging expense:', error);
+            setSnackbar({ open: true, message: 'Failed to log expense', severity: 'error' });
+        } finally {
+            setSubmittingExpense(false);
+        }
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                setSnackbar({ open: true, message: 'File size must be less than 5MB', severity: 'warning' });
+                return;
+            }
+            setExpenseForm({ ...expenseForm, receipt: file });
         }
     };
 
@@ -537,6 +679,7 @@ const FinancialManagerDashboard = ({ user }) => {
                 <Tabs value={tabValue} onChange={handleTabChange}>
                     <Tab label="Budget Limits" />
                     <Tab label="Pending Approvals" />
+                    <Tab label="Log Expenses" icon={<ReceiptIcon />} iconPosition="start" />
                     <Tab label="Financial Oversight" />
                     <Tab label="Analytics" />
                 </Tabs>
@@ -647,6 +790,341 @@ const FinancialManagerDashboard = ({ user }) => {
                         </Table>
                     </TableContainer>
                 )}
+            </TabPanel>
+
+            {/* Log Expenses Tab */}
+            <TabPanel value={tabValue} index={2}>
+                <Grid container spacing={3}>
+                    {/* Expense Form */}
+                    <Grid item xs={12} md={5}>
+                        <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+                            <CardContent>
+                                <Box display="flex" alignItems="center" gap={2} mb={3}>
+                                    <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.3)', width: 56, height: 56 }}>
+                                        <ReceiptIcon fontSize="large" />
+                                    </Avatar>
+                                    <Box>
+                                        <Typography variant="h5">Log New Expense</Typography>
+                                        <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                            Record expense with receipt
+                                        </Typography>
+                                    </Box>
+                                </Box>
+
+                                <form onSubmit={handleExpenseSubmit}>
+                                    <Stack spacing={2}>
+                                        <TextField
+                                            fullWidth
+                                            label="Amount"
+                                            type="number"
+                                            required
+                                            value={expenseForm.amount}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                                            InputProps={{
+                                                startAdornment: <InputAdornment position="start">$</InputAdornment>
+                                            }}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    backgroundColor: 'rgba(255,255,255,0.1)',
+                                                    color: 'white',
+                                                    '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+                                                    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.5)' },
+                                                    '&.Mui-focused fieldset': { borderColor: 'white' }
+                                                },
+                                                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.8)' },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: 'white' }
+                                            }}
+                                        />
+
+                                        <FormControl fullWidth sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                backgroundColor: 'rgba(255,255,255,0.1)',
+                                                color: 'white',
+                                                '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+                                                '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.5)' },
+                                                '&.Mui-focused fieldset': { borderColor: 'white' }
+                                            },
+                                            '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.8)' },
+                                            '& .MuiInputLabel-root.Mui-focused': { color: 'white' },
+                                            '& .MuiSvgIcon-root': { color: 'white' }
+                                        }}>
+                                            <InputLabel>Category</InputLabel>
+                                            <Select
+                                                value={expenseForm.category}
+                                                label="Category"
+                                                required
+                                                onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
+                                            >
+                                                <MenuItem value="supplies">Supplies</MenuItem>
+                                                <MenuItem value="utilities">Utilities</MenuItem>
+                                                <MenuItem value="salaries">Salaries</MenuItem>
+                                                <MenuItem value="maintenance">Maintenance</MenuItem>
+                                                <MenuItem value="marketing">Marketing</MenuItem>
+                                                <MenuItem value="rent">Rent</MenuItem>
+                                                <MenuItem value="food">Food & Catering</MenuItem>
+                                                <MenuItem value="equipment">Equipment</MenuItem>
+                                                <MenuItem value="other">Other</MenuItem>
+                                            </Select>
+                                        </FormControl>
+
+                                        <FormControl fullWidth sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                backgroundColor: 'rgba(255,255,255,0.1)',
+                                                color: 'white',
+                                                '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+                                                '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.5)' },
+                                                '&.Mui-focused fieldset': { borderColor: 'white' }
+                                            },
+                                            '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.8)' },
+                                            '& .MuiInputLabel-root.Mui-focused': { color: 'white' },
+                                            '& .MuiSvgIcon-root': { color: 'white' }
+                                        }}>
+                                            <InputLabel>Payment Mode</InputLabel>
+                                            <Select
+                                                value={expenseForm.payment_mode}
+                                                label="Payment Mode"
+                                                required
+                                                onChange={(e) => setExpenseForm({ ...expenseForm, payment_mode: e.target.value })}
+                                            >
+                                                <MenuItem value="online">Online</MenuItem>
+                                                <MenuItem value="UPI">UPI</MenuItem>
+                                                <MenuItem value="RTGS">RTGS</MenuItem>
+                                                <MenuItem value="cheque">Cheque</MenuItem>
+                                                <MenuItem value="cash">Cash</MenuItem>
+                                            </Select>
+                                        </FormControl>
+
+                                        <TextField
+                                            fullWidth
+                                            label="Vendor (Optional)"
+                                            value={expenseForm.vendor}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, vendor: e.target.value })}
+                                            placeholder="Enter vendor name"
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    backgroundColor: 'rgba(255,255,255,0.1)',
+                                                    color: 'white',
+                                                    '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+                                                    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.5)' },
+                                                    '&.Mui-focused fieldset': { borderColor: 'white' }
+                                                },
+                                                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.8)' },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: 'white' },
+                                                '& input::placeholder': { color: 'rgba(255,255,255,0.5)', opacity: 1 }
+                                            }}
+                                        />
+
+                                        <TextField
+                                            fullWidth
+                                            label="Description"
+                                            multiline
+                                            rows={3}
+                                            required
+                                            value={expenseForm.description}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    backgroundColor: 'rgba(255,255,255,0.1)',
+                                                    color: 'white',
+                                                    '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+                                                    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.5)' },
+                                                    '&.Mui-focused fieldset': { borderColor: 'white' }
+                                                },
+                                                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.8)' },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: 'white' }
+                                            }}
+                                        />
+
+                                        <TextField
+                                            fullWidth
+                                            label="Expense Date"
+                                            type="date"
+                                            required
+                                            value={expenseForm.date}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                                            InputLabelProps={{ shrink: true }}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    backgroundColor: 'rgba(255,255,255,0.1)',
+                                                    color: 'white',
+                                                    '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+                                                    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.5)' },
+                                                    '&.Mui-focused fieldset': { borderColor: 'white' }
+                                                },
+                                                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.8)' },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: 'white' }
+                                            }}
+                                        />
+
+                                        <TextField
+                                            fullWidth
+                                            label="GST Number (Optional)"
+                                            value={expenseForm.GST}
+                                            onChange={(e) => setExpenseForm({ ...expenseForm, GST: e.target.value })}
+                                            placeholder="e.g., 27AAPFU0939F1ZV"
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    backgroundColor: 'rgba(255,255,255,0.1)',
+                                                    color: 'white',
+                                                    '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+                                                    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.5)' },
+                                                    '&.Mui-focused fieldset': { borderColor: 'white' }
+                                                },
+                                                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.8)' },
+                                                '& .MuiInputLabel-root.Mui-focused': { color: 'white' },
+                                                '& input::placeholder': { color: 'rgba(255,255,255,0.5)', opacity: 1 }
+                                            }}
+                                        />
+
+                                        <Box>
+                                            <input
+                                                accept="image/*,.pdf"
+                                                style={{ display: 'none' }}
+                                                id="receipt-upload"
+                                                type="file"
+                                                onChange={handleFileChange}
+                                            />
+                                            <label htmlFor="receipt-upload">
+                                                <Button
+                                                    variant="outlined"
+                                                    component="span"
+                                                    fullWidth
+                                                    startIcon={expenseForm.receipt ? <AttachFileIcon /> : <UploadIcon />}
+                                                    sx={{
+                                                        color: 'white',
+                                                        borderColor: 'rgba(255,255,255,0.5)',
+                                                        '&:hover': { borderColor: 'white', backgroundColor: 'rgba(255,255,255,0.1)' }
+                                                    }}
+                                                >
+                                                    {expenseForm.receipt ? expenseForm.receipt.name : 'Upload Receipt (Optional)'}
+                                                </Button>
+                                            </label>
+                                            {expenseForm.receipt && (
+                                                <Typography variant="caption" display="block" sx={{ mt: 1, opacity: 0.8 }}>
+                                                    Size: {(expenseForm.receipt.size / 1024).toFixed(2)} KB
+                                                </Typography>
+                                            )}
+                                        </Box>
+
+                                        <Button
+                                            type="submit"
+                                            variant="contained"
+                                            size="large"
+                                            disabled={submittingExpense}
+                                            startIcon={<AddIcon />}
+                                            sx={{
+                                                backgroundColor: 'white',
+                                                color: '#667eea',
+                                                '&:hover': { backgroundColor: 'rgba(255,255,255,0.9)' },
+                                                mt: 2
+                                            }}
+                                        >
+                                            {submittingExpense ? 'Logging Expense...' : 'Log Expense'}
+                                        </Button>
+                                    </Stack>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+
+                    {/* Expense List */}
+                    <Grid item xs={12} md={7}>
+                        <Card>
+                            <CardContent>
+                                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                                    <Typography variant="h6">Recent Expenses</Typography>
+                                    <IconButton onClick={fetchExpenses} disabled={loadingExpenses}>
+                                        <RefreshIcon />
+                                    </IconButton>
+                                </Box>
+
+                                {loadingExpenses ? (
+                                    <Box textAlign="center" py={4}>
+                                        <LinearProgress />
+                                        <Typography variant="body2" color="textSecondary" mt={2}>
+                                            Loading expenses...
+                                        </Typography>
+                                    </Box>
+                                ) : expenses.length === 0 ? (
+                                    <Box textAlign="center" py={6}>
+                                        <ReceiptIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+                                        <Typography variant="h6" color="textSecondary" gutterBottom>
+                                            No Expenses Logged
+                                        </Typography>
+                                        <Typography variant="body2" color="textSecondary">
+                                            Start by logging your first expense
+                                        </Typography>
+                                    </Box>
+                                ) : (
+                                    <TableContainer>
+                                        <Table>
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell>Date</TableCell>
+                                                    <TableCell>Category</TableCell>
+                                                    <TableCell>Description</TableCell>
+                                                    <TableCell>Amount</TableCell>
+                                                    <TableCell>GST Number</TableCell>
+                                                    <TableCell>Receipt</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {expenses.slice(0, 10).map((expense) => (
+                                                    <TableRow key={expense.expense_id} hover>
+                                                        <TableCell>
+                                                            <Typography variant="body2">
+                                                                {new Date(expense.date).toLocaleDateString()}
+                                                            </Typography>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Chip
+                                                                label={expense.category}
+                                                                size="small"
+                                                                color="primary"
+                                                                variant="outlined"
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
+                                                                {expense.description}
+                                                            </Typography>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Typography variant="body2" fontWeight="bold" color="primary">
+                                                                ${parseFloat(expense.amount).toLocaleString()}
+                                                            </Typography>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Typography variant="body2" color="textSecondary">
+                                                                {expense.GST || 'N/A'}
+                                                            </Typography>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {expense.receipt_image_url ? (
+                                                                <Tooltip title="View Receipt">
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={() => window.open(expense.receipt_image_url, '_blank')}
+                                                                    >
+                                                                        <AttachFileIcon />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                            ) : (
+                                                                <Typography variant="caption" color="textSecondary">
+                                                                    No receipt
+                                                                </Typography>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
             </TabPanel>
 
             {/* Pending Approvals Tab */}
@@ -783,7 +1261,7 @@ const FinancialManagerDashboard = ({ user }) => {
             </TabPanel>
 
             {/* Financial Oversight Tab */}
-            <TabPanel value={tabValue} index={2}>
+            <TabPanel value={tabValue} index={3}>
                 <Typography variant="h6" gutterBottom>Financial Oversight Items</Typography>
 
                 {dashboardData.oversightItems.map((item) => (
@@ -802,7 +1280,7 @@ const FinancialManagerDashboard = ({ user }) => {
             </TabPanel>
 
             {/* Analytics Tab */}
-            <TabPanel value={tabValue} index={3}>
+            <TabPanel value={tabValue} index={4}>
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={6}>
                         <Card>

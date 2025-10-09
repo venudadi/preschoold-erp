@@ -82,16 +82,16 @@ export async function logExpense(req, res) {
     const created_by = req.user.id;
     const raised_by_role = 'financial_manager';
 
-    // Prepare expense id and invoice number
-    const expense_id = uuidv4();
+    // Prepare invoice number
     const invoice_type = payment_mode || 'online';
     const invoice_number = await generateInvoiceNumber(invoice_type);
 
     const [result] = await pool.query(
-      `INSERT INTO expenses (expense_id, invoice_number, date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')`,
-      [expense_id, invoice_number, date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number]
+      `INSERT INTO expenses (invoice_number, date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved')`,
+      [invoice_number, date, amount, description, category, subcategory, payment_mode, vendor, receipt_image_url, created_by, raised_by_role, recurring, recurring_type, next_due_date, GST, proforma_invoice_number]
     );
+    const expense_id = result.insertId;
     await logAudit(expense_id, 'log', created_by, `Logged new expense, invoice:${invoice_number}`);
     res.status(201).json({ success: true, expense_id, invoice_number });
   } catch (err) {

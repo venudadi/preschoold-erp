@@ -24,11 +24,13 @@ import AdminPortfolioPage from './pages/AdminPortfolioPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import VerifyResetCodePage from './pages/VerifyResetCodePage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { Typography } from '@mui/material';
 
 function App() {
   return (
-    <Router>
+    <ErrorBoundary>
+      <Router>
       <Routes>
         {/* Public Authentication Routes */}
         <Route path="/login" element={<LoginRoute />} />
@@ -71,7 +73,8 @@ function App() {
           <Route path="admin/portfolios" element={<AdminPortfolioPage />} />
         </Route>
       </Routes>
-    </Router>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

@@ -10,10 +10,34 @@ export default function ClassroomAnnouncements({ classroomId, role }) {
   const [unread, setUnread] = useState(0);
 
   const fetchAnnouncements = async () => {
-    const res = await fetch(`/api/classroom-announcements/${classroomId}`);
-    const data = await res.json();
-    setAnnouncements(data);
-    setUnread(data.filter(a => !a.read).length); // Placeholder for unread logic
+    // Don't fetch if classroomId is undefined
+    if (!classroomId) {
+      setAnnouncements([]);
+      setUnread(0);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/classroom-announcements/${classroomId}`);
+
+      if (!res.ok) {
+        console.error(`Failed to fetch announcements: ${res.status}`);
+        setAnnouncements([]);
+        setUnread(0);
+        return;
+      }
+
+      const data = await res.json();
+
+      // Ensure data is an array
+      const announcementsArray = Array.isArray(data) ? data : [];
+      setAnnouncements(announcementsArray);
+      setUnread(announcementsArray.filter(a => !a.read).length); // Placeholder for unread logic
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+      setAnnouncements([]);
+      setUnread(0);
+    }
   };
 
   useEffect(() => {
@@ -50,17 +74,29 @@ export default function ClassroomAnnouncements({ classroomId, role }) {
         </Box>
       )}
       <List>
-        {announcements.map(a => (
-          <ListItem key={a.id} alignItems="flex-start">
+        {announcements && announcements.length > 0 ? (
+          announcements.map(a => (
+            <ListItem key={a.id} alignItems="flex-start">
+              <ListItemText
+                primary={<b>{a.title}</b>}
+                secondary={<>
+                  <Typography variant="body2">{a.message}</Typography>
+                  <Typography variant="caption" color="text.secondary">{new Date(a.posted_at).toLocaleString()}</Typography>
+                </>}
+              />
+            </ListItem>
+          ))
+        ) : (
+          <ListItem>
             <ListItemText
-              primary={<b>{a.title}</b>}
-              secondary={<>
-                <Typography variant="body2">{a.message}</Typography>
-                <Typography variant="caption" color="text.secondary">{new Date(a.posted_at).toLocaleString()}</Typography>
-              </>}
+              primary={
+                <Typography variant="body2" color="text.secondary" align="center">
+                  {!classroomId ? 'No classroom assigned' : 'No announcements yet'}
+                </Typography>
+              }
             />
           </ListItem>
-        ))}
+        )}
       </List>
     </Box>
   );

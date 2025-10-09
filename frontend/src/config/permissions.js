@@ -259,8 +259,8 @@ export const NAVIGATION_ITEMS = [
         text: 'Children',
         icon: 'PeopleIcon',
         path: '/children',
-        requiredFeatures: [FEATURES.CHILDREN_MANAGEMENT, FEATURES.VIEW_OWN_CHILDREN],
-        requireAny: true
+        requiredFeatures: [FEATURES.CHILDREN_MANAGEMENT],
+        requireAny: false // Only show for roles with CHILDREN_MANAGEMENT (excludes parents)
     },
     {
         text: 'Classrooms',

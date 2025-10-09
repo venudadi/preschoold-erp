@@ -62,6 +62,13 @@ export default function PortfolioGallery({ childId, userRole = 'parent', onUploa
   const itemsPerPage = 12;
 
   useEffect(() => {
+    // Don't load if childId is required but undefined/null
+    if (!showAllChildren && !childId) {
+      setLoading(false);
+      setError('No child selected');
+      return;
+    }
+
     loadPortfolioItems();
     loadPortfolioStats();
 

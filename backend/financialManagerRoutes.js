@@ -26,9 +26,9 @@ router.get('/dashboard', financialManagerOrAbove, async (req, res) => {
                 COUNT(CASE WHEN fo.status = 'open' THEN 1 END) as oversightItems,
                 SUM(COALESCE(bal.approval_limit, 0)) as totalBudget
             FROM centers c
-            LEFT JOIN budget_approvals ba ON ba.center_id = c.id
-            LEFT JOIN financial_oversight fo ON fo.center_id = c.id
-            LEFT JOIN budget_approval_limits bal ON bal.center_id = c.id AND bal.is_active = TRUE
+            LEFT JOIN budget_approvals ba ON ba.center_id COLLATE utf8mb4_0900_ai_ci = c.id
+            LEFT JOIN financial_oversight fo ON fo.center_id COLLATE utf8mb4_0900_ai_ci = c.id
+            LEFT JOIN budget_approval_limits bal ON bal.center_id COLLATE utf8mb4_0900_ai_ci = c.id AND bal.is_active = TRUE
         `);
 
         // Get budget limits
@@ -38,7 +38,7 @@ router.get('/dashboard', financialManagerOrAbove, async (req, res) => {
                     bal.*,
                     c.name as center_name
                 FROM budget_approval_limits bal
-                JOIN centers c ON c.id = bal.center_id
+                JOIN centers c ON c.id = bal.center_id COLLATE utf8mb4_unicode_ci
                 WHERE bal.is_active = TRUE
                 ORDER BY c.name, bal.role
             `);
@@ -50,11 +50,11 @@ router.get('/dashboard', financialManagerOrAbove, async (req, res) => {
             const [rows] = await pool.query(`
                 SELECT
                     ba.*,
-                    u.fullName as requester_name,
+                    u.full_name as requester_name,
                     c.name as center_name
                 FROM budget_approvals ba
-                JOIN users u ON u.id = ba.requested_by
-                JOIN centers c ON c.id = ba.center_id
+                JOIN users u ON u.id = ba.requested_by COLLATE utf8mb4_unicode_ci
+                JOIN centers c ON c.id = ba.center_id COLLATE utf8mb4_unicode_ci
                 WHERE ba.fm_review_required = TRUE
                 AND ba.status = 'pending'
                 ORDER BY ba.created_at DESC
@@ -70,7 +70,7 @@ router.get('/dashboard', financialManagerOrAbove, async (req, res) => {
                     fo.*,
                     c.name as center_name
                 FROM financial_oversight fo
-                JOIN centers c ON c.id = fo.center_id
+                JOIN centers c ON c.id = fo.center_id COLLATE utf8mb4_unicode_ci
                 WHERE fo.status IN ('open', 'reviewing')
                 ORDER BY fo.created_at DESC
                 LIMIT 10
@@ -143,7 +143,7 @@ router.get('/budget-limits', financialManagerOrAbove, async (req, res) => {
                 bal.*,
                 c.name as center_name
             FROM budget_approval_limits bal
-            JOIN centers c ON c.id = bal.center_id
+            JOIN centers c ON c.id = bal.center_id COLLATE utf8mb4_unicode_ci
             ORDER BY c.name, bal.role, bal.fiscal_year DESC
         `);
 

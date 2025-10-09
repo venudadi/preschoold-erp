@@ -263,16 +263,17 @@ router.get('/financial-overview', async (req, res) => {
 
         // Revenue by program (through fee structures)
         const [programRevenue] = await pool.query(`
-            SELECT 
-                fs.program_name,
+            SELECT
+                COALESCE(p.specific_program, p.major_program, 'Unknown') as program_name,
                 SUM(ili.total_price) as total_revenue,
                 COUNT(DISTINCT i.id) as invoice_count
             FROM invoice_items ili
             JOIN invoices i ON ili.invoice_id = i.id
             JOIN fee_structures fs ON ili.fee_structure_id = fs.id
+            LEFT JOIN programs p ON fs.program_id = p.id
             WHERE (? IS NULL OR i.center_id = ?)
             AND i.status = 'Paid'
-            GROUP BY fs.program_name
+            GROUP BY p.id, p.specific_program, p.major_program
             ORDER BY total_revenue DESC
         `, invParams);
 

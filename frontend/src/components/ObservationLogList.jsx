@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Card, CardContent, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Grid, Chip, CircularProgress
+  Card, CardContent, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Grid, Chip, CircularProgress, Alert
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import EditIcon from '@mui/icons-material/Edit';
@@ -59,15 +59,24 @@ const ObservationLogForm = ({ open, onClose, onSave, initialData }) => {
 const ObservationLogList = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [editLog, setEditLog] = useState(null);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   const fetchLogs = async () => {
     setLoading(true);
-    const res = await api.get('/observation-logs');
-    setLogs(res.data.logs || []);
-    setLoading(false);
+    setError('');
+    try {
+      const res = await api.get('/observation-logs');
+      setLogs(res.data.logs || []);
+    } catch (err) {
+      console.error('Error fetching observation logs:', err);
+      setError(err.response?.data?.message || 'Failed to load observation logs');
+      setLogs([]);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { fetchLogs(); }, []);
 
@@ -81,18 +90,28 @@ const ObservationLogList = () => {
   };
   const handleDelete = async (id) => {
     if (window.confirm('Delete this observation log?')) {
-      await api.delete(`/observation-logs/${id}`);
-      fetchLogs();
+      try {
+        await api.delete(`/observation-logs/${id}`);
+        fetchLogs();
+      } catch (err) {
+        console.error('Error deleting observation log:', err);
+        setError(err.response?.data?.message || 'Failed to delete observation log');
+      }
     }
   };
   const handleSave = async (formData) => {
-    if (editLog) {
-      await api.put(`/observation-logs/${editLog.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-    } else {
-      await api.post('/observation-logs', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    try {
+      if (editLog) {
+        await api.put(`/observation-logs/${editLog.id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      } else {
+        await api.post('/observation-logs', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
+      setFormOpen(false);
+      fetchLogs();
+    } catch (err) {
+      console.error('Error saving observation log:', err);
+      setError(err.response?.data?.message || 'Failed to save observation log');
     }
-    setFormOpen(false);
-    fetchLogs();
   };
   // Export logs as CSV
   const handleExport = () => {
@@ -114,6 +133,13 @@ const ObservationLogList = () => {
   return (
     <div>
       <Typography variant="h5" gutterBottom>Observation Logs</Typography>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
       <Button variant="contained" sx={{ mb: 2, mr: 2 }} onClick={handleCreate}>New Log</Button>
       <Button variant="outlined" sx={{ mb: 2 }} onClick={handleExport}>Export CSV</Button>
       <Grid container spacing={2}>

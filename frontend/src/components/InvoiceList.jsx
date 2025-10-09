@@ -333,10 +333,10 @@ const InvoiceList = ({ refreshTrigger = 0 }) => {
                     {/* Pagination */}
                     <TablePagination
                         component="div"
-                        count={pagination.total_items}
-                        page={pagination.current_page - 1}
+                        count={parseInt(pagination.total_items, 10) || 0}
+                        page={(pagination.current_page - 1) || 0}
                         onPageChange={handlePageChange}
-                        rowsPerPage={pagination.items_per_page}
+                        rowsPerPage={parseInt(pagination.items_per_page, 10) || 10}
                         onRowsPerPageChange={handleRowsPerPageChange}
                         rowsPerPageOptions={[5, 10, 25, 50]}
                         showFirstButton

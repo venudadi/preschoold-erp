@@ -18,16 +18,31 @@ const Messaging = () => {
   // Fetch threads for user
   const fetchThreads = async () => {
     setLoading(true);
-    const res = await api.get('/messaging/threads');
-    setThreads(res.data.threads || []);
-    setLoading(false);
+    try {
+      const res = await api.get('/messaging/threads');
+      setThreads(res.data.threads || []);
+    } catch (error) {
+      console.error('Error fetching threads:', error);
+      // Handle 403 or other errors gracefully
+      if (error.response?.status === 403) {
+        console.warn('Access forbidden: User may not have permission to access messaging');
+      }
+      setThreads([]);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { fetchThreads(); }, [refresh]);
 
   // Fetch messages for selected thread
   const fetchMessages = async (threadId) => {
-    const res = await api.get(`/messaging/threads/${threadId}/messages`);
-    setMessages(res.data.messages || []);
+    try {
+      const res = await api.get(`/messaging/threads/${threadId}/messages`);
+      setMessages(res.data.messages || []);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      setMessages([]);
+    }
   };
   useEffect(() => {
     if (selectedThread) fetchMessages(selectedThread.id);
@@ -43,12 +58,18 @@ const Messaging = () => {
   const handleSend = async () => {
     if (!messageText.trim()) return;
     setSending(true);
-    // Determine recipient
-    let recipient_id = user.role === 'parent' ? selectedThread.teacher_id : selectedThread.parent_id;
-    await api.post(`/messaging/threads/${selectedThread.id}/messages`, { recipient_id, content: messageText });
-    setMessageText('');
-    setSending(false);
-    setRefresh(r => r + 1);
+    try {
+      // Determine recipient
+      let recipient_id = user.role === 'parent' ? selectedThread.teacher_id : selectedThread.parent_id;
+      await api.post(`/messaging/threads/${selectedThread.id}/messages`, { recipient_id, content: messageText });
+      setMessageText('');
+      setRefresh(r => r + 1);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Optionally show an error to the user
+    } finally {
+      setSending(false);
+    }
   };
 
   if (loading) return <CircularProgress />;

@@ -1,5 +1,6 @@
 // expenseRoutes.js
 import express from 'express';
+import { protect } from './authMiddleware.js';
 import { 
   logExpense,
   uploadReceipt,
@@ -26,7 +27,6 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage });
-import { protect } from './authMiddleware.js';
 import { requireRole } from './middleware/security.js';
 
 const router = express.Router();

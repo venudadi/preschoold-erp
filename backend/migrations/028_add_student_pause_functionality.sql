@@ -1,19 +1,20 @@
 -- 028_add_student_pause_functionality.sql
 -- Add comprehensive pause functionality for students
 
--- 1. Add pause status and related fields to children table
-ALTER TABLE children
-ADD COLUMN status ENUM('active', 'paused', 'left') NOT NULL DEFAULT 'active',
-ADD COLUMN pause_start_date DATE NULL,
-ADD COLUMN pause_end_date DATE NULL,
-ADD COLUMN pause_reason TEXT NULL,
-ADD COLUMN pause_notes TEXT NULL,
-ADD COLUMN paused_by VARCHAR(36) NULL,
-ADD COLUMN paused_at TIMESTAMP NULL,
-ADD FOREIGN KEY (paused_by) REFERENCES users(id) ON DELETE SET NULL;
+-- 1. Add pause status and related fields to children table (one column at a time for idempotency)
+ALTER TABLE children ADD COLUMN status ENUM('active', 'paused', 'left') NOT NULL DEFAULT 'active';
+ALTER TABLE children ADD COLUMN pause_start_date DATE NULL;
+ALTER TABLE children ADD COLUMN pause_end_date DATE NULL;
+ALTER TABLE children ADD COLUMN pause_reason TEXT NULL;
+ALTER TABLE children ADD COLUMN pause_notes TEXT NULL;
+ALTER TABLE children ADD COLUMN paused_by VARCHAR(36) NULL;
+ALTER TABLE children ADD COLUMN paused_at TIMESTAMP NULL;
+
+-- Add foreign key if not exists (will fail silently if already exists)
+ALTER TABLE children ADD CONSTRAINT fk_children_paused_by FOREIGN KEY (paused_by) REFERENCES users(id) ON DELETE SET NULL;
 
 -- 2. Create student pause history table for audit trail
-CREATE TABLE student_pause_history (
+CREATE TABLE IF NOT EXISTS student_pause_history (
     id VARCHAR(36) PRIMARY KEY,
     student_id VARCHAR(36) NOT NULL,
     pause_start_date DATE NOT NULL,
@@ -34,14 +35,14 @@ CREATE TABLE student_pause_history (
     FOREIGN KEY (center_id) REFERENCES centers(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3. Add indexes for performance optimization
-CREATE INDEX idx_children_status ON children(status);
-CREATE INDEX idx_children_pause_dates ON children(pause_start_date, pause_end_date);
-CREATE INDEX idx_children_center_status ON children(center_id, status);
-CREATE INDEX idx_student_pause_history_student_id ON student_pause_history(student_id);
-CREATE INDEX idx_student_pause_history_center_id ON student_pause_history(center_id);
-CREATE INDEX idx_student_pause_history_dates ON student_pause_history(pause_start_date, pause_end_date);
-CREATE INDEX idx_student_pause_history_status ON student_pause_history(status);
+-- 3. Add indexes for performance optimization (with IF NOT EXISTS handled by ignoring errors)
+CREATE INDEX IF NOT EXISTS idx_children_status ON children(status);
+CREATE INDEX IF NOT EXISTS idx_children_pause_dates ON children(pause_start_date, pause_end_date);
+CREATE INDEX IF NOT EXISTS idx_children_center_status ON children(center_id, status);
+CREATE INDEX IF NOT EXISTS idx_student_pause_history_student_id ON student_pause_history(student_id);
+CREATE INDEX IF NOT EXISTS idx_student_pause_history_center_id ON student_pause_history(center_id);
+CREATE INDEX IF NOT EXISTS idx_student_pause_history_dates ON student_pause_history(pause_start_date, pause_end_date);
+CREATE INDEX IF NOT EXISTS idx_student_pause_history_status ON student_pause_history(status);
 
 -- 4. Update existing active students to have explicit 'active' status
 UPDATE children SET status = 'active' WHERE status IS NULL OR status = '';
@@ -69,7 +70,6 @@ SELECT
     c.fee_structure_type,
     c.is_on_recurring_billing,
     c.created_at,
-    c.is_active,
     -- Pause-related fields
     c.status,
     c.pause_start_date,

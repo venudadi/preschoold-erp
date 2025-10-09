@@ -162,7 +162,7 @@ const DashboardLayout = () => {
                         />
                     )}
                     <Typography variant="body2" color="var(--color-muted)">
-                        {user?.centerName || 'All Centers'}
+                        {user?.centerName || user?.center_name || 'Preschool ERP'}
                     </Typography>
                 </Box>
             </Box>

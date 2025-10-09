@@ -37,7 +37,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 
 import AdminDashboard from '../components/AdminDashboard.jsx';
 import TeacherDashboard from '../components/TeacherDashboard.jsx';
-import ParentDashboard from '../components/ParentDashboard.jsx';
+import EnhancedParentDashboard from '../components/EnhancedParentDashboard.jsx';
 import OwnerDashboard from '../components/OwnerDashboard.jsx';
 import SuperAdminDashboard from '../components/SuperAdminDashboard.jsx';
 import FinancialManagerDashboard from '../components/FinancialManagerDashboard.jsx';
@@ -62,7 +62,7 @@ const DashboardPage = () => {
     case 'teacher':
       return <TeacherDashboard user={user} />;
     case 'parent':
-      return <ParentDashboard user={user} />;
+      return <EnhancedParentDashboard user={user} />;
     case 'owner':
       return <OwnerDashboard user={user} />;
     case 'super_admin':

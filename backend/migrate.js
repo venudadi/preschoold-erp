@@ -51,10 +51,14 @@ async function applyMigration(file) {
       try {
         await conn.query(stmt);
       } catch (e) {
-        const ignorable = new Set(['ER_DUP_KEYNAME','ER_TABLE_EXISTS_ERROR','ER_DUP_ENTRY','ER_DUP_FIELDNAME','ER_CANT_DROP_FIELD_OR_KEY']);
-        const ignorableCodes = new Set([1061, 1050, 1062, 1060, 1091]);
+        const ignorable = new Set(['ER_DUP_KEYNAME','ER_TABLE_EXISTS_ERROR','ER_DUP_ENTRY','ER_DUP_FIELDNAME','ER_CANT_DROP_FIELD_OR_KEY','ER_DUP_CONSTRAINT']);
+        const ignorableCodes = new Set([1061, 1050, 1062, 1060, 1091, 1826]);
         if (ignorable.has(e.code) || ignorableCodes.has(e.errno)) {
           console.warn(`Ignoring benign error (${e.code || e.errno}) for statement:`, stmt.substring(0,120)+'...');
+          continue;
+        }
+        if (e.errno === 1060 && /ADD\s+COLUMN/i.test(stmt)) { // Duplicate column
+          console.warn(`Skipping duplicate column (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
         }
         if (e.errno === 1054 && /center_name/i.test(stmt)) { // Unknown column 'center_name'
@@ -63,6 +67,14 @@ async function applyMigration(file) {
         }
         if (e.errno === 1072 && /(CREATE\s+INDEX|ADD\s+INDEX)/i.test(stmt)) { // Key column doesn't exist for index
           console.warn(`Skipping index creation due to missing column (${e.errno}):`, stmt.substring(0,120)+'...');
+          continue;
+        }
+        if (e.errno === 1146 && /(CREATE\s+INDEX|ADD\s+INDEX)/i.test(stmt)) { // Table doesn't exist for index
+          console.warn(`Skipping index creation due to missing table (${e.errno}):`, stmt.substring(0,120)+'...');
+          continue;
+        }
+        if (e.errno === 1267 && /CREATE\s+VIEW/i.test(stmt)) { // Collation mismatch in view
+          console.warn(`Skipping view creation due to collation mismatch (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
         }
         throw e;

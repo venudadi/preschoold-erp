@@ -12,9 +12,22 @@ export default function ParentFeedback() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation
+    if (!feedback.trim()) {
+      setError('Please provide feedback before submitting');
+      return;
+    }
+
+    if (rating === 0) {
+      setError('Please provide a rating');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setSuccess(false);
+
     try {
       await api.post('/parent-module/feedback', {
         feedback_type: 'general',
@@ -24,10 +37,31 @@ export default function ParentFeedback() {
       setSuccess(true);
       setFeedback('');
       setRating(0);
-    } catch {
-      setError('Failed to submit feedback');
+    } catch (err) {
+      console.error('Error submitting feedback:', err);
+
+      // Handle specific error cases
+      if (err.response) {
+        // Server responded with error status
+        if (err.response.status === 401) {
+          setError('Please log in again to submit feedback');
+        } else if (err.response.status === 403) {
+          setError('You do not have permission to submit feedback');
+        } else if (err.response.status === 500) {
+          setError('Server error. Please try again later');
+        } else {
+          setError(err.response.data?.message || 'Failed to submit feedback');
+        }
+      } else if (err.request) {
+        // Request was made but no response received
+        setError('Network error. Please check your connection and try again');
+      } else {
+        // Something else happened
+        setError('An unexpected error occurred. Please try again');
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -48,7 +82,7 @@ export default function ParentFeedback() {
           rows={3}
           margin="normal"
         />
-        <Button type="submit" variant="contained" disabled={loading || !feedback}>
+        <Button type="submit" variant="contained" disabled={loading}>
           {loading ? <CircularProgress size={24} /> : 'Submit'}
         </Button>
       </form>

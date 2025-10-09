@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Box, Typography, Grid, Card, CardContent, CardHeader, Avatar, Tabs, Tab, Paper, useMediaQuery, useTheme } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Grid, Card, CardContent, CardHeader, Avatar, Tabs, Tab, Paper, useMediaQuery, useTheme, CircularProgress, Alert } from '@mui/material';
 import FamilyRestroomIcon from '@mui/icons-material/FamilyRestroom';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import ChatIcon from '@mui/icons-material/Chat';
@@ -8,6 +8,7 @@ import CampaignIcon from '@mui/icons-material/Campaign';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import ChildCareIcon from '@mui/icons-material/ChildCare';
+import api from '../services/api';
 
 import PortfolioGallery from './PortfolioGallery';
 import Messaging from './Messaging';
@@ -23,11 +24,48 @@ const ParentDashboard = ({ user }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [tab, setTab] = useState(0);
-  // Assume parent can have multiple children, select first by default
-  const children = JSON.parse(localStorage.getItem('children') || '[]');
+  const [children, setChildren] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const selectedChild = children[0] || {};
 
+  // Fetch parent's children on mount
+  useEffect(() => {
+    const fetchChildren = async () => {
+      try {
+        setLoading(true);
+        // Try to get children from API
+        const response = await api.get('/parents/my-children');
+        const childrenData = response.data.children || response.data || [];
+        setChildren(childrenData);
+        // Store in localStorage for future use
+        localStorage.setItem('children', JSON.stringify(childrenData));
+        setError('');
+      } catch (err) {
+        console.error('Error fetching children:', err);
+        // Fallback to localStorage if API fails
+        const storedChildren = JSON.parse(localStorage.getItem('children') || '[]');
+        setChildren(storedChildren);
+        if (storedChildren.length === 0) {
+          setError('Unable to load your children data. Please contact support.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChildren();
+  }, []);
+
   const handleTabChange = (e, newValue) => setTab(newValue);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: isMobile ? 1 : 4, background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', minHeight: '100vh' }}>
@@ -40,13 +78,31 @@ const ParentDashboard = ({ user }) => {
           </Grid>
           <Grid item xs>
             <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700} color="primary.main">
-              Welcome, {user?.name || 'Parent'}
+              Welcome, {user?.name || user?.full_name || 'Parent'}
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
-              Here’s what’s happening with your child{children.length > 1 ? 'ren' : ''} at school
+              {selectedChild.center_name || 'Preschool ERP System'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {children.length > 0
+                ? `Viewing ${selectedChild.first_name || selectedChild.name || 'child'}'s information`
+                : 'No children registered'
+              }
             </Typography>
           </Grid>
         </Grid>
+
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {children.length === 0 && !error && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            No children found in your account. Please contact the school administration.
+          </Alert>
+        )}
         <Tabs
           value={tab}
           onChange={handleTabChange}

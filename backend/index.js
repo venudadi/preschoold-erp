@@ -8,6 +8,8 @@ import { Server } from 'socket.io';
 import pool from './db.js';
 import { globalErrorHandler } from './utils/errorHandler.js';
 import { initializeAllTables } from './utils/dbTableValidator.js';
+import { protect } from './authMiddleware.js';
+import { requireRole } from './middleware/security.js';
 
 const app = express();
 const server = createServer(app);
@@ -63,6 +65,7 @@ import passwordResetRoutes from './passwordResetRoutes.js';
 import twoFactorRoutes from './twoFactorRoutes.js';
 import claudeRoutes from './claudeRoutes.js';
 import debugRoutes from './debugRoutes.js';
+import dailyActivityRoutes from './dailyActivityRoutes.js';
 
 // --- MIDDLEWARE ---
 // Production-ready CORS configuration
@@ -156,9 +159,32 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Alias routes for common endpoints (for backward compatibility)
-app.use('/api/children', adminRoutes);  // children routes are in adminRoutes
-app.use('/api/classrooms', adminRoutes); // classrooms routes are in adminRoutes
+// Create specific route handlers for children and classrooms endpoints
+app.get('/api/children', protect, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT * FROM students WHERE center_id = ? ORDER BY first_name`,
+      [req.user.center_id || req.query.centerId]
+    );
+    res.json({ children: rows });
+  } catch (error) {
+    console.error('Error fetching children:', error);
+    res.status(500).json({ message: 'Error fetching children' });
+  }
+});
+
+app.get('/api/classrooms', protect, async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT * FROM classrooms WHERE center_id = ? ORDER BY name`,
+      [req.user.center_id || req.query.centerId]
+    );
+    res.json({ classrooms: rows });
+  } catch (error) {
+    console.error('Error fetching classrooms:', error);
+    res.status(500).json({ message: 'Error fetching classrooms' });
+  }
+});
 
 app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/settings', settingsRoutes);
@@ -167,6 +193,44 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/invoices/requests', invoiceRequestRoutes);
 app.use('/api/centers', centerRoutes);
 app.use('/api/analytics', analyticsRoutes);
+
+// Create explicit route handler for staff endpoint
+app.get('/api/staff', protect, requireRole(['super_admin', 'owner', 'center_director', 'admin', 'academic_coordinator', 'teacher']), async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT s.*, u.email, u.full_name
+       FROM staff s
+       JOIN users u ON s.user_id = u.id
+       WHERE s.center_id = ?`,
+      [req.user.center_id || req.query.centerId]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    res.status(500).json({ message: 'Error fetching staff' });
+  }
+});
+
+// Create explicit route handler for attendance endpoint
+app.get('/api/attendance', protect, async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().split('T')[0];
+    const [rows] = await pool.query(
+      `SELECT a.*, c.first_name, c.last_name
+       FROM attendance a
+       LEFT JOIN children c ON a.child_id = c.id
+       WHERE a.center_id = ? AND a.date = ?
+       ORDER BY a.check_in_time`,
+      [req.user.center_id || req.query.centerId, date]
+    );
+    res.json({ attendance: rows });
+  } catch (error) {
+    console.error('Error fetching attendance:', error);
+    res.status(500).json({ message: 'Error fetching attendance' });
+  }
+});
+
+// Original routes kept for more complex operations
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/documents', documentRoutes);
@@ -190,6 +254,7 @@ app.use('/api/auth', passwordResetRoutes);
 app.use('/api/auth', twoFactorRoutes);
 app.use('/api/claude', claudeRoutes);
 app.use('/api/debug', debugRoutes);
+app.use('/api/daily-activities', dailyActivityRoutes);
 // --- WEBSOCKET CONFIGURATION ---
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);

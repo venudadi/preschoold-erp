@@ -1,33 +1,33 @@
 {
-  "timestamp": "2025-10-03T18:15:33.504Z",
+  "timestamp": "2025-10-06T15:32:49.463Z",
   "summary": {
     "total": 33,
-    "passed": 23,
-    "failed": 10,
-    "successRate": "69.7%"
+    "passed": 33,
+    "failed": 0,
+    "successRate": "100.0%"
   },
   "performance": {
-    "avgResponseTime": "62ms",
+    "avgResponseTime": "65ms",
     "slowRequests": 0,
     "metrics": [
       {
         "endpoint": "/api/auth/login",
         "method": "POST",
-        "responseTime": 301,
+        "responseTime": 291,
         "status": 200,
         "role": null
       },
       {
         "endpoint": "/api/auth/login",
         "method": "POST",
-        "responseTime": 241,
+        "responseTime": 236,
         "status": 200,
         "role": null
       },
       {
         "endpoint": "/api/auth/login",
         "method": "POST",
-        "responseTime": 237,
+        "responseTime": 235,
         "status": 200,
         "role": null
       },
@@ -48,28 +48,28 @@
       {
         "endpoint": "/api/auth/login",
         "method": "POST",
-        "responseTime": 237,
+        "responseTime": 235,
         "status": 200,
         "role": null
       },
       {
         "endpoint": "/api/auth/login",
         "method": "POST",
-        "responseTime": 233,
+        "responseTime": 235,
         "status": 200,
         "role": null
       },
       {
         "endpoint": "/api/auth/login",
         "method": "POST",
-        "responseTime": 233,
+        "responseTime": 238,
         "status": 200,
         "role": null
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 16,
+        "responseTime": 17,
         "status": 200,
         "role": "super_admin"
       },
@@ -83,35 +83,35 @@
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 12,
+        "responseTime": 11,
         "status": 200,
         "role": "financial_manager"
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 10,
+        "responseTime": 11,
         "status": 200,
         "role": "center_director"
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 11,
+        "responseTime": 12,
         "status": 200,
         "role": "admin"
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 11,
+        "responseTime": 13,
         "status": 200,
         "role": "academic_coordinator"
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 8,
+        "responseTime": 13,
         "status": 200,
         "role": "teacher"
       },
@@ -125,43 +125,43 @@
       {
         "endpoint": "/api/financial-manager/dashboard",
         "method": "GET",
-        "responseTime": 20,
-        "status": 500,
+        "responseTime": 66,
+        "status": 200,
         "role": "financial_manager"
       },
       {
         "endpoint": "/api/financial-manager/budget-limits",
         "method": "GET",
-        "responseTime": 8,
-        "status": 500,
+        "responseTime": 10,
+        "status": 200,
         "role": "financial_manager"
       },
       {
         "endpoint": "/api/expenses",
         "method": "GET",
-        "responseTime": 2,
-        "status": 403,
+        "responseTime": 9,
+        "status": 200,
         "role": "financial_manager"
       },
       {
         "endpoint": "/api/expenses/log",
         "method": "POST",
-        "responseTime": 2,
-        "status": 403,
+        "responseTime": 21,
+        "status": 201,
         "role": "financial_manager"
       },
       {
         "endpoint": "/api/expenses/export",
         "method": "GET",
-        "responseTime": 2,
-        "status": 403,
+        "responseTime": 50,
+        "status": 200,
         "role": "financial_manager"
       },
       {
         "endpoint": "/api/staff",
         "method": "GET",
-        "responseTime": 2,
-        "status": 404,
+        "responseTime": 7,
+        "status": 403,
         "role": "parent"
       },
       {
@@ -174,70 +174,70 @@
       {
         "endpoint": "/api/owners",
         "method": "GET",
-        "responseTime": 18,
+        "responseTime": 16,
         "status": 200,
         "role": "super_admin"
       },
       {
         "endpoint": "/api/children",
         "method": "GET",
-        "responseTime": 7,
-        "status": 404,
+        "responseTime": 9,
+        "status": 200,
         "role": "super_admin"
       },
       {
         "endpoint": "/api/centers",
         "method": "GET",
-        "responseTime": 9,
+        "responseTime": 10,
         "status": 200,
         "role": "super_admin"
       },
       {
         "endpoint": "/api/classrooms",
         "method": "GET",
-        "responseTime": 6,
-        "status": 404,
+        "responseTime": 7,
+        "status": 200,
         "role": "admin"
       },
       {
         "endpoint": "/api/attendance",
         "method": "GET",
-        "responseTime": 2,
-        "status": 404,
+        "responseTime": 8,
+        "status": 200,
         "role": "admin"
       },
       {
         "endpoint": "/api/invoices",
         "method": "GET",
-        "responseTime": 13,
+        "responseTime": 14,
         "status": 200,
         "role": "admin"
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 29,
+        "responseTime": 26,
         "status": 200,
         "role": "super_admin"
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 39,
+        "responseTime": 38,
         "status": 200,
         "role": "super_admin"
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 39,
+        "responseTime": 38,
         "status": 200,
         "role": "super_admin"
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 48,
+        "responseTime": 47,
         "status": 200,
         "role": "super_admin"
       },
@@ -258,43 +258,43 @@
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 52,
+        "responseTime": 50,
         "status": 200,
         "role": "super_admin"
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 52,
+        "responseTime": 50,
         "status": 200,
         "role": "super_admin"
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 51,
+        "responseTime": 50,
         "status": 200,
         "role": "super_admin"
       },
       {
         "endpoint": "/api/analytics/overview",
         "method": "GET",
-        "responseTime": 53,
+        "responseTime": 56,
         "status": 200,
         "role": "super_admin"
       },
       {
         "endpoint": "/api/auth/login",
         "method": "POST",
-        "responseTime": 4,
+        "responseTime": 3,
         "status": 401,
         "role": null
       },
       {
         "endpoint": "/api/staff",
         "method": "GET",
-        "responseTime": 2,
-        "status": 404,
+        "responseTime": 1,
+        "status": 401,
         "role": null
       },
       {
@@ -311,17 +311,17 @@
     {
       "testName": "Login as super_admin",
       "passed": true,
-      "responseTime": 301
+      "responseTime": 291
     },
     {
       "testName": "Login as owner",
       "passed": true,
-      "responseTime": 241
+      "responseTime": 236
     },
     {
       "testName": "Login as financial_manager",
       "passed": true,
-      "responseTime": 237
+      "responseTime": 235
     },
     {
       "testName": "Login as center_director",
@@ -336,23 +336,23 @@
     {
       "testName": "Login as academic_coordinator",
       "passed": true,
-      "responseTime": 237
+      "responseTime": 235
     },
     {
       "testName": "Login as teacher",
       "passed": true,
-      "responseTime": 233
+      "responseTime": 235
     },
     {
       "testName": "Login as parent",
       "passed": true,
-      "responseTime": 233
+      "responseTime": 238
     },
     {
       "testName": "super_admin dashboard access",
       "passed": true,
       "status": 200,
-      "responseTime": 16
+      "responseTime": 17
     },
     {
       "testName": "owner dashboard access",
@@ -364,31 +364,31 @@
       "testName": "financial_manager dashboard access",
       "passed": true,
       "status": 200,
-      "responseTime": 12
+      "responseTime": 11
     },
     {
       "testName": "center_director dashboard access",
       "passed": true,
       "status": 200,
-      "responseTime": 10
+      "responseTime": 11
     },
     {
       "testName": "admin dashboard access",
       "passed": true,
       "status": 200,
-      "responseTime": 11
+      "responseTime": 12
     },
     {
       "testName": "academic_coordinator dashboard access",
       "passed": true,
       "status": 200,
-      "responseTime": 11
+      "responseTime": 13
     },
     {
       "testName": "teacher dashboard access",
       "passed": true,
       "status": 200,
-      "responseTime": 8
+      "responseTime": 13
     },
     {
       "testName": "parent dashboard access",
@@ -398,34 +398,34 @@
     },
     {
       "testName": "FM Dashboard",
-      "passed": false,
-      "responseTime": 20,
-      "dataReceived": false
+      "passed": true,
+      "responseTime": 66,
+      "dataReceived": true
     },
     {
       "testName": "FM Budget Limits",
-      "passed": false,
-      "responseTime": 8
+      "passed": true,
+      "responseTime": 10
     },
     {
       "testName": "FM Expenses View",
-      "passed": false,
-      "responseTime": 2
+      "passed": true,
+      "responseTime": 9
     },
     {
       "testName": "FM Log Expense",
-      "passed": false,
-      "responseTime": 2
+      "passed": true,
+      "responseTime": 21
     },
     {
       "testName": "FM Export Expenses",
-      "passed": false,
-      "responseTime": 2
+      "passed": true,
+      "responseTime": 50
     },
     {
       "testName": "Parent blocked from staff endpoint",
-      "passed": false,
-      "status": 404
+      "passed": true,
+      "status": 403
     },
     {
       "testName": "Teacher blocked from financial endpoint",
@@ -435,43 +435,43 @@
     {
       "testName": "Fetch all users",
       "passed": true,
-      "responseTime": 18,
+      "responseTime": 16,
       "slowQuery": false
     },
     {
       "testName": "Fetch children",
-      "passed": false,
-      "responseTime": 7
-    },
-    {
-      "testName": "Fetch centers",
       "passed": true,
       "responseTime": 9
     },
     {
+      "testName": "Fetch centers",
+      "passed": true,
+      "responseTime": 10
+    },
+    {
       "testName": "Classrooms endpoint",
-      "passed": false,
-      "status": 404,
-      "responseTime": 6
+      "passed": true,
+      "status": 200,
+      "responseTime": 7
     },
     {
       "testName": "Attendance endpoint",
-      "passed": false,
-      "status": 404,
-      "responseTime": 2
+      "passed": true,
+      "status": 200,
+      "responseTime": 8
     },
     {
       "testName": "Invoices endpoint",
       "passed": true,
       "status": 200,
-      "responseTime": 13
+      "responseTime": 14
     },
     {
       "testName": "Concurrent requests (10)",
       "passed": true,
-      "totalTime": 54,
+      "totalTime": 56,
       "successRate": "10/10",
-      "avgResponseTime": 5.4
+      "avgResponseTime": 5.6
     },
     {
       "testName": "Invalid login returns 401",
@@ -480,8 +480,8 @@
     },
     {
       "testName": "No auth returns 401",
-      "passed": false,
-      "status": 404
+      "passed": true,
+      "status": 401
     },
     {
       "testName": "Invalid data handled",

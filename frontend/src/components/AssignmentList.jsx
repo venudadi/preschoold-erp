@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Card, CardContent, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Grid, Chip, CircularProgress, InputLabel, MenuItem, Select, FormControl
+  Card, CardContent, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Grid, Chip, CircularProgress, InputLabel, MenuItem, Select, FormControl, Alert, Box
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import dayjs from 'dayjs';
@@ -12,30 +12,55 @@ const AssignmentForm = ({ open, onClose, onSave, initialData }) => {
   });
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setForm(initialData || { title: '', description: '', due_date: '', classroom_id: '', attachments: [] });
     setFileList([]);
+    setError('');
   }, [initialData]);
 
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError('');
   };
+
   const handleFileChange = e => {
     setFileList([...e.target.files]);
+    setError('');
   };
+
   const handleSubmit = async () => {
+    // Validation
+    if (!form.title?.trim()) {
+      setError('Title is required');
+      return;
+    }
+
+    if (!form.classroom_id) {
+      setError('Classroom ID is required');
+      return;
+    }
+
     setLoading(true);
-    const data = new FormData();
-    Object.entries(form).forEach(([k, v]) => data.append(k, v));
-    fileList.forEach(f => data.append('attachments', f));
-    await onSave(data);
-    setLoading(false);
+    setError('');
+
+    try {
+      const data = new FormData();
+      Object.entries(form).forEach(([k, v]) => data.append(k, v));
+      fileList.forEach(f => data.append('attachments', f));
+      await onSave(data);
+    } catch (err) {
+      console.error('Error saving assignment:', err);
+      setError('Failed to save assignment. Please try again.');
+      setLoading(false);
+    }
   };
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{initialData ? 'Edit Assignment' : 'New Assignment'}</DialogTitle>
       <DialogContent>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <TextField margin="dense" label="Title" name="title" value={form.title} onChange={handleChange} fullWidth required />
         <TextField margin="dense" label="Description" name="description" value={form.description} onChange={handleChange} fullWidth multiline />
         <TextField margin="dense" label="Due Date" name="due_date" type="date" value={form.due_date} onChange={handleChange} fullWidth InputLabelProps={{ shrink: true }} />
@@ -58,26 +83,50 @@ const AssignmentSubmissionForm = ({ open, onClose, onSubmit, assignmentId, child
   const [form, setForm] = useState({ child_id: '', submission_text: '' });
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError('');
   };
+
   const handleFileChange = e => {
     setFileList([...e.target.files]);
+    setError('');
   };
+
   const handleSubmit = async () => {
+    // Validation
+    if (!form.child_id) {
+      setError('Please select a child');
+      return;
+    }
+
+    if (!form.submission_text?.trim() && fileList.length === 0) {
+      setError('Please provide submission text or upload files');
+      return;
+    }
+
     setLoading(true);
-    const data = new FormData();
-    data.append('child_id', form.child_id);
-    data.append('submission_text', form.submission_text);
-    fileList.forEach(f => data.append('submission_files', f));
-    await onSubmit(assignmentId, data);
-    setLoading(false);
+    setError('');
+
+    try {
+      const data = new FormData();
+      data.append('child_id', form.child_id);
+      data.append('submission_text', form.submission_text);
+      fileList.forEach(f => data.append('submission_files', f));
+      await onSubmit(assignmentId, data);
+    } catch (err) {
+      console.error('Error submitting assignment:', err);
+      setError('Failed to submit assignment. Please try again.');
+      setLoading(false);
+    }
   };
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Submit Assignment</DialogTitle>
       <DialogContent>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <FormControl fullWidth sx={{ mt: 1 }}>
           <InputLabel>Child</InputLabel>
           <Select name="child_id" value={form.child_id} label="Child" onChange={handleChange} required>
@@ -102,18 +151,44 @@ const AssignmentSubmissionForm = ({ open, onClose, onSubmit, assignmentId, child
 const AssignmentList = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [submissionOpen, setSubmissionOpen] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [childrenList, setChildrenList] = useState([]);
+  const [actionError, setActionError] = useState('');
+  const [actionSuccess, setActionSuccess] = useState('');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   const fetchAssignments = async () => {
-    setLoading(true);
-    const res = await api.get('/assignments');
-    setAssignments(res.data.assignments || []);
-    setLoading(false);
+    try {
+      setLoading(true);
+      setError('');
+      const res = await api.get('/assignments');
+      setAssignments(res.data.assignments || []);
+    } catch (err) {
+      console.error('Error fetching assignments:', err);
+
+      if (err.response) {
+        if (err.response.status === 401) {
+          setError('Please log in again to view assignments');
+        } else if (err.response.status === 403) {
+          setError('You do not have permission to view assignments');
+        } else if (err.response.status === 500) {
+          setError('Server error. Please try again later');
+        } else {
+          setError(err.response.data?.message || 'Failed to load assignments');
+        }
+      } else if (err.request) {
+        setError('Network error. Please check your connection and try again');
+      } else {
+        setError('An unexpected error occurred. Please try again');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
+
   useEffect(() => { fetchAssignments(); }, []);
 
   // For parent: fetch children list (simulate, replace with real API)
@@ -125,27 +200,100 @@ const AssignmentList = () => {
 
   const handleCreate = () => {
     setFormOpen(true);
+    setActionError('');
+    setActionSuccess('');
   };
+
   const handleSave = async (formData) => {
-    await api.post('/assignments', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-    setFormOpen(false);
-    fetchAssignments();
+    try {
+      await api.post('/assignments', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setFormOpen(false);
+      setActionSuccess('Assignment created successfully');
+      fetchAssignments();
+
+      setTimeout(() => setActionSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error creating assignment:', err);
+
+      let errorMessage = 'Failed to create assignment';
+      if (err.response) {
+        if (err.response.status === 401) {
+          errorMessage = 'Please log in again to create assignments';
+        } else if (err.response.status === 403) {
+          errorMessage = 'You do not have permission to create assignments';
+        } else if (err.response.status === 500) {
+          errorMessage = 'Server error. Please try again';
+        } else {
+          errorMessage = err.response.data?.message || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = 'Network error. Please check your connection and try again';
+      }
+
+      throw new Error(errorMessage);
+    }
   };
+
   const handleSubmitOpen = (assignment) => {
     setSelectedAssignment(assignment);
     setSubmissionOpen(true);
-  };
-  const handleSubmit = async (assignmentId, formData) => {
-    await api.post(`/assignments/${assignmentId}/submit`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-    setSubmissionOpen(false);
-    fetchAssignments();
+    setActionError('');
+    setActionSuccess('');
   };
 
-  if (loading) return <CircularProgress />;
+  const handleSubmit = async (assignmentId, formData) => {
+    try {
+      await api.post(`/assignments/${assignmentId}/submit`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setSubmissionOpen(false);
+      setActionSuccess('Assignment submitted successfully');
+      fetchAssignments();
+
+      setTimeout(() => setActionSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error submitting assignment:', err);
+
+      let errorMessage = 'Failed to submit assignment';
+      if (err.response) {
+        if (err.response.status === 401) {
+          errorMessage = 'Please log in again to submit assignments';
+        } else if (err.response.status === 403) {
+          errorMessage = 'You do not have permission to submit this assignment';
+        } else if (err.response.status === 500) {
+          errorMessage = 'Server error. Please try again';
+        } else {
+          errorMessage = err.response.data?.message || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = 'Network error. Please check your connection and try again';
+      }
+
+      throw new Error(errorMessage);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box p={2}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
 
   return (
     <div>
       <Typography variant="h5" gutterBottom>Assignments</Typography>
+
+      {actionSuccess && <Alert severity="success" sx={{ mb: 2 }}>{actionSuccess}</Alert>}
+      {actionError && <Alert severity="error" sx={{ mb: 2 }}>{actionError}</Alert>}
+
       {user.role === 'teacher' && <Button variant="contained" sx={{ mb: 2 }} onClick={handleCreate}>Create Assignment</Button>}
       <Grid container spacing={2}>
         {assignments.map(assignment => (
