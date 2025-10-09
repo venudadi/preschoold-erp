@@ -1,0 +1,129 @@
+================================================================================
+HOW TO INSTALL GIT-FILTER-REPO ON WINDOWS
+================================================================================
+
+git-filter-repo is a tool for rewriting git history. You need it to remove
+the backend/.env file (with secrets) from your git history.
+
+================================================================================
+METHOD 1: INSTALL VIA PYTHON PIP (RECOMMENDED - EASIEST)
+================================================================================
+
+PREREQUISITE: Python must be installed on your system
+
+1. Open Command Prompt or PowerShell
+
+2. Install git-filter-repo:
+
+   pip install git-filter-repo
+
+   OR if you have multiple Python versions:
+
+   py -m pip install git-filter-repo
+
+3. Verify installation:
+
+   git-filter-repo --version
+
+   Expected output: git-filter-repo 2.x.x
+
+4. If successful, you're done! Proceed to run: clean-git-history.bat
+
+================================================================================
+METHOD 2: MANUAL INSTALLATION (IF YOU DON'T HAVE PYTHON)
+================================================================================
+
+1. Download git-filter-repo:
+
+   Go to: https://raw.githubusercontent.com/newren/git-filter-repo/main/git-filter-repo
+
+   Right-click → Save As → git-filter-repo (no extension)
+
+2. Make it executable:
+
+   Option A - Add to PATH:
+   - Create folder: C:\tools\git-filter-repo\
+   - Save the file there
+   - Add C:\tools\git-filter-repo\ to your PATH environment variable
+
+   Option B - Copy to Git installation:
+   - Find your Git installation folder (usually C:\Program Files\Git\cmd\)
+   - Copy git-filter-repo there
+   - Rename to: git-filter-repo (if it has .txt extension, remove it)
+
+3. Verify installation:
+
+   Open new Command Prompt and run:
+   git-filter-repo --version
+
+4. If successful, proceed to run: clean-git-history.bat
+
+================================================================================
+METHOD 3: USING SCOOP (WINDOWS PACKAGE MANAGER)
+================================================================================
+
+If you have Scoop installed:
+
+1. Open PowerShell
+
+2. Install:
+
+   scoop install git-filter-repo
+
+3. Verify:
+
+   git-filter-repo --version
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+ERROR: "pip is not recognized"
+SOLUTION: Python is not installed or not in PATH
+- Install Python from https://www.python.org/downloads/
+- During installation, check "Add Python to PATH"
+
+ERROR: "git-filter-repo is not recognized"
+SOLUTION: Installation path not in PATH
+- Restart your terminal after installation
+- Verify PATH includes installation directory
+
+ERROR: "python3: can't open file 'git-filter-repo'"
+SOLUTION: File permissions issue
+- On Windows, rename the file to git-filter-repo.py
+- Run as: python git-filter-repo.py --version
+
+================================================================================
+AFTER INSTALLATION
+================================================================================
+
+Once git-filter-repo is installed:
+
+1. Close and reopen your terminal
+
+2. Verify it works:
+   git-filter-repo --version
+
+3. Run the cleanup script:
+   clean-git-history.bat
+
+OR run manually:
+   git filter-repo --path backend/.env --invert-paths --force
+
+================================================================================
+ALTERNATIVE: USE GITHUB'S ALLOW SECRET OPTION (QUICK FIX)
+================================================================================
+
+If you have trouble installing git-filter-repo, you can use the quick fix:
+
+1. Visit:
+   https://github.com/venudadi/preschoold-erp/security/secret-scanning/unblock-secret/33q7ZO2ikii6RoExgAjheGyw5YX
+
+2. Click "Allow secret"
+
+3. This lets you push immediately (you can clean history later)
+
+Note: This is acceptable for development/staging, but clean history is
+recommended before production deployment.
+
+================================================================================

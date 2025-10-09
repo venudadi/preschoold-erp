@@ -32,7 +32,9 @@
       "Bash(for i in {1..7})",
       "Bash(do curl -X POST -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"testuser@example.com\"\"}\" http://localhost:5002/api/auth/forgot-password)",
       "Bash(done)",
-      "Bash(PORT=5001 node index.js)"
+      "Bash(PORT=5001 node index.js)",
+      "Bash(py --version)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []
