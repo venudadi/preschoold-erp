@@ -34,11 +34,13 @@ const pool = new Pool({
 
 // Leak detection: warn if a query takes too long
 pool.on('acquire', (client) => {
-  client._acquireTimestamp = Date.now();
+  if (client) {
+    client._acquireTimestamp = Date.now();
+  }
 });
 
 pool.on('release', (client) => {
-  if (client._acquireTimestamp) {
+  if (client && client._acquireTimestamp) {
     const heldMs = Date.now() - client._acquireTimestamp;
     if (heldMs > 30000) { // 30 seconds
       console.warn(`⚠️  PostgreSQL client held for ${heldMs}ms. Possible leak.`);
