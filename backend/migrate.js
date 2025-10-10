@@ -6,11 +6,15 @@ import pool from './db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const migrationsDir = path.resolve(__dirname, 'migrations');
+// Use PostgreSQL migrations if available, otherwise use MySQL migrations
+const pgMigrationsDir = path.resolve(__dirname, 'migrations-pg');
+const migrationsDir = fs.existsSync(pgMigrationsDir) && fs.readdirSync(pgMigrationsDir).length > 0
+  ? pgMigrationsDir
+  : path.resolve(__dirname, 'migrations');
 
 async function ensureMigrationsTable() {
   await pool.query(`CREATE TABLE IF NOT EXISTS migrations (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     filename VARCHAR(255) NOT NULL UNIQUE,
     executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
