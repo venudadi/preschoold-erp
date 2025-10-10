@@ -69,8 +69,8 @@ async function applyMigration(file) {
           console.warn(`Skipping index creation due to missing column (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
         }
-        if (e.errno === 1146 && /(CREATE\s+INDEX|ADD\s+INDEX)/i.test(stmt)) { // Table doesn't exist for index
-          console.warn(`Skipping index creation due to missing table (${e.errno}):`, stmt.substring(0,120)+'...');
+        if (e.errno === 1146 && /(CREATE\s+INDEX|ADD\s+INDEX|UPDATE|ALTER\s+TABLE)/i.test(stmt)) { // Table doesn't exist
+          console.warn(`Skipping statement due to missing table (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
         }
         if (e.errno === 1267 && /CREATE\s+VIEW/i.test(stmt)) { // Collation mismatch in view
