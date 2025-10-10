@@ -13,11 +13,48 @@ const migrationsDir = fs.existsSync(pgMigrationsDir) && fs.readdirSync(pgMigrati
   : path.resolve(__dirname, 'migrations');
 
 async function ensureMigrationsTable() {
-  await pool.query(`CREATE TABLE IF NOT EXISTS migrations (
-    id SERIAL PRIMARY KEY,
-    filename VARCHAR(255) NOT NULL UNIQUE,
-    executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`);
+  // For DigitalOcean managed PostgreSQL, we need to handle the public schema permissions issue
+  // PostgreSQL 15+ changed the default permissions on the public schema
+
+  try {
+    // First, try to create the table normally
+    await pool.query(`CREATE TABLE IF NOT EXISTS migrations (
+      id SERIAL PRIMARY KEY,
+      filename VARCHAR(255) NOT NULL UNIQUE,
+      executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`);
+  } catch (err) {
+    if (err.code === '42501') {
+      // Permission denied - try to fix permissions
+      console.log('⚠️  Permission denied on public schema. Attempting to fix...');
+
+      try {
+        // Try to get current user
+        const [userResult] = await pool.query('SELECT CURRENT_USER');
+        const currentUser = userResult[0].current_user;
+        console.log(`Current database user: ${currentUser}`);
+
+        // Try to grant ourselves permission
+        await pool.query(`ALTER SCHEMA public OWNER TO ${currentUser}`);
+        console.log('✅ Fixed schema permissions');
+
+        // Now try creating the table again
+        await pool.query(`CREATE TABLE IF NOT EXISTS migrations (
+          id SERIAL PRIMARY KEY,
+          filename VARCHAR(255) NOT NULL UNIQUE,
+          executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+      } catch (fixErr) {
+        console.error('❌ Could not fix permissions automatically.');
+        console.error('Please run this SQL manually in the database console:');
+        console.error('  GRANT ALL ON SCHEMA public TO doadmin;');
+        console.error('  GRANT ALL ON SCHEMA public TO PUBLIC;');
+        throw fixErr;
+      }
+    } else {
+      throw err;
+    }
+  }
 }
 
 async function getAppliedMigrations() {
