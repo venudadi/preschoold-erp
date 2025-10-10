@@ -13,47 +13,50 @@ const migrationsDir = fs.existsSync(pgMigrationsDir) && fs.readdirSync(pgMigrati
   : path.resolve(__dirname, 'migrations');
 
 async function ensureMigrationsTable() {
-  // For DigitalOcean managed PostgreSQL, we need to handle the public schema permissions issue
-  // PostgreSQL 15+ changed the default permissions on the public schema
+  // For DigitalOcean PostgreSQL 15+, we need to handle the public schema permissions issue
 
   try {
-    // First, try to create the table normally
+    // First, try to fix permissions preemptively
+    const [userResult] = await pool.query('SELECT CURRENT_USER');
+    const currentUser = userResult[0].current_user;
+    console.log(`📊 Current database user: ${currentUser}`);
+
+    // Try to grant permissions to current user and PUBLIC
+    try {
+      await pool.query(`GRANT ALL ON SCHEMA public TO "${currentUser}"`);
+      await pool.query(`GRANT ALL ON SCHEMA public TO PUBLIC`);
+      console.log('✅ Granted schema permissions');
+    } catch (grantErr) {
+      // User might not have GRANT privilege, but might still be able to create tables
+      console.log('⚠️  Could not grant permissions (might already be set)');
+    }
+
+    // Now try to create the migrations table
     await pool.query(`CREATE TABLE IF NOT EXISTS migrations (
       id SERIAL PRIMARY KEY,
       filename VARCHAR(255) NOT NULL UNIQUE,
       executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
+    console.log('✅ Migrations table ready');
+
   } catch (err) {
+    console.error('❌ Error creating migrations table:', err.message);
+    console.error('Error code:', err.code);
+
+    // If still permission denied, the database needs manual intervention
     if (err.code === '42501') {
-      // Permission denied - try to fix permissions
-      console.log('⚠️  Permission denied on public schema. Attempting to fix...');
-
-      try {
-        // Try to get current user
-        const [userResult] = await pool.query('SELECT CURRENT_USER');
-        const currentUser = userResult[0].current_user;
-        console.log(`Current database user: ${currentUser}`);
-
-        // Try to grant ourselves permission
-        await pool.query(`ALTER SCHEMA public OWNER TO ${currentUser}`);
-        console.log('✅ Fixed schema permissions');
-
-        // Now try creating the table again
-        await pool.query(`CREATE TABLE IF NOT EXISTS migrations (
-          id SERIAL PRIMARY KEY,
-          filename VARCHAR(255) NOT NULL UNIQUE,
-          executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`);
-      } catch (fixErr) {
-        console.error('❌ Could not fix permissions automatically.');
-        console.error('Please run this SQL manually in the database console:');
-        console.error('  GRANT ALL ON SCHEMA public TO doadmin;');
-        console.error('  GRANT ALL ON SCHEMA public TO PUBLIC;');
-        throw fixErr;
-      }
-    } else {
-      throw err;
+      console.error('');
+      console.error('═══════════════════════════════════════════════════════');
+      console.error('MANUAL FIX REQUIRED:');
+      console.error('The database user does not have CREATE privileges.');
+      console.error('This is a PostgreSQL 15+ security change.');
+      console.error('');
+      console.error('Please contact DigitalOcean support to run:');
+      console.error('  ALTER DATABASE "preschool-db-staging" OWNER TO "preschool-db-staging";');
+      console.error('Or upgrade to a managed database cluster with doadmin user.');
+      console.error('═══════════════════════════════════════════════════════');
     }
+    throw err;
   }
 }
 
