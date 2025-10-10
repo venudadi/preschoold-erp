@@ -1,0 +1,15 @@
+-- Student Progress & Observation Logs
+-- Table: observation_logs
+CREATE TABLE IF NOT EXISTS observation_logs (
+    id VARCHAR(36) PRIMARY KEY,
+    child_id VARCHAR(36) NOT NULL,
+    teacher_id VARCHAR(36) NOT NULL,
+    date DATE NOT NULL,
+    milestone VARCHAR(255),
+    notes TEXT,
+    attachments JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ,
+    FOREIGN KEY (child_id) REFERENCES children(id),
+    FOREIGN KEY (teacher_id) REFERENCES users(id)
+);
