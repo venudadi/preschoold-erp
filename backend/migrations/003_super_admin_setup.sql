@@ -4,6 +4,7 @@ MODIFY COLUMN role enum('super_admin','owner','admin','academic_coordinator','te
 
 INSERT INTO users (
     id,
+    username,
     full_name,
     email,
     password_hash,
@@ -13,6 +14,7 @@ INSERT INTO users (
     is_active
 ) VALUES (
     UUID(),
+    'superadmin',
     'Vani',
     'venudadi@outlook.com',
     '$2b$10$dcG8qaxvilxXWnfOr6tqK.apUnC655B3QYZ9C6k58ir814dp8T1D.',
@@ -20,4 +22,9 @@ INSERT INTO users (
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP,
     1
-);
+)
+ON DUPLICATE KEY UPDATE
+    username = VALUES(username),
+    full_name = VALUES(full_name),
+    password_hash = VALUES(password_hash),
+    role = VALUES(role);

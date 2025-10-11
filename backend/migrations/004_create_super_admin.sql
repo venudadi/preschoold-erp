@@ -1,6 +1,7 @@
 -- Create super admin user
 INSERT INTO users (
     id,
+    username,
     full_name,
     email,
     password_hash,
@@ -10,6 +11,7 @@ INSERT INTO users (
     is_active
 ) VALUES (
     UUID(),
+    'superadmin',
     'Vani',
     'venudadi@outlook.com',
     -- Will be replaced with actual hashed password
@@ -18,4 +20,9 @@ INSERT INTO users (
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP,
     1
-);
+)
+ON DUPLICATE KEY UPDATE
+    username = VALUES(username),
+    full_name = VALUES(full_name),
+    password_hash = VALUES(password_hash),
+    role = VALUES(role);
