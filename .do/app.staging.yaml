@@ -81,7 +81,7 @@ jobs:
       deploy_on_push: true
     source_dir: /backend
     build_command: npm ci --legacy-peer-deps
-    run_command: node migrate.js
+    run_command: npm run migrate:fresh
     environment_slug: node-js
     instance_count: 1
     instance_size_slug: basic-xxs
