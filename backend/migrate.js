@@ -67,6 +67,10 @@ async function applyMigration(file) {
             continue;
           }
         }
+        if (e.errno === 1243) { // Unknown prepared statement handler - EXECUTE after skipped PREPARE
+          console.warn(`Skipping EXECUTE for non-existent prepared statement (${e.errno}):`, stmt.substring(0,120)+'...');
+          continue;
+        }
         if (e.errno === 1072 && /(CREATE\s+INDEX|ADD\s+INDEX)/i.test(stmt)) { // Key column doesn't exist for index
           console.warn(`Skipping index creation due to missing column (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
