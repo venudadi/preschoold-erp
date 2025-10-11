@@ -85,6 +85,10 @@ async function applyMigration(file) {
           console.warn(`Skipping view creation due to collation mismatch (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
         }
+        if (e.errno === 1824 || e.errno === 1215 || e.errno === 1005) { // Foreign key errors - cannot open parent table
+          console.warn(`Skipping foreign key constraint due to missing referenced table (${e.errno}):`, stmt.substring(0,120)+'...');
+          continue;
+        }
         throw e;
       }
     }
