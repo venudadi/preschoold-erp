@@ -61,7 +61,7 @@ async function applyMigration(file) {
           console.warn(`Skipping duplicate column (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
         }
-        if (e.errno === 1054 && /center_name/i.test(stmt)) { // Unknown column 'center_name'
+        if (e.errno === 1054 && /center_name/i.test(stmt)) { // Unknown column 'center_name' - legacy compatibility
           console.warn(`Ignoring unknown legacy column error for statement:`, stmt.substring(0,120)+'...');
           continue;
         }
@@ -69,13 +69,11 @@ async function applyMigration(file) {
           console.warn(`Skipping index creation due to missing column (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
         }
-        if (e.errno === 1146 && /(UPDATE|ALTER\s+TABLE.*ADD\s+COLUMN|ALTER\s+TABLE.*DROP|SET\s+@)/i.test(stmt)) { // Table doesn't exist for ALTER/UPDATE
-          console.warn(`Skipping statement due to missing table (${e.errno}):`, stmt.substring(0,120)+'...');
-          continue;
-        }
-        if (e.errno === 1054 && /center_name/i.test(stmt)) { // Unknown column 'center_name' - legacy compatibility
-          console.warn(`Ignoring unknown legacy column error for statement:`, stmt.substring(0,120)+'...');
-          continue;
+        if (e.errno === 1146) { // Table doesn't exist
+          if (/(CREATE\s+INDEX|ADD\s+INDEX|UPDATE|ALTER\s+TABLE.*ADD\s+COLUMN|ALTER\s+TABLE.*DROP|ALTER\s+TABLE.*MODIFY|SET\s+@|INSERT\s+INTO)/i.test(stmt)) {
+            console.warn(`Skipping statement due to missing table (${e.errno}):`, stmt.substring(0,120)+'...');
+            continue;
+          }
         }
         if (e.errno === 1267 && /CREATE\s+VIEW/i.test(stmt)) { // Collation mismatch in view
           console.warn(`Skipping view creation due to collation mismatch (${e.errno}):`, stmt.substring(0,120)+'...');
