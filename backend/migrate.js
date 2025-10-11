@@ -76,7 +76,7 @@ async function applyMigration(file) {
           continue;
         }
         if (e.errno === 1146) { // Table doesn't exist
-          if (/(CREATE\s+INDEX|ADD\s+INDEX|UPDATE|ALTER\s+TABLE|SET\s+@|INSERT\s+INTO)/i.test(stmt)) {
+          if (/(CREATE\s+INDEX|ADD\s+INDEX|UPDATE|ALTER\s+TABLE|SET\s+@|INSERT\s+(IGNORE\s+)?INTO)/i.test(stmt)) {
             console.warn(`Skipping statement due to missing table (${e.errno}):`, stmt.substring(0,120)+'...');
             continue;
           }
