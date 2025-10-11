@@ -51,6 +51,16 @@ async function applyMigration(file) {
       try {
         await conn.query(stmt);
       } catch (e) {
+        // Log CREATE TABLE errors with full details for debugging
+        if (/CREATE\s+TABLE/i.test(stmt)) {
+          console.error(`❌ CREATE TABLE FAILED:`, {
+            errno: e.errno,
+            code: e.code,
+            message: e.message,
+            sql: stmt.substring(0, 200)
+          });
+        }
+
         const ignorable = new Set(['ER_DUP_KEYNAME','ER_TABLE_EXISTS_ERROR','ER_DUP_ENTRY','ER_DUP_FIELDNAME','ER_CANT_DROP_FIELD_OR_KEY','ER_DUP_CONSTRAINT']);
         const ignorableCodes = new Set([1061, 1050, 1062, 1060, 1091, 1826]);
         if (ignorable.has(e.code) || ignorableCodes.has(e.errno)) {

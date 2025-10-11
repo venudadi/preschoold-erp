@@ -2,14 +2,15 @@
 -- PRESCHOOL ERP - INITIAL DATABASE SCHEMA
 -- ================================================================
 -- This migration creates all base tables that other migrations depend on
--- Tables are created without foreign keys first, then FKs are added
--- to handle circular dependencies
-
--- ================================================================
--- PHASE 1: CREATE BASE TABLES WITHOUT FOREIGN KEYS
+-- Tables are created without foreign keys or indexes first
+-- Then indexes and FKs are added separately
 -- ================================================================
 
--- Core Users Table (referenced by almost all other tables)
+-- ================================================================
+-- PHASE 1: CREATE BASE TABLES (NO INDEXES, NO FOREIGN KEYS)
+-- ================================================================
+
+-- Core Users Table
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(36) PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
@@ -24,14 +25,10 @@ CREATE TABLE IF NOT EXISTS users (
     two_fa_secret VARCHAR(255),
     center_id VARCHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_email (email),
-    INDEX idx_username (username),
-    INDEX idx_role (role),
-    INDEX idx_center_id (center_id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Centers Table (has circular dependency with users)
+-- Centers Table
 CREATE TABLE IF NOT EXISTS centers (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -41,9 +38,7 @@ CREATE TABLE IF NOT EXISTS centers (
     manager_user_id VARCHAR(36),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_manager (manager_user_id),
-    INDEX idx_is_active (is_active)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Classrooms Table
@@ -56,10 +51,7 @@ CREATE TABLE IF NOT EXISTS classrooms (
     teacher_id VARCHAR(36),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_center_id (center_id),
-    INDEX idx_teacher_id (teacher_id),
-    INDEX idx_is_active (is_active)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Children/Students Table
@@ -82,12 +74,7 @@ CREATE TABLE IF NOT EXISTS children (
     paused_by_user_id VARCHAR(36),
     pause_reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_classroom (classroom_id),
-    INDEX idx_center (center_id),
-    INDEX idx_is_active (is_active),
-    INDEX idx_admission_number (admission_number),
-    INDEX idx_full_name (first_name, last_name)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Parents Table
@@ -101,9 +88,7 @@ CREATE TABLE IF NOT EXISTS parents (
     relationship_to_child ENUM('Mother', 'Father', 'Guardian', 'Other') DEFAULT 'Guardian',
     is_primary_contact BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_email (email)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Parent-Child Relationship Table
@@ -114,8 +99,6 @@ CREATE TABLE IF NOT EXISTS parent_children (
     relationship_type ENUM('Mother', 'Father', 'Guardian', 'Other') DEFAULT 'Guardian',
     is_primary BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_parent (parent_id),
-    INDEX idx_child (child_id),
     UNIQUE KEY unique_parent_child (parent_id, child_id)
 );
 
@@ -134,11 +117,7 @@ CREATE TABLE IF NOT EXISTS staff (
     center_id VARCHAR(36),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_user_id (user_id),
-    INDEX idx_center_id (center_id),
-    INDEX idx_employee_id (employee_id),
-    INDEX idx_is_active (is_active)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Staff Assignments Table
@@ -152,11 +131,7 @@ CREATE TABLE IF NOT EXISTS staff_assignments (
     end_date DATE,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_staff (staff_id),
-    INDEX idx_classroom (classroom_id),
-    INDEX idx_center (center_id),
-    INDEX idx_is_active (is_active)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Companies Table (for company tie-ups)
@@ -170,9 +145,7 @@ CREATE TABLE IF NOT EXISTS companies (
     discount_percentage DECIMAL(5, 2) DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_company_name (company_name),
-    INDEX idx_is_active (is_active)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Enquiries Table
@@ -189,10 +162,7 @@ CREATE TABLE IF NOT EXISTS enquiries (
     notes TEXT,
     assigned_to_user_id VARCHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_center (center_id),
-    INDEX idx_status (status),
-    INDEX idx_assigned_to (assigned_to_user_id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Invoices Table
@@ -217,13 +187,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     notes TEXT,
     created_by_user_id VARCHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_invoice_number (invoice_number),
-    INDEX idx_child (child_id),
-    INDEX idx_center (center_id),
-    INDEX idx_parent (parent_id),
-    INDEX idx_status (status),
-    INDEX idx_due_date (due_date)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Invoice Line Items Table
@@ -238,33 +202,82 @@ CREATE TABLE IF NOT EXISTS invoice_line_items (
     total_amount DECIMAL(10, 2) NOT NULL,
     item_type ENUM('Tuition', 'Activity', 'Material', 'Transport', 'Meal', 'Late Fee', 'Other') DEFAULT 'Other',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_invoice (invoice_id),
-    INDEX idx_item_type (item_type)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- ================================================================
--- PHASE 2: ADD FOREIGN KEY CONSTRAINTS
+-- PHASE 2: ADD INDEXES
 -- ================================================================
 
--- Add FK for users.center_id → centers.id
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_users_center_id ON users(center_id);
+
+CREATE INDEX idx_centers_manager ON centers(manager_user_id);
+CREATE INDEX idx_centers_is_active ON centers(is_active);
+
+CREATE INDEX idx_classrooms_center_id ON classrooms(center_id);
+CREATE INDEX idx_classrooms_teacher_id ON classrooms(teacher_id);
+CREATE INDEX idx_classrooms_is_active ON classrooms(is_active);
+
+CREATE INDEX idx_children_classroom ON children(classroom_id);
+CREATE INDEX idx_children_center ON children(center_id);
+CREATE INDEX idx_children_is_active ON children(is_active);
+CREATE INDEX idx_children_admission_number ON children(admission_number);
+CREATE INDEX idx_children_full_name ON children(first_name, last_name);
+
+CREATE INDEX idx_parents_user_id ON parents(user_id);
+CREATE INDEX idx_parents_email ON parents(email);
+
+CREATE INDEX idx_parent_children_parent ON parent_children(parent_id);
+CREATE INDEX idx_parent_children_child ON parent_children(child_id);
+
+CREATE INDEX idx_staff_user_id ON staff(user_id);
+CREATE INDEX idx_staff_center_id ON staff(center_id);
+CREATE INDEX idx_staff_employee_id ON staff(employee_id);
+CREATE INDEX idx_staff_is_active ON staff(is_active);
+
+CREATE INDEX idx_staff_assignments_staff ON staff_assignments(staff_id);
+CREATE INDEX idx_staff_assignments_classroom ON staff_assignments(classroom_id);
+CREATE INDEX idx_staff_assignments_center ON staff_assignments(center_id);
+CREATE INDEX idx_staff_assignments_is_active ON staff_assignments(is_active);
+
+CREATE INDEX idx_companies_company_name ON companies(company_name);
+CREATE INDEX idx_companies_is_active ON companies(is_active);
+
+CREATE INDEX idx_enquiries_center ON enquiries(center_id);
+CREATE INDEX idx_enquiries_status ON enquiries(status);
+CREATE INDEX idx_enquiries_assigned_to ON enquiries(assigned_to_user_id);
+
+CREATE INDEX idx_invoices_invoice_number ON invoices(invoice_number);
+CREATE INDEX idx_invoices_child ON invoices(child_id);
+CREATE INDEX idx_invoices_center ON invoices(center_id);
+CREATE INDEX idx_invoices_parent ON invoices(parent_id);
+CREATE INDEX idx_invoices_status ON invoices(status);
+CREATE INDEX idx_invoices_due_date ON invoices(due_date);
+
+CREATE INDEX idx_invoice_line_items_invoice ON invoice_line_items(invoice_id);
+CREATE INDEX idx_invoice_line_items_item_type ON invoice_line_items(item_type);
+
+-- ================================================================
+-- PHASE 3: ADD FOREIGN KEY CONSTRAINTS
+-- ================================================================
+
 ALTER TABLE users
 ADD CONSTRAINT fk_users_center
 FOREIGN KEY (center_id) REFERENCES centers(id) ON DELETE SET NULL;
 
--- Add FK for centers.manager_user_id → users.id
 ALTER TABLE centers
 ADD CONSTRAINT fk_centers_manager
 FOREIGN KEY (manager_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
--- Add FK for classrooms
 ALTER TABLE classrooms
 ADD CONSTRAINT fk_classrooms_center
 FOREIGN KEY (center_id) REFERENCES centers(id) ON DELETE CASCADE,
 ADD CONSTRAINT fk_classrooms_teacher
 FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE SET NULL;
 
--- Add FK for children
 ALTER TABLE children
 ADD CONSTRAINT fk_children_classroom
 FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE SET NULL,
@@ -273,26 +286,22 @@ FOREIGN KEY (center_id) REFERENCES centers(id) ON DELETE CASCADE,
 ADD CONSTRAINT fk_children_paused_by
 FOREIGN KEY (paused_by_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
--- Add FK for parents
 ALTER TABLE parents
 ADD CONSTRAINT fk_parents_user
 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 
--- Add FK for parent_children
 ALTER TABLE parent_children
 ADD CONSTRAINT fk_parent_children_parent
 FOREIGN KEY (parent_id) REFERENCES parents(id) ON DELETE CASCADE,
 ADD CONSTRAINT fk_parent_children_child
 FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE;
 
--- Add FK for staff
 ALTER TABLE staff
 ADD CONSTRAINT fk_staff_user
 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 ADD CONSTRAINT fk_staff_center
 FOREIGN KEY (center_id) REFERENCES centers(id) ON DELETE CASCADE;
 
--- Add FK for staff_assignments
 ALTER TABLE staff_assignments
 ADD CONSTRAINT fk_staff_assignments_staff
 FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE,
@@ -301,14 +310,12 @@ FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE SET NULL,
 ADD CONSTRAINT fk_staff_assignments_center
 FOREIGN KEY (center_id) REFERENCES centers(id) ON DELETE CASCADE;
 
--- Add FK for enquiries
 ALTER TABLE enquiries
 ADD CONSTRAINT fk_enquiries_center
 FOREIGN KEY (center_id) REFERENCES centers(id) ON DELETE CASCADE,
 ADD CONSTRAINT fk_enquiries_assigned_to
 FOREIGN KEY (assigned_to_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
--- Add FK for invoices
 ALTER TABLE invoices
 ADD CONSTRAINT fk_invoices_child
 FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE,
@@ -319,16 +326,14 @@ FOREIGN KEY (parent_id) REFERENCES parents(id) ON DELETE SET NULL,
 ADD CONSTRAINT fk_invoices_created_by
 FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL;
 
--- Add FK for invoice_line_items
 ALTER TABLE invoice_line_items
 ADD CONSTRAINT fk_invoice_items_invoice
 FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE;
 
 -- ================================================================
--- PHASE 3: CREATE STUDENTS VIEW
+-- PHASE 4: CREATE STUDENTS VIEW
 -- ================================================================
 
--- Students is a VIEW based on children table (for backward compatibility)
 DROP VIEW IF EXISTS students;
 CREATE VIEW students AS
 SELECT
