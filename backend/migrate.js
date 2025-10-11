@@ -62,7 +62,7 @@ async function applyMigration(file) {
           continue;
         }
         if (e.errno === 1054) { // Unknown column
-          if (/center_name|Constraint already exists/i.test(stmt) || /Constraint already exists/i.test(e.message)) {
+          if (/center_name|Constraint already exists|Event already exists/i.test(stmt) || /(Constraint|Event) already exists/i.test(e.message)) {
             console.warn(`Ignoring unknown column/prepare error (${e.errno}):`, stmt.substring(0,120)+'...');
             continue;
           }
