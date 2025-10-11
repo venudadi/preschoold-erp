@@ -112,8 +112,9 @@ async function applyMigration(file) {
           continue;
         }
         if (e.errno === 1054) { // Unknown column
-          if (/center_name|Constraint already exists|Event already exists/i.test(stmt) || /(Constraint|Event) already exists/i.test(e.message)) {
-            console.warn(`Ignoring unknown column/prepare error (${e.errno}):`, stmt.substring(0,120)+'...');
+          // Skip UPDATE/SELECT/PREPARE statements that reference missing columns
+          if (/UPDATE|SELECT|PREPARE/i.test(stmt) || /center_name|Constraint already exists|Event already exists/i.test(stmt) || /(Constraint|Event) already exists/i.test(e.message)) {
+            console.warn(`Skipping statement due to missing column (${e.errno}):`, stmt.substring(0,120)+'...');
             continue;
           }
         }

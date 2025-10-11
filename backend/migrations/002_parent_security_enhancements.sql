@@ -153,9 +153,10 @@ CREATE INDEX IF NOT EXISTS idx_parents_phone_number ON parents(phone_number);
 CREATE INDEX IF NOT EXISTS idx_parents_email ON parents(email);
 
 -- 10. Generate verification codes for existing children (one-time operation)
-UPDATE children 
+-- Only run if verification_code column exists
+UPDATE children
 SET verification_code = UPPER(SUBSTRING(SHA2(CONCAT(id, first_name, UNIX_TIMESTAMP()), 256), 1, 8))
-WHERE verification_code IS NULL AND is_active = 1;
+WHERE verification_code IS NULL;
 
 -- 11. Create secure configuration table
 CREATE TABLE IF NOT EXISTS security_config (
