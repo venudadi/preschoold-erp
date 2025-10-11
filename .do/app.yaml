@@ -72,6 +72,7 @@ static_sites:
       - path: /
 
 # Jobs for migrations (run on deploy)
+# Updated: 2025-10-11 - Using migrate:clean to ensure clean database state
 jobs:
   - name: migrations
     kind: PRE_DEPLOY
@@ -80,7 +81,7 @@ jobs:
       branch: main
       deploy_on_push: true
     source_dir: /backend
-    build_command: npm ci --legacy-peer-deps
+    build_command: npm ci --legacy-peer-deps --cache /tmp/empty-cache
     run_command: npm run migrate:clean
     environment_slug: node-js
     instance_count: 1
