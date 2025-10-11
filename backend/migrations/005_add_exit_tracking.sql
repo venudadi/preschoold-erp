@@ -1,5 +1,5 @@
--- Add exit tracking for students
-ALTER TABLE students
+-- Add exit tracking for students (children table)
+ALTER TABLE children
 ADD COLUMN status ENUM('active', 'inactive', 'left') DEFAULT 'active',
 ADD COLUMN exit_date DATE NULL,
 ADD COLUMN exit_reason TEXT NULL,
