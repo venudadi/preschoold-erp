@@ -6,7 +6,7 @@ CREATE TABLE classroom_announcements (
     classroom_id VARCHAR(36) NOT NULL,
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
-    posted_by VARCHAR(36) NOT NULL, -- teacher id
+    posted_by VARCHAR(36) NOT NULL COMMENT 'teacher id',
     posted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at DATETIME DEFAULT NULL,
     is_important BOOLEAN DEFAULT FALSE,

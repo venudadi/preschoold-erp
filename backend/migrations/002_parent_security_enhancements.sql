@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS child_daily_reports (
     meals_lunch BOOLEAN DEFAULT 0,
     meals_snack_morning BOOLEAN DEFAULT 0,
     meals_snack_afternoon BOOLEAN DEFAULT 0,
-    nap_duration INT DEFAULT 0, -- in minutes
+    nap_duration INT DEFAULT 0 COMMENT 'Duration in minutes',
     activities TEXT,
     notes TEXT,
     created_by VARCHAR(36),

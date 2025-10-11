@@ -5,23 +5,19 @@ CREATE TABLE IF NOT EXISTS central_passwords (
     id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
     type ENUM('default_password', 'temp_password', 'reset_token', 'system_policy') NOT NULL,
     role ENUM('super_admin', 'owner', 'admin', 'academic_coordinator', 'teacher', 'parent') NULL,
-    password_value VARCHAR(255) NULL, -- Hashed password for defaults/temps
-    policy_name VARCHAR(100) NULL, -- For policy entries
-    policy_value TEXT NULL, -- JSON or text policy data
+    password_value VARCHAR(255) NULL COMMENT 'Hashed password for defaults/temps',
+    policy_name VARCHAR(100) NULL COMMENT 'For policy entries',
+    policy_value TEXT NULL COMMENT 'JSON or text policy data',
     description TEXT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     expires_at TIMESTAMP NULL,
     created_by VARCHAR(36) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    -- Indexes
     INDEX idx_type (type),
     INDEX idx_role (role),
     INDEX idx_active (is_active),
     INDEX idx_expires (expires_at),
-    
-    -- Foreign key for creator
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
