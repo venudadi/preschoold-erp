@@ -61,20 +61,17 @@ CREATE TABLE IF NOT EXISTS security_audit_log (
     INDEX idx_security_audit (timestamp, severity)
 );
 
--- 6. Insert default password policy for existing centers
-INSERT INTO centers (id, password_policy)
-SELECT 
-    id,
-    JSON_OBJECT(
-        'minLength', 8,
-        'requireUppercase', true,
-        'requireLowercase', true,
-        'requireNumbers', true,
-        'requireSpecialChars', true,
-        'passwordExpiryDays', 90,
-        'preventReuse', 5,
-        'maxLoginAttempts', 5,
-        'lockoutDurationMinutes', 30
-    )
-FROM centers
+-- 6. Update default password policy for existing centers
+UPDATE centers
+SET password_policy = JSON_OBJECT(
+    'minLength', 8,
+    'requireUppercase', true,
+    'requireLowercase', true,
+    'requireNumbers', true,
+    'requireSpecialChars', true,
+    'passwordExpiryDays', 90,
+    'preventReuse', 5,
+    'maxLoginAttempts', 5,
+    'lockoutDurationMinutes', 30
+)
 WHERE password_policy IS NULL;
