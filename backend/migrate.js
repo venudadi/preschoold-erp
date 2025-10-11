@@ -49,7 +49,15 @@ async function applyMigration(file) {
       .filter(s => s && !s.startsWith('--'));
     for (const stmt of statements) {
       try {
+        // Log ALL CREATE TABLE attempts
+        if (/CREATE\s+TABLE/i.test(stmt)) {
+          console.log(`🔨 Attempting CREATE TABLE:`, stmt.substring(0, 80) + '...');
+        }
         await conn.query(stmt);
+        // Log successful CREATE TABLE
+        if (/CREATE\s+TABLE/i.test(stmt)) {
+          console.log(`✅ CREATE TABLE SUCCESS:`, stmt.substring(0, 80) + '...');
+        }
       } catch (e) {
         // Log CREATE TABLE errors with full details for debugging
         if (/CREATE\s+TABLE/i.test(stmt)) {
@@ -57,7 +65,7 @@ async function applyMigration(file) {
             errno: e.errno,
             code: e.code,
             message: e.message,
-            sql: stmt.substring(0, 200)
+            sqlPreview: stmt.substring(0, 300)
           });
         }
 
