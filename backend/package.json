@@ -9,6 +9,9 @@
     "migrate": "node migrate.js",
     "post-migrate": "node post-migrate.js",
     "migrate:full": "node migrate.js && node post-migrate.js",
+    "migrate:reset": "node reset-migrations.js",
+    "migrate:check": "node check-migrations.js",
+    "migrate:fresh": "node reset-migrations.js && node migrate.js && node post-migrate.js",
     "dev": "nodemon index.js"
   },
   "keywords": [],
