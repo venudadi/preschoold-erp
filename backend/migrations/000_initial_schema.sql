@@ -22,14 +22,14 @@ CREATE TABLE IF NOT EXISTS users (
     must_reset_password BOOLEAN DEFAULT FALSE,
     two_fa_enabled BOOLEAN DEFAULT FALSE,
     two_fa_secret VARCHAR(255),
-    center_id VARCHAR(36),  -- FK added later
+    center_id VARCHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_email (email),
     INDEX idx_username (username),
     INDEX idx_role (role),
     INDEX idx_center_id (center_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Centers Table (has circular dependency with users)
 CREATE TABLE IF NOT EXISTS centers (
@@ -38,13 +38,13 @@ CREATE TABLE IF NOT EXISTS centers (
     address TEXT,
     phone_number VARCHAR(20),
     email VARCHAR(255),
-    manager_user_id VARCHAR(36),  -- FK added later
+    manager_user_id VARCHAR(36),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_manager (manager_user_id),
     INDEX idx_is_active (is_active)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Classrooms Table
 CREATE TABLE IF NOT EXISTS classrooms (
@@ -52,15 +52,15 @@ CREATE TABLE IF NOT EXISTS classrooms (
     name VARCHAR(255) NOT NULL,
     capacity INT NOT NULL DEFAULT 20,
     age_group VARCHAR(50),
-    center_id VARCHAR(36),  -- FK added later
-    teacher_id VARCHAR(36),  -- FK added later
+    center_id VARCHAR(36),
+    teacher_id VARCHAR(36),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_center_id (center_id),
     INDEX idx_teacher_id (teacher_id),
     INDEX idx_is_active (is_active)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Children/Students Table
 CREATE TABLE IF NOT EXISTS children (
@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS children (
     date_of_birth DATE NOT NULL,
     gender ENUM('Male', 'Female', 'Other'),
     admission_number VARCHAR(50) UNIQUE,
-    classroom_id VARCHAR(36),  -- FK added later
-    center_id VARCHAR(36),  -- FK added later
+    classroom_id VARCHAR(36),
+    center_id VARCHAR(36),
     medical_info TEXT,
     allergies TEXT,
     emergency_contact_name VARCHAR(255),
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS children (
     is_active BOOLEAN DEFAULT TRUE,
     is_paused BOOLEAN DEFAULT FALSE,
     paused_at TIMESTAMP NULL,
-    paused_by_user_id VARCHAR(36),  -- FK added later
+    paused_by_user_id VARCHAR(36),
     pause_reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -88,12 +88,12 @@ CREATE TABLE IF NOT EXISTS children (
     INDEX idx_is_active (is_active),
     INDEX idx_admission_number (admission_number),
     INDEX idx_full_name (first_name, last_name)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Parents Table
 CREATE TABLE IF NOT EXISTS parents (
     id VARCHAR(36) PRIMARY KEY,
-    user_id VARCHAR(36),  -- FK added later
+    user_id VARCHAR(36),
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(255) UNIQUE,
@@ -104,25 +104,25 @@ CREATE TABLE IF NOT EXISTS parents (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_user_id (user_id),
     INDEX idx_email (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Parent-Child Relationship Table
 CREATE TABLE IF NOT EXISTS parent_children (
     id VARCHAR(36) PRIMARY KEY,
-    parent_id VARCHAR(36) NOT NULL,  -- FK added later
-    child_id VARCHAR(36) NOT NULL,  -- FK added later
+    parent_id VARCHAR(36) NOT NULL,
+    child_id VARCHAR(36) NOT NULL,
     relationship_type ENUM('Mother', 'Father', 'Guardian', 'Other') DEFAULT 'Guardian',
     is_primary BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_parent (parent_id),
     INDEX idx_child (child_id),
     UNIQUE KEY unique_parent_child (parent_id, child_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Staff Table
 CREATE TABLE IF NOT EXISTS staff (
     id VARCHAR(36) PRIMARY KEY,
-    user_id VARCHAR(36),  -- FK added later
+    user_id VARCHAR(36),
     employee_id VARCHAR(50) UNIQUE,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS staff (
     position VARCHAR(100),
     department VARCHAR(100),
     hire_date DATE,
-    center_id VARCHAR(36),  -- FK added later
+    center_id VARCHAR(36),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -139,14 +139,14 @@ CREATE TABLE IF NOT EXISTS staff (
     INDEX idx_center_id (center_id),
     INDEX idx_employee_id (employee_id),
     INDEX idx_is_active (is_active)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Staff Assignments Table
 CREATE TABLE IF NOT EXISTS staff_assignments (
     id VARCHAR(36) PRIMARY KEY,
-    staff_id VARCHAR(36) NOT NULL,  -- FK added later
-    classroom_id VARCHAR(36),  -- FK added later
-    center_id VARCHAR(36),  -- FK added later
+    staff_id VARCHAR(36) NOT NULL,
+    classroom_id VARCHAR(36),
+    center_id VARCHAR(36),
     role VARCHAR(100),
     start_date DATE,
     end_date DATE,
@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS staff_assignments (
     INDEX idx_classroom (classroom_id),
     INDEX idx_center (center_id),
     INDEX idx_is_active (is_active)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Companies Table (for company tie-ups)
 CREATE TABLE IF NOT EXISTS companies (
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS companies (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_company_name (company_name),
     INDEX idx_is_active (is_active)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Enquiries Table
 CREATE TABLE IF NOT EXISTS enquiries (
@@ -184,24 +184,24 @@ CREATE TABLE IF NOT EXISTS enquiries (
     child_name VARCHAR(255),
     child_age INT,
     preferred_start_date DATE,
-    center_id VARCHAR(36),  -- FK added later
+    center_id VARCHAR(36),
     status ENUM('New', 'Contacted', 'Visit Scheduled', 'Enrolled', 'Declined') DEFAULT 'New',
     notes TEXT,
-    assigned_to_user_id VARCHAR(36),  -- FK added later
+    assigned_to_user_id VARCHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_center (center_id),
     INDEX idx_status (status),
     INDEX idx_assigned_to (assigned_to_user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Invoices Table
 CREATE TABLE IF NOT EXISTS invoices (
     id VARCHAR(36) PRIMARY KEY,
     invoice_number VARCHAR(50) UNIQUE NOT NULL,
-    child_id VARCHAR(36) NOT NULL,  -- FK added later
-    center_id VARCHAR(36),  -- FK added later
-    parent_id VARCHAR(36),  -- FK added later
+    child_id VARCHAR(36) NOT NULL,
+    center_id VARCHAR(36),
+    parent_id VARCHAR(36),
     billing_period_start DATE NOT NULL,
     billing_period_end DATE NOT NULL,
     due_date DATE NOT NULL,
@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     payment_method ENUM('Cash', 'Card', 'Bank Transfer', 'Check', 'Online', 'Other'),
     payment_date DATE,
     notes TEXT,
-    created_by_user_id VARCHAR(36),  -- FK added later
+    created_by_user_id VARCHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_invoice_number (invoice_number),
@@ -224,12 +224,12 @@ CREATE TABLE IF NOT EXISTS invoices (
     INDEX idx_parent (parent_id),
     INDEX idx_status (status),
     INDEX idx_due_date (due_date)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- Invoice Line Items Table
 CREATE TABLE IF NOT EXISTS invoice_line_items (
     id VARCHAR(36) PRIMARY KEY,
-    invoice_id VARCHAR(36) NOT NULL,  -- FK added later
+    invoice_id VARCHAR(36) NOT NULL,
     description VARCHAR(255) NOT NULL,
     quantity INT DEFAULT 1,
     unit_price DECIMAL(10, 2) NOT NULL,
@@ -241,7 +241,7 @@ CREATE TABLE IF NOT EXISTS invoice_line_items (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_invoice (invoice_id),
     INDEX idx_item_type (item_type)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+);
 
 -- ================================================================
 -- PHASE 2: ADD FOREIGN KEY CONSTRAINTS
@@ -329,7 +329,8 @@ FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE;
 -- ================================================================
 
 -- Students is a VIEW based on children table (for backward compatibility)
-CREATE OR REPLACE VIEW students AS
+DROP VIEW IF EXISTS students;
+CREATE VIEW students AS
 SELECT
     id,
     first_name,
