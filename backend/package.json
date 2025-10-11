@@ -7,6 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
     "migrate": "node migrate.js",
+    "post-migrate": "node post-migrate.js",
+    "migrate:full": "node migrate.js && node post-migrate.js",
     "dev": "nodemon index.js"
   },
   "keywords": [],

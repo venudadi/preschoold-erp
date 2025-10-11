@@ -61,9 +61,11 @@ async function applyMigration(file) {
           console.warn(`Skipping duplicate column (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
         }
-        if (e.errno === 1054 && /center_name/i.test(stmt)) { // Unknown column 'center_name' - legacy compatibility
-          console.warn(`Ignoring unknown legacy column error for statement:`, stmt.substring(0,120)+'...');
-          continue;
+        if (e.errno === 1054) { // Unknown column
+          if (/center_name|Constraint already exists/i.test(stmt) || /Constraint already exists/i.test(e.message)) {
+            console.warn(`Ignoring unknown column/prepare error (${e.errno}):`, stmt.substring(0,120)+'...');
+            continue;
+          }
         }
         if (e.errno === 1072 && /(CREATE\s+INDEX|ADD\s+INDEX)/i.test(stmt)) { // Key column doesn't exist for index
           console.warn(`Skipping index creation due to missing column (${e.errno}):`, stmt.substring(0,120)+'...');
