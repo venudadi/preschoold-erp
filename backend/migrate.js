@@ -43,10 +43,42 @@ async function applyMigration(file) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const statements = sql
-      .split(/;\s*\n|;\r?\n|;$/gm)
-      .map(s => s.trim())
-      .filter(s => s && !s.startsWith('--'));
+
+    // Better statement splitting - handle multi-line statements properly
+    // Split on semicolons that are followed by newline or end of string
+    const statements = [];
+    let currentStatement = '';
+    const lines = sql.split('\n');
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      // Skip empty lines and comments
+      if (!trimmedLine || trimmedLine.startsWith('--')) {
+        continue;
+      }
+
+      currentStatement += ' ' + trimmedLine;
+
+      // If line ends with semicolon, we have a complete statement
+      if (trimmedLine.endsWith(';')) {
+        const stmt = currentStatement.trim().replace(/;$/, '').trim();
+        if (stmt) {
+          statements.push(stmt);
+        }
+        currentStatement = '';
+      }
+    }
+
+    // Add any remaining statement
+    if (currentStatement.trim()) {
+      statements.push(currentStatement.trim());
+    }
+
+    // Log statement count for debugging
+    console.log(`📋 Processing ${statements.length} statements from ${file}`);
+    const createTableCount = statements.filter(s => /CREATE\s+TABLE/i.test(s)).length;
+    console.log(`   Found ${createTableCount} CREATE TABLE statements`);
+
     for (const stmt of statements) {
       try {
         // Log ALL CREATE TABLE attempts
