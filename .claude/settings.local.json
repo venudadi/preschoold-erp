@@ -35,7 +35,16 @@
       "Bash(PORT=5001 node index.js)",
       "Bash(git checkout:*)",
       "Bash(git rm:*)",
-      "Bash(git filter-branch:*)"
+      "Bash(git filter-branch:*)",
+      "Bash(git merge:*)",
+      "Read(//c/Users/tjtej/Downloads/**)",
+      "Bash(doctl apps list:*)",
+      "Bash(gh workflow list:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(cat:*)",
+      "Bash(git branch:*)",
+      "Bash(git check-ignore:*)"
     ],
     "deny": [],
     "ask": []
