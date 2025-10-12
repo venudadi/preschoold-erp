@@ -44,11 +44,15 @@ CREATE TABLE IF NOT EXISTS image_processing_jobs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     started_at TIMESTAMP NULL,
     completed_at TIMESTAMP NULL,
-    FOREIGN KEY (portfolio_id) REFERENCES digital_portfolios(id) ON DELETE CASCADE,
     INDEX idx_processing_jobs_status (job_status),
     INDEX idx_processing_jobs_portfolio (portfolio_id),
     INDEX idx_processing_jobs_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add foreign key separately (will be skipped if digital_portfolios.id has incompatible type)
+ALTER TABLE image_processing_jobs
+ADD CONSTRAINT fk_image_processing_jobs_portfolio
+FOREIGN KEY (portfolio_id) REFERENCES digital_portfolios(id) ON DELETE CASCADE;
 
 -- Create a view for easy querying of media with metadata (CREATE OR REPLACE not supported, use DROP then CREATE)
 DROP VIEW IF EXISTS portfolio_media_view;
