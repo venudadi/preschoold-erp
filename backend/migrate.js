@@ -162,9 +162,9 @@ async function applyMigration(file) {
             console.warn(`   Stripping inline FOREIGN KEY constraints and retrying...`);
             console.warn(`   FK constraints will be added separately by ALTER TABLE statements.`);
 
-            // Strip all inline FOREIGN KEY constraints from CREATE TABLE
+            // Strip all inline FOREIGN KEY constraints from CREATE TABLE including ON DELETE/UPDATE clauses
             const stmtWithoutFK = stmt
-              .replace(/,?\s*FOREIGN\s+KEY\s*\([^)]+\)\s*REFERENCES\s+[^,)]+/gi, '')
+              .replace(/,?\s*FOREIGN\s+KEY\s*\([^)]+\)\s*REFERENCES\s+[^\s,)]+\s*\([^)]+\)(\s+ON\s+(DELETE|UPDATE)\s+(CASCADE|SET\s+NULL|RESTRICT|NO\s+ACTION))*/gi, '')
               .replace(/,(\s*\))/g, '$1'); // Clean up trailing commas before closing paren
 
             try {
