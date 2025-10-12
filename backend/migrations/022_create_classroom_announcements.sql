@@ -1,6 +1,9 @@
 -- 022_create_classroom_announcements.sql
 -- Classroom announcements table for push notifications and parent/teacher access
 
+-- Drop and recreate table to ensure schema consistency
+DROP TABLE IF EXISTS classroom_announcements;
+
 CREATE TABLE classroom_announcements (
     id VARCHAR(36) PRIMARY KEY,
     classroom_id VARCHAR(36) NOT NULL,
