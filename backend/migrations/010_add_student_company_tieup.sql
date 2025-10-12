@@ -44,7 +44,6 @@ SELECT
     fee_structure_type,
     is_on_recurring_billing,
     created_at,
-    -- Add placeholder columns for timing (to be added later if needed)
     NULL as program_start_time,
     NULL as program_end_time,
     NULL as address,

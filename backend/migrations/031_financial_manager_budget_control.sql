@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS budget_approval_limits (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     role ENUM('center_director', 'admin', 'academic_coordinator') NOT NULL,
-    user_id VARCHAR(36), -- Specific user override, NULL for role-based
+    user_id VARCHAR(36) COMMENT 'Specific user override, NULL for role-based',
     approval_limit DECIMAL(12,2) NOT NULL DEFAULT 0,
     category_limits JSON COMMENT 'Category-specific limits: {"operations": 10000, "staff": 5000}',
     fiscal_year INT NOT NULL,
@@ -35,11 +35,11 @@ CREATE TABLE IF NOT EXISTS financial_oversight (
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     amount DECIMAL(12,2),
-    related_request_id VARCHAR(36), -- Link to budget_approvals
-    related_user_id VARCHAR(36), -- User who triggered this oversight
+    related_request_id VARCHAR(36) COMMENT 'Link to budget_approvals',
+    related_user_id VARCHAR(36) COMMENT 'User who triggered this oversight',
     action_required BOOLEAN DEFAULT FALSE,
     action_taken TEXT,
-    handled_by VARCHAR(36), -- Financial Manager who handled it
+    handled_by VARCHAR(36) COMMENT 'Financial Manager who handled it',
     handled_at TIMESTAMP NULL,
     status ENUM('open', 'reviewing', 'resolved', 'dismissed') DEFAULT 'open',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -57,10 +57,10 @@ CREATE TABLE IF NOT EXISTS budget_categories (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
-    parent_category VARCHAR(36), -- For subcategories
+    parent_category VARCHAR(36) COMMENT 'For subcategories',
     default_limit DECIMAL(12,2) DEFAULT 0,
     requires_justification BOOLEAN DEFAULT FALSE,
-    requires_fm_approval BOOLEAN DEFAULT FALSE, -- Always requires FM approval regardless of amount
+    requires_fm_approval BOOLEAN DEFAULT FALSE COMMENT 'Always requires FM approval regardless of amount',
     is_active BOOLEAN DEFAULT TRUE,
     display_order INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

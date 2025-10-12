@@ -27,11 +27,11 @@ CREATE TABLE fee_components (
     FOREIGN KEY (fee_structure_id) REFERENCES fee_structures(id) ON DELETE CASCADE
 );
 
--- Enhance students table with program timing
-ALTER TABLE students
+-- Enhance children table with program timing
+ALTER TABLE children
 ADD COLUMN program_start_time TIME,
 ADD COLUMN program_end_time TIME,
-ADD COLUMN service_hours DECIMAL(4,2) 
+ADD COLUMN service_hours DECIMAL(4,2)
     GENERATED ALWAYS AS (
         TIMESTAMPDIFF(MINUTE, program_start_time, program_end_time) / 60.0
     ) STORED;

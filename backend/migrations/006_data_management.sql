@@ -66,13 +66,13 @@ INSERT INTO data_validation_rules
 (id, table_name, column_name, rule_type, rule_definition, error_message)
 VALUES
 -- Email validation
-(UUID(), 'users', 'email', 'format', 
- '{"pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"}',
+(UUID(), 'users', 'email', 'format',
+ '{"pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$"}',
  'Invalid email format'),
 
 -- Phone number validation
 (UUID(), 'users', 'phone', 'format',
- '{"pattern": "^\\+?[1-9]\\d{1,14}$"}',
+ '{"pattern": "^[+]?[1-9][0-9]{1,14}$"}',
  'Invalid phone number format'),
 
 -- Age validation for children

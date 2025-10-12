@@ -70,7 +70,6 @@ SELECT
     c.fee_structure_type,
     c.is_on_recurring_billing,
     c.created_at,
-    -- Pause-related fields
     c.status,
     c.pause_start_date,
     c.pause_end_date,
@@ -78,7 +77,6 @@ SELECT
     c.pause_notes,
     c.paused_by,
     c.paused_at,
-    -- Calculated fields
     CASE
         WHEN c.status = 'paused' AND c.pause_end_date >= CURDATE()
         THEN DATEDIFF(c.pause_end_date, CURDATE())
@@ -89,7 +87,6 @@ SELECT
         THEN true
         ELSE false
     END as pause_expired,
-    -- Placeholder fields for compatibility
     NULL as program_start_time,
     NULL as program_end_time,
     NULL as address,

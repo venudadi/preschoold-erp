@@ -77,13 +77,10 @@ SELECT
     dp.upload_date,
     dp.created_at,
     dp.updated_at,
-    -- Child information
     c.first_name as child_first_name,
     c.last_name as child_last_name,
     c.student_id,
-    -- Teacher information
     u.full_name as uploaded_by_name,
-    -- Center information
     ct.name as center_name
 FROM digital_portfolios dp
 LEFT JOIN children c ON dp.child_id = c.id
