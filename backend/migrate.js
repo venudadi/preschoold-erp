@@ -144,10 +144,17 @@ async function applyMigration(file) {
           console.warn(`Skipping ALTER TABLE on VIEW (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
         }
-        if (e.errno === 1364 && /INSERT\s+INTO\s+users/i.test(stmt) && /super_admin/i.test(file)) { // ER_NO_DEFAULT_FOR_FIELD for super admin INSERT
-          console.warn(`⚠️  SKIPPING SUPER ADMIN INSERT due to cached migration file without username field (${e.errno})`);
-          console.warn(`   This is a known DigitalOcean build cache issue. Super admin will be created by later migration.`);
-          continue;
+        // Handle cached super admin migration file without username field
+        if (e.errno === 1364) { // ER_NO_DEFAULT_FOR_FIELD
+          console.warn(`⚠️  Detected errno 1364 (ER_NO_DEFAULT_FOR_FIELD)`);
+          console.warn(`   File: ${file}`);
+          console.warn(`   Statement type: ${/INSERT\s+INTO\s+users/i.test(stmt) ? 'INSERT INTO users' : 'other'}`);
+
+          if (/INSERT\s+INTO\s+users/i.test(stmt) && /super_admin/i.test(file)) {
+            console.warn(`⚠️  SKIPPING SUPER ADMIN INSERT due to cached migration file without username field`);
+            console.warn(`   This is a known DigitalOcean build cache issue. Super admin will be created by migration 037/038.`);
+            continue;
+          }
         }
         if (e.errno === 3780) { // ER_FK_INCOMPATIBLE_COLUMNS
           if (/CREATE\s+TABLE/i.test(stmt)) {
