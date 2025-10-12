@@ -151,7 +151,9 @@ async function applyMigration(file) {
         }
         if (e.errno === 3780 && /ADD\s+CONSTRAINT.*FOREIGN\s+KEY/i.test(stmt)) { // ER_FK_INCOMPATIBLE_COLUMNS on ADD CONSTRAINT
           console.warn(`⚠️  SKIPPING FK CONSTRAINT due to incompatible column types (${e.errno}):`, stmt.substring(0,120)+'...');
-          console.warn(`   Referenced table likely has different id column type from old deployment. Column added without FK.`);
+          console.warn(`   Referenced table (likely centers.id) has INT type from old deployment vs VARCHAR(36) in new schema.`);
+          console.warn(`   Column added without FK constraint - application must handle referential integrity.`);
+          console.warn(`   TODO: Schedule maintenance window to fix schema with proper data migration.`);
           continue;
         }
         throw e;
