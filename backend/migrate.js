@@ -218,9 +218,24 @@ async function run() {
     }
   }
 
+  //Skip list for cached files that cause issues (belt and suspenders after file deletion)
+  const filesToSkip = new Set([
+    '003_super_admin_setup.sql',
+    '004_create_super_admin.sql'
+  ]);
+
   const applied = await getAppliedMigrations();
   const files = fs.readdirSync(migrationsDir)
     .filter(f => f.match(/^\d+_.+\.sql$/))
+    .filter(f => {
+      if (filesToSkip.has(f)) {
+        console.log(`⚠️  SKIPPING cached migration file (known to cause issues): ${f}`);
+        console.log(`   This file has been renamed/moved in git but exists in Docker cache.`);
+        console.log(`   The functionality is now provided by migration 037/038.`);
+        return false;
+      }
+      return true;
+    })
     .sort((a, b) => a.localeCompare(b));
 
   for (const file of files) {
