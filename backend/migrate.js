@@ -149,12 +149,34 @@ async function applyMigration(file) {
           console.warn(`   This is a known DigitalOcean build cache issue. Super admin will be created by later migration.`);
           continue;
         }
-        if (e.errno === 3780 && /ADD\s+CONSTRAINT.*FOREIGN\s+KEY/i.test(stmt)) { // ER_FK_INCOMPATIBLE_COLUMNS on ADD CONSTRAINT
-          console.warn(`⚠️  SKIPPING FK CONSTRAINT due to incompatible column types (${e.errno}):`, stmt.substring(0,120)+'...');
-          console.warn(`   Referenced table (likely centers.id) has INT type from old deployment vs VARCHAR(36) in new schema.`);
-          console.warn(`   Column added without FK constraint - application must handle referential integrity.`);
-          console.warn(`   TODO: Schedule maintenance window to fix schema with proper data migration.`);
-          continue;
+        if (e.errno === 3780) { // ER_FK_INCOMPATIBLE_COLUMNS
+          if (/CREATE\s+TABLE/i.test(stmt)) {
+            console.warn(`⚠️  CREATE TABLE failed due to incompatible FK column types (${e.errno})`);
+            console.warn(`   Stripping inline FOREIGN KEY constraints and retrying...`);
+            console.warn(`   FK constraints will be added separately by ALTER TABLE statements.`);
+
+            // Strip all inline FOREIGN KEY constraints from CREATE TABLE
+            const stmtWithoutFK = stmt
+              .replace(/,?\s*FOREIGN\s+KEY\s*\([^)]+\)\s*REFERENCES\s+[^,)]+/gi, '')
+              .replace(/,(\s*\))/g, '$1'); // Clean up trailing commas before closing paren
+
+            try {
+              await conn.query(stmtWithoutFK);
+              console.log(`✅ CREATE TABLE succeeded without inline FK constraints`);
+              continue;
+            } catch (retryError) {
+              console.error(`❌ Retry also failed:`, retryError.message);
+              throw retryError;
+            }
+          }
+
+          if (/ADD\s+CONSTRAINT.*FOREIGN\s+KEY/i.test(stmt)) {
+            console.warn(`⚠️  SKIPPING FK CONSTRAINT due to incompatible column types (${e.errno}):`, stmt.substring(0,120)+'...');
+            console.warn(`   Referenced table (likely centers.id or children.id) has INT type from old deployment vs VARCHAR(36) in new schema.`);
+            console.warn(`   Column added without FK constraint - application must handle referential integrity.`);
+            console.warn(`   TODO: Schedule maintenance window to fix schema with proper data migration.`);
+            continue;
+          }
         }
         throw e;
       }
