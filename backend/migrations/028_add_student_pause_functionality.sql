@@ -23,7 +23,7 @@ CREATE TABLE student_pause_history (
     pause_end_date DATE NOT NULL,
     reason TEXT NOT NULL,
     notes TEXT,
-    paused_by VARCHAR(36) NOT NULL,
+    paused_by VARCHAR(36) NULL,
     paused_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     resumed_by VARCHAR(36),
     resumed_at TIMESTAMP NULL,
