@@ -1,8 +1,13 @@
 -- 032_emergency_alert_system.sql
 -- Add emergency alert system tables and functionality
+-- Drop existing tables if they have incompatible schema from previous deployments
+DROP TABLE IF EXISTS emergency_drill_logs;
+DROP TABLE IF EXISTS emergency_procedures;
+DROP TABLE IF EXISTS emergency_contacts;
+DROP TABLE IF EXISTS emergency_alerts;
 
 -- 1. Create emergency_alerts table for tracking emergency situations
-CREATE TABLE IF NOT EXISTS emergency_alerts (
+CREATE TABLE emergency_alerts (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     alert_type ENUM(
@@ -44,7 +49,7 @@ CREATE TABLE IF NOT EXISTS emergency_alerts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2. Create emergency_contacts table for center-specific emergency contacts
-CREATE TABLE IF NOT EXISTS emergency_contacts (
+CREATE TABLE emergency_contacts (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     contact_type ENUM(
@@ -79,7 +84,7 @@ CREATE TABLE IF NOT EXISTS emergency_contacts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. Create emergency_procedures table for center emergency protocols
-CREATE TABLE IF NOT EXISTS emergency_procedures (
+CREATE TABLE emergency_procedures (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     procedure_type ENUM(
@@ -121,7 +126,7 @@ CREATE TABLE IF NOT EXISTS emergency_procedures (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4. Create emergency_drill_logs table for tracking emergency drills
-CREATE TABLE IF NOT EXISTS emergency_drill_logs (
+CREATE TABLE emergency_drill_logs (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     procedure_id VARCHAR(36) NOT NULL,

@@ -1,15 +1,19 @@
 -- Migration: Create Daily Activity Tracking Tables
 -- Food, Sleep, and Potty tracking for children
+-- Drop existing tables if they have incompatible schema from previous deployments
+DROP TABLE IF EXISTS daily_potty_tracking;
+DROP TABLE IF EXISTS daily_sleep_tracking;
+DROP TABLE IF EXISTS daily_food_tracking;
 
 -- Daily Food Tracking Table
-CREATE TABLE IF NOT EXISTS daily_food_tracking (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  child_id INT NOT NULL,
+CREATE TABLE daily_food_tracking (
+  id VARCHAR(36) PRIMARY KEY,
+  child_id VARCHAR(36) NOT NULL,
   date DATE NOT NULL,
   meal_type ENUM('breakfast', 'lunch', 'snack') NOT NULL COMMENT 'breakfast=Morning Snack, lunch=Lunch, snack=Evening Snack',
   food_consumed INT NOT NULL COMMENT 'Percentage of food consumed (0-100)',
   notes TEXT,
-  recorded_by INT NOT NULL COMMENT 'Teacher ID who recorded this entry',
+  recorded_by VARCHAR(36) NOT NULL COMMENT 'Teacher ID who recorded this entry',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE,
@@ -19,15 +23,15 @@ CREATE TABLE IF NOT EXISTS daily_food_tracking (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Daily Sleep Tracking Table
-CREATE TABLE IF NOT EXISTS daily_sleep_tracking (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  child_id INT NOT NULL,
+CREATE TABLE daily_sleep_tracking (
+  id VARCHAR(36) PRIMARY KEY,
+  child_id VARCHAR(36) NOT NULL,
   date DATE NOT NULL,
   start_time TIME NOT NULL COMMENT 'Sleep start time',
   end_time TIME NOT NULL COMMENT 'Sleep end time',
   duration_hours DECIMAL(4,2) COMMENT 'Total sleep duration in hours',
   notes TEXT,
-  recorded_by INT NOT NULL COMMENT 'Teacher ID who recorded this entry',
+  recorded_by VARCHAR(36) NOT NULL COMMENT 'Teacher ID who recorded this entry',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE,
@@ -37,14 +41,14 @@ CREATE TABLE IF NOT EXISTS daily_sleep_tracking (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Daily Potty Tracking Table
-CREATE TABLE IF NOT EXISTS daily_potty_tracking (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  child_id INT NOT NULL,
+CREATE TABLE daily_potty_tracking (
+  id VARCHAR(36) PRIMARY KEY,
+  child_id VARCHAR(36) NOT NULL,
   date DATE NOT NULL,
   type ENUM('bathroom', 'diaper_change') NOT NULL,
   diaper_status ENUM('wet', 'dry', 'soiled') COMMENT 'Status for diaper changes',
   notes TEXT,
-  recorded_by INT NOT NULL COMMENT 'Teacher ID who recorded this entry',
+  recorded_by VARCHAR(36) NOT NULL COMMENT 'Teacher ID who recorded this entry',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE,

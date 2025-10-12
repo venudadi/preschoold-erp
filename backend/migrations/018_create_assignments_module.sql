@@ -1,6 +1,10 @@
 -- Assignment/Homework Management
+-- Drop existing tables if they have incompatible schema from previous deployments
+DROP TABLE IF EXISTS assignment_submissions;
+DROP TABLE IF EXISTS assignments;
+
 -- Table: assignments
-CREATE TABLE IF NOT EXISTS assignments (
+CREATE TABLE assignments (
     id VARCHAR(36) PRIMARY KEY,
     teacher_id VARCHAR(36) NOT NULL,
     classroom_id VARCHAR(36) NOT NULL,
@@ -15,7 +19,7 @@ CREATE TABLE IF NOT EXISTS assignments (
 );
 
 -- Table: assignment_submissions
-CREATE TABLE IF NOT EXISTS assignment_submissions (
+CREATE TABLE assignment_submissions (
     id VARCHAR(36) PRIMARY KEY,
     assignment_id VARCHAR(36) NOT NULL,
     child_id VARCHAR(36) NOT NULL,

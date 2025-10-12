@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS parent_preferences (
 );
 
 -- 2. Parent Read/Seen Status Table
-CREATE TABLE IF NOT EXISTS parent_read_status (
+CREATE TABLE parent_read_status (
     id VARCHAR(36) PRIMARY KEY,
     parent_id VARCHAR(36) NOT NULL,
     item_type ENUM('announcement','portfolio','message','observation') NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS parent_read_status (
 );
 
 -- 3. Parent Feedback Table
-CREATE TABLE IF NOT EXISTS parent_feedback (
+CREATE TABLE parent_feedback (
     id VARCHAR(36) PRIMARY KEY,
     parent_id VARCHAR(36) NOT NULL,
     feedback_type ENUM('feature','event','communication','general') NOT NULL,
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS parent_feedback (
 );
 
 -- 4. Parent Notification Log Table
-CREATE TABLE IF NOT EXISTS parent_notification_log (
+CREATE TABLE parent_notification_log (
     id VARCHAR(36) PRIMARY KEY,
     parent_id VARCHAR(36) NOT NULL,
     notification_type ENUM('push','email','sms') NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS parent_notification_log (
 );
 
 -- 5. Parent Action Audit Log Table
-CREATE TABLE IF NOT EXISTS parent_action_audit (
+CREATE TABLE parent_action_audit (
     id VARCHAR(36) PRIMARY KEY,
     parent_id VARCHAR(36) NOT NULL,
     action_type VARCHAR(64) NOT NULL,

@@ -149,11 +149,6 @@ async function applyMigration(file) {
           console.warn(`   This is a known DigitalOcean build cache issue. Super admin will be created by later migration.`);
           continue;
         }
-        if (e.errno === 3780 && /CREATE\s+TABLE/i.test(stmt)) { // ER_FK_INCOMPATIBLE_COLUMNS
-          console.warn(`⚠️  SKIPPING TABLE due to incompatible FK columns (${e.errno}):`, stmt.substring(0,120)+'...');
-          console.warn(`   Table likely already exists with different column types. Skipping to avoid migration failure.`);
-          continue;
-        }
         throw e;
       }
     }

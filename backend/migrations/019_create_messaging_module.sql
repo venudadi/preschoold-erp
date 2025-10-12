@@ -1,6 +1,10 @@
 -- Parent-Teacher Messaging
+-- Drop existing tables if they have incompatible schema from previous deployments
+DROP TABLE IF EXISTS messages;
+DROP TABLE IF EXISTS message_threads;
+
 -- Table: messages
-CREATE TABLE IF NOT EXISTS messages (
+CREATE TABLE messages (
     id VARCHAR(36) PRIMARY KEY,
     thread_id VARCHAR(36) NOT NULL,
     sender_id VARCHAR(36) NOT NULL,
@@ -13,7 +17,7 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 -- Table: message_threads
-CREATE TABLE IF NOT EXISTS message_threads (
+CREATE TABLE message_threads (
     id VARCHAR(36) PRIMARY KEY,
     child_id VARCHAR(36) NOT NULL,
     parent_id VARCHAR(36) NOT NULL,

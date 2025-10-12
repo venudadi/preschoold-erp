@@ -14,7 +14,9 @@ ALTER TABLE children ADD COLUMN paused_at TIMESTAMP NULL;
 ALTER TABLE children ADD CONSTRAINT fk_children_paused_by FOREIGN KEY (paused_by) REFERENCES users(id) ON DELETE SET NULL;
 
 -- 2. Create student pause history table for audit trail
-CREATE TABLE IF NOT EXISTS student_pause_history (
+DROP TABLE IF EXISTS student_pause_history;
+
+CREATE TABLE student_pause_history (
     id VARCHAR(36) PRIMARY KEY,
     student_id VARCHAR(36) NOT NULL,
     pause_start_date DATE NOT NULL,

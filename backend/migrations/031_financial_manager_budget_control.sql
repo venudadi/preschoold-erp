@@ -1,8 +1,12 @@
 -- 031_financial_manager_budget_control.sql
 -- Add Financial Manager control over budget approval limits and oversight
+-- Drop existing tables if they have incompatible schema from previous deployments
+DROP TABLE IF EXISTS budget_categories;
+DROP TABLE IF EXISTS financial_oversight;
+DROP TABLE IF EXISTS budget_approval_limits;
 
 -- Create budget_approval_limits table for Financial Manager to control limits
-CREATE TABLE IF NOT EXISTS budget_approval_limits (
+CREATE TABLE budget_approval_limits (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     role ENUM('center_director', 'admin', 'academic_coordinator') NOT NULL,
@@ -27,7 +31,7 @@ CREATE TABLE IF NOT EXISTS budget_approval_limits (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create financial_oversight table for FM dashboard and reporting
-CREATE TABLE IF NOT EXISTS financial_oversight (
+CREATE TABLE financial_oversight (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     oversight_type ENUM('budget_alert', 'limit_exceeded', 'unusual_spending', 'approval_required') NOT NULL,
@@ -53,7 +57,7 @@ CREATE TABLE IF NOT EXISTS financial_oversight (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create budget_categories table for standardized categories
-CREATE TABLE IF NOT EXISTS budget_categories (
+CREATE TABLE budget_categories (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,

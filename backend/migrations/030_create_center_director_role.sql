@@ -1,5 +1,13 @@
 -- 030_create_center_director_role.sql
 -- Add center_director role and related operational management features
+-- Drop existing tables if they have incompatible schema from previous deployments
+DROP TABLE IF EXISTS staff_performance;
+DROP TABLE IF EXISTS center_policies;
+DROP TABLE IF EXISTS parent_feedback;
+DROP TABLE IF EXISTS incident_reports;
+DROP TABLE IF EXISTS operational_kpis;
+DROP TABLE IF EXISTS staff_schedules;
+DROP TABLE IF EXISTS budget_approvals;
 
 -- 1. Add center_director to the users role enum
 ALTER TABLE users MODIFY COLUMN role ENUM(
@@ -13,7 +21,7 @@ ALTER TABLE users MODIFY COLUMN role ENUM(
 ) NOT NULL;
 
 -- 2. Create budget_approvals table for center director budget management
-CREATE TABLE IF NOT EXISTS budget_approvals (
+CREATE TABLE budget_approvals (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     requested_by VARCHAR(36) NOT NULL,
@@ -53,7 +61,7 @@ CREATE TABLE IF NOT EXISTS budget_approvals (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 3. Create staff_schedules table for staff management
-CREATE TABLE IF NOT EXISTS staff_schedules (
+CREATE TABLE staff_schedules (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     staff_id VARCHAR(36) NOT NULL,
@@ -79,7 +87,7 @@ CREATE TABLE IF NOT EXISTS staff_schedules (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 4. Create operational_kpis table for performance tracking
-CREATE TABLE IF NOT EXISTS operational_kpis (
+CREATE TABLE operational_kpis (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     metric_name VARCHAR(100) NOT NULL,
@@ -110,7 +118,7 @@ CREATE TABLE IF NOT EXISTS operational_kpis (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 5. Create incident_reports table for emergency and incident management
-CREATE TABLE IF NOT EXISTS incident_reports (
+CREATE TABLE incident_reports (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     incident_type ENUM(
@@ -158,7 +166,7 @@ CREATE TABLE IF NOT EXISTS incident_reports (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 6. Create parent_feedback table for communication oversight
-CREATE TABLE IF NOT EXISTS parent_feedback (
+CREATE TABLE parent_feedback (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     parent_id VARCHAR(36),
@@ -209,7 +217,7 @@ CREATE TABLE IF NOT EXISTS parent_feedback (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 7. Create center_policies table for policy management
-CREATE TABLE IF NOT EXISTS center_policies (
+CREATE TABLE center_policies (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     policy_name VARCHAR(200) NOT NULL,
@@ -248,7 +256,7 @@ CREATE TABLE IF NOT EXISTS center_policies (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 8. Create staff_performance table for staff management
-CREATE TABLE IF NOT EXISTS staff_performance (
+CREATE TABLE staff_performance (
     id VARCHAR(36) PRIMARY KEY,
     center_id VARCHAR(36) NOT NULL,
     staff_id VARCHAR(36) NOT NULL,

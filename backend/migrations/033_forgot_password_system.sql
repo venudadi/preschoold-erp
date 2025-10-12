@@ -1,8 +1,10 @@
 -- Forgot Password System Migration
 -- This migration creates the password reset functionality with security features
+-- Drop existing tables if they have incompatible schema from previous deployments
+DROP TABLE IF EXISTS password_reset_tokens;
 
 -- 1. Create password_reset_tokens table
-CREATE TABLE IF NOT EXISTS password_reset_tokens (
+CREATE TABLE password_reset_tokens (
     id VARCHAR(36) PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
     email VARCHAR(255) NOT NULL,
