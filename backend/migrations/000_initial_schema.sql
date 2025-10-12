@@ -13,7 +13,7 @@
 -- Core Users Table
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(36) PRIMARY KEY,
-    username VARCHAR(100) UNIQUE,
+    username VARCHAR(100) UNIQUE DEFAULT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('super_admin', 'admin', 'owner', 'teacher', 'parent', 'financial_manager', 'center_director') NOT NULL DEFAULT 'teacher',

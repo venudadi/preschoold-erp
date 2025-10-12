@@ -1,11 +1,11 @@
--- Fix username field to ensure it's properly set
--- This migration handles cases where username might be NULL due to cached deployments
+-- Fix username field to ensure it has a DEFAULT value
+-- This migration handles cases where cached super admin INSERT doesn't include username
 
--- Update any users with NULL username to use email as username
+-- Ensure username column allows NULL and has DEFAULT NULL
+ALTER TABLE users
+MODIFY COLUMN username VARCHAR(100) UNIQUE DEFAULT NULL;
+
+-- Update any existing users with NULL username to use email prefix as username
 UPDATE users
 SET username = SUBSTRING_INDEX(email, '@', 1)
 WHERE username IS NULL;
-
--- Now make username NOT NULL since all rows should have values
-ALTER TABLE users
-MODIFY COLUMN username VARCHAR(100) NOT NULL UNIQUE;
