@@ -149,6 +149,11 @@ async function applyMigration(file) {
           console.warn(`   This is a known DigitalOcean build cache issue. Super admin will be created by later migration.`);
           continue;
         }
+        if (e.errno === 3780 && /ADD\s+CONSTRAINT.*FOREIGN\s+KEY/i.test(stmt)) { // ER_FK_INCOMPATIBLE_COLUMNS on ADD CONSTRAINT
+          console.warn(`⚠️  SKIPPING FK CONSTRAINT due to incompatible column types (${e.errno}):`, stmt.substring(0,120)+'...');
+          console.warn(`   Referenced table likely has different id column type from old deployment. Column added without FK.`);
+          continue;
+        }
         throw e;
       }
     }
