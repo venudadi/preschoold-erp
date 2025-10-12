@@ -13,6 +13,7 @@
     "migrate:check": "node check-migrations.js",
     "migrate:fresh": "node reset-migrations.js && node migrate.js && node post-migrate.js",
     "migrate:clean": "node drop-all-tables.js && node migrate.js && node post-migrate.js",
+    "check:integrity": "node check_db_integrity.js",
     "dev": "nodemon index.js"
   },
   "keywords": [],

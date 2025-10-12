@@ -171,6 +171,29 @@ node migrate.js
 exit
 ```
 
+### Post-Migration Integrity Check (IMPORTANT!)
+
+After migrations complete, especially for first-time deployments or when upgrading from older schemas:
+
+```bash
+# Check database integrity
+docker-compose exec backend npm run check:integrity
+```
+
+**What this does:**
+- Validates all foreign key constraints are in place
+- Checks for column type mismatches
+- Automatically repairs missing constraints where possible
+- Generates repair script for manual fixes if needed
+
+**If issues are found:**
+1. Review the generated `database_repair_script.sql`
+2. Schedule a maintenance window (typically 5-15 minutes)
+3. Apply the repair script during the maintenance window
+4. Re-run integrity check to confirm all issues resolved
+
+📖 **See [DATABASE_INTEGRITY_GUIDE.md](DATABASE_INTEGRITY_GUIDE.md) for detailed information**
+
 ## Monitoring and Logs
 
 ```bash
