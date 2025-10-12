@@ -42,9 +42,8 @@ ADD COLUMN IF NOT EXISTS lock_reason VARCHAR(255),
 ADD COLUMN IF NOT EXISTS locked_at TIMESTAMP NULL;
 
 -- Add indexes for performance
-ALTER TABLE users 
-ADD INDEX IF NOT EXISTS idx_email (email),
-ADD INDEX IF NOT EXISTS idx_account_locked (account_locked);
+CREATE INDEX idx_email ON users(email);
+CREATE INDEX idx_account_locked ON users(account_locked);
 
 -- Add password policy column to centers table (Required for password validation)
 ALTER TABLE centers 

@@ -8,14 +8,13 @@ ADD COLUMN IF NOT EXISTS company_id VARCHAR(36) NULL,
 ADD COLUMN IF NOT EXISTS has_tie_up BOOLEAN DEFAULT false;
 
 -- Add foreign key constraint to companies table
-ALTER TABLE children 
-ADD CONSTRAINT IF NOT EXISTS fk_children_company 
+ALTER TABLE children
+ADD CONSTRAINT fk_children_company
 FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE SET NULL;
 
 -- Add index for performance
-ALTER TABLE children 
-ADD INDEX IF NOT EXISTS idx_company_id (company_id),
-ADD INDEX IF NOT EXISTS idx_has_tie_up (has_tie_up);
+CREATE INDEX idx_company_id ON children(company_id);
+CREATE INDEX idx_has_tie_up ON children(has_tie_up);
 
 -- Update existing children to have has_tie_up = false where NULL
 UPDATE children 
