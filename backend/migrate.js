@@ -140,6 +140,10 @@ async function applyMigration(file) {
           console.warn(`Skipping foreign key constraint due to missing referenced table (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
         }
+        if (e.errno === 1347 && /ALTER\s+TABLE/i.test(stmt)) { // ER_WRONG_OBJECT - trying to ALTER a VIEW
+          console.warn(`Skipping ALTER TABLE on VIEW (${e.errno}):`, stmt.substring(0,120)+'...');
+          continue;
+        }
         throw e;
       }
     }

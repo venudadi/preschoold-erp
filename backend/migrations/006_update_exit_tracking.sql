@@ -1,5 +1,5 @@
--- Add status field to students and staff tables
-ALTER TABLE students 
+-- Add status field to children and staff tables
+ALTER TABLE children
 ADD COLUMN status ENUM('active', 'left') NOT NULL DEFAULT 'active';
 
 ALTER TABLE staff 
