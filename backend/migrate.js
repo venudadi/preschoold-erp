@@ -166,6 +166,22 @@ async function applyMigration(file) {
 
 async function run() {
   await ensureMigrationsTable();
+
+  // WORKAROUND: Delete cached problematic files that have been renamed
+  // DigitalOcean has aggressive caching that keeps old migration files
+  const filesToDelete = [
+    '003_super_admin_setup.sql',
+    '004_create_super_admin.sql'
+  ];
+
+  for (const filename of filesToDelete) {
+    const filepath = path.join(migrationsDir, filename);
+    if (fs.existsSync(filepath)) {
+      console.log(`⚠️  Deleting cached migration file: ${filename}`);
+      fs.unlinkSync(filepath);
+    }
+  }
+
   const applied = await getAppliedMigrations();
   const files = fs.readdirSync(migrationsDir)
     .filter(f => f.match(/^\d+_.+\.sql$/))
