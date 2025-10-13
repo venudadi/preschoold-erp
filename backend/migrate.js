@@ -223,7 +223,8 @@ async function run() {
   // DigitalOcean has aggressive caching that keeps old migration files
   const filesToDelete = [
     '003_super_admin_setup.sql',
-    '004_create_super_admin.sql'
+    '004_create_super_admin.sql',
+    '028_add_student_pause_functionality.sql'  // Renamed to 028_student_pause_system.sql
   ];
 
   for (const filename of filesToDelete) {
@@ -237,7 +238,8 @@ async function run() {
   //Skip list for cached files that cause issues (belt and suspenders after file deletion)
   const filesToSkip = new Set([
     '003_super_admin_setup.sql',
-    '004_create_super_admin.sql'
+    '004_create_super_admin.sql',
+    '028_add_student_pause_functionality.sql'  // Renamed to 028_student_pause_system.sql
   ]);
 
   const applied = await getAppliedMigrations();

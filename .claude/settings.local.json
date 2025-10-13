@@ -46,7 +46,10 @@
       "Bash(git branch:*)",
       "Bash(git check-ignore:*)",
       "Bash(git status:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(for file in 031_financial_manager_budget_control.sql 032_emergency_alert_system.sql 033_forgot_password_system.sql 036_create_daily_activity_tracking_tables.sql)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(git mv:*)"
     ],
     "deny": [],
     "ask": []
