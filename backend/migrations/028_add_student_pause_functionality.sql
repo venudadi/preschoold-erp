@@ -1,5 +1,6 @@
 -- 028_add_student_pause_functionality.sql
 -- Add comprehensive pause functionality for students
+-- CACHE BUST: 2025-10-13 Force rebuild to fix VIEW column reference issue
 
 -- 1. Add pause status and related fields to children table (one column at a time for idempotency)
 ALTER TABLE children ADD COLUMN status ENUM('active', 'paused', 'left') NOT NULL DEFAULT 'active';

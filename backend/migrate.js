@@ -51,10 +51,26 @@ async function applyMigration(file) {
     const lines = sql.split('\n');
 
     for (const line of lines) {
-      const trimmedLine = line.trim();
+      let trimmedLine = line.trim();
       // Skip empty lines and comments
       if (!trimmedLine || trimmedLine.startsWith('--')) {
         continue;
+      }
+
+      // Strip inline comments (-- comment) but preserve them in strings
+      // Simple approach: remove -- and everything after it unless it's in a string
+      // This handles most cases. For complete parsing you'd need a full SQL lexer
+      const commentIndex = trimmedLine.indexOf('--');
+      if (commentIndex > 0) {
+        // Check if the -- is inside a string by counting quotes before it
+        const beforeComment = trimmedLine.substring(0, commentIndex);
+        const singleQuotes = (beforeComment.match(/'/g) || []).length;
+        const doubleQuotes = (beforeComment.match(/"/g) || []).length;
+
+        // If even number of quotes, the -- is outside strings, so strip it
+        if (singleQuotes % 2 === 0 && doubleQuotes % 2 === 0) {
+          trimmedLine = trimmedLine.substring(0, commentIndex).trim();
+        }
       }
 
       currentStatement += ' ' + trimmedLine;
