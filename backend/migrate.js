@@ -39,6 +39,17 @@ function preprocess(sql) {
 
 async function applyMigration(file) {
   let sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+
+  // CRITICAL: Detect and reject old cached version of migration 028
+  if (file === '028_add_student_pause_functionality.sql') {
+    console.error(`❌ FATAL: Detected old cached migration file: ${file}`);
+    console.error(`   This file was renamed to 028_student_pause_system.sql in commit e39e220`);
+    console.error(`   The cached version has incorrect VIEW definition that references non-existent columns`);
+    console.error(`   DigitalOcean's Docker cache is serving stale files.`);
+    console.error(`   SOLUTION: Trigger a new deployment to pull latest code from git staging branch`);
+    throw new Error(`CACHE ERROR: Old migration file ${file} must not be executed. Use 028_student_pause_system.sql instead.`);
+  }
+
   sql = preprocess(sql);
   const conn = await pool.getConnection();
   try {
@@ -232,6 +243,9 @@ async function run() {
     if (fs.existsSync(filepath)) {
       console.log(`⚠️  Deleting cached migration file: ${filename}`);
       fs.unlinkSync(filepath);
+      console.log(`✅ Deleted: ${filename}`);
+    } else {
+      console.log(`ℹ️  File not found in cache: ${filename} (already clean)`);
     }
   }
 
