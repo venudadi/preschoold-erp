@@ -149,6 +149,10 @@ async function applyMigration(file) {
           console.warn(`Skipping EXECUTE for non-existent prepared statement (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;
         }
+        if (e.errno === 1295) { // ER_UNSUPPORTED_PS - Command not supported in prepared statement protocol
+          console.warn(`Skipping PREPARE/EXECUTE statement not supported by prepared statement protocol (${e.errno}):`, stmt.substring(0,120)+'...');
+          continue;
+        }
         if (e.errno === 1072 && /(CREATE\s+INDEX|ADD\s+INDEX)/i.test(stmt)) { // Key column doesn't exist for index
           console.warn(`Skipping index creation due to missing column (${e.errno}):`, stmt.substring(0,120)+'...');
           continue;

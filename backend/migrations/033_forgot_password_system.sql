@@ -60,24 +60,14 @@ END //
 DELIMITER ;
 
 -- 5. Create event to run cleanup daily (if events are enabled)
-SET @event_exists = (
-    SELECT COUNT(*)
-    FROM information_schema.events
-    WHERE event_name = 'password_reset_cleanup'
-    AND event_schema = DATABASE()
-);
+-- Note: This may fail if events are disabled or if the event already exists
+-- The error will be caught and ignored by the migration system
+DROP EVENT IF EXISTS password_reset_cleanup;
 
-SET @sql = IF(@event_exists = 0,
-    'CREATE EVENT password_reset_cleanup
-    ON SCHEDULE EVERY 1 DAY
-    STARTS CURRENT_DATE + INTERVAL 1 DAY
-    DO CALL CleanupExpiredResetTokens()',
-    'SELECT "Event already exists"'
-);
-
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+CREATE EVENT IF NOT EXISTS password_reset_cleanup
+ON SCHEDULE EVERY 1 DAY
+STARTS CURRENT_DATE + INTERVAL 1 DAY
+DO CALL CleanupExpiredResetTokens();
 
 -- 6. Insert sample data for testing (optional - remove in production)
 -- This creates a test entry to verify the migration worked
