@@ -2,115 +2,136 @@ import mysql from 'mysql2/promise';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import 'dotenv/config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load database config from environment
 const DB_CONFIG = {
-    host: 'localhost',
-    user: 'wsl_user',
-    password: 'Delta@4599',
-    database: 'neldrac_admin',
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'preschool_erp',
     multipleStatements: true
 };
 
-// Tables that should exist
-const REQUIRED_TABLES = [
-    'invoice_requests',
-    'expenses',
-    'lesson_plans',
-    'assignments',
-    'messages',
-    'message_threads',
-    'observation_logs',
-    'digital_portfolio',
-    'classroom_announcements',
-    'emergency_alerts',
-    'password_reset_tokens',
-    'claude_context_cache'
+// Add SSL support for DigitalOcean managed databases
+if (process.env.DB_SSL === 'true') {
+    DB_CONFIG.ssl = {
+        rejectUnauthorized: false
+    };
+}
+
+// Core tables that should exist for basic functionality
+const CORE_TABLES = [
+    'users',
+    'centers',
+    'children',
+    'classrooms'
 ];
 
-async function checkMissingTables() {
-    const connection = await mysql.createConnection(DB_CONFIG);
-    console.log('✅ Connected to database\n');
+/**
+ * Database Health Check Migration Runner
+ *
+ * This script only runs the health check migration (001_database_health_check.sql)
+ * It does NOT create, alter, or drop any tables
+ *
+ * Purpose: Verify database connection and basic schema readiness
+ *
+ * Note: All schema changes should be applied directly to the database
+ * by the database administrator using the provided credentials
+ */
 
-    const missingTables = [];
-
-    for (const tableName of REQUIRED_TABLES) {
-        try {
-            const [rows] = await connection.query(`SHOW TABLES LIKE '${tableName}'`);
-            if (rows.length === 0) {
-                console.log(`❌ Missing table: ${tableName}`);
-                missingTables.push(tableName);
-            } else {
-                console.log(`✅ Table exists: ${tableName}`);
-            }
-        } catch (error) {
-            console.error(`Error checking ${tableName}:`, error.message);
-        }
-    }
-
-    await connection.end();
-    return missingTables;
-}
-
-async function runMigration(migrationFile) {
-    const connection = await mysql.createConnection(DB_CONFIG);
-    const sql = fs.readFileSync(path.join(__dirname, 'migrations', migrationFile), 'utf8');
+async function runHealthCheckMigration() {
+    let connection;
 
     try {
-        await connection.query(sql);
-        console.log(`✅ Executed: ${migrationFile}`);
-        await connection.end();
-        return true;
-    } catch (error) {
-        console.error(`❌ Failed to execute ${migrationFile}:`, error.message);
-        await connection.end();
-        return false;
-    }
-}
+        console.log('🔍 Starting Database Health Check...\n');
+        console.log('📋 Database Configuration:');
+        console.log(`   Host: ${DB_CONFIG.host}`);
+        console.log(`   Port: ${DB_CONFIG.port}`);
+        console.log(`   Database: ${DB_CONFIG.database}`);
+        console.log(`   SSL: ${DB_CONFIG.ssl ? 'Enabled' : 'Disabled'}\n`);
 
-async function main() {
-    console.log('🔍 Checking for missing tables...\n');
+        // Connect to database
+        connection = await mysql.createConnection(DB_CONFIG);
+        console.log('✅ Database connection established\n');
 
-    const missingTables = await checkMissingTables();
+        // Run health check migration
+        const migrationFile = '001_database_health_check.sql';
+        const migrationPath = path.join(__dirname, 'migrations', migrationFile);
 
-    if (missingTables.length === 0) {
-        console.log('\n✅ All required tables exist!');
-        return;
-    }
-
-    console.log(`\n⚠️  Found ${missingTables.length} missing tables`);
-    console.log('\n📝 Running necessary migrations...\n');
-
-    // Map of table names to their migration files
-    const tableMigrations = {
-        'invoice_requests': '015_create_invoice_requests.sql',
-        'expenses': '016_create_expenses_module.sql',
-        'lesson_plans': '017_create_lesson_plans.sql',
-        'assignments': '018_create_assignments_module.sql',
-        'messages': '019_create_messaging_module.sql',
-        'message_threads': '019_create_messaging_module.sql',
-        'observation_logs': '020_create_observation_logs.sql',
-        'digital_portfolio': '021_create_digital_portfolio.sql',
-        'classroom_announcements': '022_create_classroom_announcements.sql',
-        'emergency_alerts': '032_emergency_alert_system.sql',
-        'password_reset_tokens': '033_forgot_password_system.sql',
-        'claude_context_cache': '034_claude_context_cache.sql'
-    };
-
-    const migrationsToRun = new Set();
-    for (const table of missingTables) {
-        if (tableMigrations[table]) {
-            migrationsToRun.add(tableMigrations[table]);
+        if (!fs.existsSync(migrationPath)) {
+            throw new Error(`Migration file not found: ${migrationFile}`);
         }
-    }
 
-    for (const migration of migrationsToRun) {
-        await runMigration(migration);
-    }
+        const sql = fs.readFileSync(migrationPath, 'utf8');
+        console.log(`📄 Running: ${migrationFile}\n`);
 
-    console.log('\n🎉 Migration check complete!');
+        // Execute health check queries
+        const results = await connection.query(sql);
+        console.log('✅ Health check queries executed successfully\n');
+
+        // Check core tables
+        console.log('🔍 Verifying core tables existence...\n');
+        let allTablesExist = true;
+
+        for (const tableName of CORE_TABLES) {
+            try {
+                const [rows] = await connection.query(`SHOW TABLES LIKE '${tableName}'`);
+                if (rows.length === 0) {
+                    console.log(`   ❌ Missing table: ${tableName}`);
+                    allTablesExist = false;
+                } else {
+                    console.log(`   ✅ Table exists: ${tableName}`);
+                }
+            } catch (error) {
+                console.error(`   ⚠️  Error checking ${tableName}:`, error.message);
+                allTablesExist = false;
+            }
+        }
+
+        console.log('\n' + '='.repeat(65));
+
+        if (allTablesExist) {
+            console.log('✅ DATABASE HEALTH CHECK PASSED');
+            console.log('   All core tables exist and database is ready');
+        } else {
+            console.log('⚠️  DATABASE HEALTH CHECK WARNING');
+            console.log('   Some core tables are missing');
+            console.log('   Please contact database administrator to create required tables');
+        }
+
+        console.log('='.repeat(65) + '\n');
+
+        await connection.end();
+        return allTablesExist;
+
+    } catch (error) {
+        console.error('\n❌ DATABASE HEALTH CHECK FAILED\n');
+        console.error('Error:', error.message);
+        console.error('\nPlease verify:');
+        console.error('1. Database credentials in .env file are correct');
+        console.error('2. Database server is running and accessible');
+        console.error('3. Database exists and user has proper permissions');
+        console.error('4. For DigitalOcean: SSL is properly configured\n');
+
+        if (connection) {
+            await connection.end();
+        }
+
+        throw error;
+    }
 }
 
-main().catch(console.error);
+// Run the health check
+runHealthCheckMigration()
+    .then(success => {
+        process.exit(success ? 0 : 1);
+    })
+    .catch(error => {
+        console.error('Fatal error:', error);
+        process.exit(1);
+    });
