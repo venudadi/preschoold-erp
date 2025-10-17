@@ -26,9 +26,9 @@ ALTER TABLE users
 ADD COLUMN IF NOT EXISTS center_id VARCHAR(36),
 ADD FOREIGN KEY (center_id) REFERENCES centers(id) ON DELETE SET NULL;
 
--- 3. Update user roles to include super_admin
-ALTER TABLE users 
-MODIFY COLUMN role ENUM('super_admin', 'admin', 'owner', 'teacher', 'parent') NOT NULL;
+-- 3. Update user roles to include super_admin and other roles
+ALTER TABLE users
+MODIFY COLUMN role ENUM('super_admin', 'admin', 'owner', 'teacher', 'parent', 'financial_manager', 'center_director') NOT NULL;
 
 -- 4. Add center_id to tables that might be missing it
 ALTER TABLE classrooms 
