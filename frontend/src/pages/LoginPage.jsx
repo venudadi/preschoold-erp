@@ -35,7 +35,19 @@ const LoginPage = () => {
             // Call the login function from our API service
             const data = await loginUser(email, password);
 
-            // If successful, store all tokens and user info
+            // Check if 2FA is required
+            if (data.require2FA) {
+                // Redirect to 2FA verification page
+                navigate('/verify-2fa', {
+                    state: {
+                        sessionToken: data.sessionToken,
+                        expiresIn: data.expiresIn || 600
+                    }
+                });
+                return;
+            }
+
+            // If successful (no 2FA), store all tokens and user info
             localStorage.setItem('token', data.token);
             localStorage.setItem('sessionToken', data.sessionToken);
             localStorage.setItem('csrfToken', data.csrfToken);

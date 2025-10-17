@@ -24,6 +24,8 @@ import AdminPortfolioPage from './pages/AdminPortfolioPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import VerifyResetCodePage from './pages/VerifyResetCodePage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
+import Setup2FAPage from './pages/Setup2FAPage.jsx';
+import Verify2FAPage from './pages/Verify2FAPage.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { Typography } from '@mui/material';
 
@@ -40,6 +42,14 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/verify-reset-code" element={<VerifyResetCodePage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        {/* 2FA Routes */}
+        <Route path="/verify-2fa" element={<Verify2FAPage />} />
+        <Route path="/setup-2fa" element={
+          <ProtectedRoute>
+            <Setup2FAPage />
+          </ProtectedRoute>
+        } />
 
         {/* All protected routes are now children of the DashboardLayout */}
         <Route
