@@ -6,7 +6,7 @@ databases:
   - name: preschool-db-staging
     engine: MYSQL
     version: "8"
-    production: false
+    production: true
     cluster_name: preschool-db-staging-cluster
 
 # Backend API Service
