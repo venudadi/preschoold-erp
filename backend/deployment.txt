@@ -1,0 +1,24 @@
+Oct 22 04:08:18  ⚠️ Email service not configured - missing SMTP credentials
+Oct 22 04:08:18  ⚠️ Claude API key not configured
+Oct 22 04:08:19  ✅ Database connected successfully!
+Oct 22 04:08:19  ✅ Database connected successfully!
+Oct 22 04:08:19  🔧 Initializing database tables...
+Oct 22 04:08:19  ✅ Database initialization complete: 13/13 tables ready
+Oct 22 04:08:19  🔁 Running second pass to apply full DDL for tables created without FK constraints...
+Oct 22 04:08:19  🔧 Applied full DDL for table 'invoice_requests'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'attendance'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'teacher_classes'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'digital_portfolio_items'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'lesson_plans'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'observation_logs'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'classroom_announcements'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'assignments'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'messaging'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'expenses'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'expense_audit_logs'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'expense_notifications'
+Oct 22 04:08:19  🔧 Applied full DDL for table 'expense_sequences'
+Oct 22 04:08:19  ✅ Server is running on port 5001
+Oct 22 04:08:19  🔌 WebSocket server ready for real-time updates
+Oct 22 04:08:19  🛡️  Global error handling enabled
+Oct 22 04:08:19  📊 Database tables validated and ready

@@ -45,9 +45,14 @@ services:
         value: ${preschool-db-staging.PASSWORD}
       - key: DB_NAME
         value: ${preschool-db-staging.DATABASE}
+      - key: DB_SSL
+        value: "true"
       - key: JWT_SECRET
         type: SECRET
         value: staging_jwt_secret_change_this
+      - key: JWT_REFRESH_SECRET
+        type: SECRET
+        value: staging_jwt_refresh_secret_change_this
       - key: DATABASE_URL
         value: ${preschool-db-staging.DATABASE_URL}
 
@@ -98,3 +103,5 @@ jobs:
         value: ${preschool-db-staging.PASSWORD}
       - key: DB_NAME
         value: ${preschool-db-staging.DATABASE}
+      - key: DB_SSL
+        value: "true"
