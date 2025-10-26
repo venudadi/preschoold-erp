@@ -1,0 +1,163 @@
+Oct 26 20:11:09  ⚠️ Email service not configured - missing SMTP credentials
+Oct 26 20:11:09  ⚠️ Claude API key not configured
+Oct 26 20:11:09  ✅ Database connected successfully!
+Oct 26 20:11:09  🔧 Initializing database tables...
+Oct 26 20:11:09  ✅ Database connected successfully!
+Oct 26 20:11:09  ⚠️  Table 'attendance' does not exist, creating...
+Oct 26 20:11:09  ❌ Error creating table 'attendance': Error: Referencing column 'child_id' and referenced column 'id' in foreign key constraint 'attendance_ibfk_1' are incompatible.
+Oct 26 20:11:09      at PromisePool.query (/app/node_modules/mysql2/lib/promise/pool.js:36:22)
+Oct 26 20:11:09      at createTable (file:///app/utils/dbTableValidator.js:300:16)
+Oct 26 20:11:09      at ensureTableExists (file:///app/utils/dbTableValidator.js:361:13)
+Oct 26 20:11:09      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Oct 26 20:11:09      at async initializeAllTables (file:///app/utils/dbTableValidator.js:379:28)
+Oct 26 20:11:09      at async initializeServer (file:///app/index.js:308:5) {
+Oct 26 20:11:09    code: 'ER_FK_INCOMPATIBLE_COLUMNS',
+Oct 26 20:11:09    errno: 3780,
+Oct 26 20:11:09    sql: '\n' +
+Oct 26 20:11:09      '    CREATE TABLE IF NOT EXISTS attendance (\n' +
+Oct 26 20:11:09      '      id INT PRIMARY KEY AUTO_INCREMENT,\n' +
+Oct 26 20:11:09      '      child_id INT NOT NULL,\n' +
+Oct 26 20:11:09      '      center_id INT NOT NULL,\n' +
+Oct 26 20:11:09      '      date DATE NOT NULL,\n' +
+Oct 26 20:11:09      "      status ENUM('present', 'absent', 'late', 'excused') DEFAULT 'present',\n" +
+Oct 26 20:11:09      '      check_in_time TIME,\n' +
+Oct 26 20:11:09      '      check_out_time TIME,\n' +
+Oct 26 20:11:09      '      notes TEXT,\n' +
+Oct 26 20:11:09      '      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n' +
+Oct 26 20:11:09      '      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n' +
+Oct 26 20:11:09      '      FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE,\n' +
+Oct 26 20:11:09      '      FOREIGN KEY (center_id) REFERENCES centers(id) ON DELETE CASCADE,\n' +
+Oct 26 20:11:09      '      INDEX idx_attendance_child (child_id),\n' +
+Oct 26 20:11:09      '      INDEX idx_attendance_center (center_id),\n' +
+Oct 26 20:11:09      '      INDEX idx_attendance_date (date)\n' +
+Oct 26 20:11:09      '    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n' +
+Oct 26 20:11:09      '  ',
+Oct 26 20:11:09    sqlState: 'HY000',
+Oct 26 20:11:09    sqlMessage: "Referencing column 'child_id' and referenced column 'id' in foreign key constraint 'attendance_ibfk_1' are incompatible."
+Oct 26 20:11:09  }
+Oct 26 20:11:09  Attempting simplified CREATE TABLE for 'attendance' (no FK)...
+Oct 26 20:11:09  ✅ Simplified table 'attendance' created successfully
+Oct 26 20:11:09  ⚠️  Table 'teacher_classes' does not exist, creating...
+Oct 26 20:11:09  ❌ Error creating table 'teacher_classes': Error: Referencing column 'teacher_id' and referenced column 'id' in foreign key constraint 'teacher_classes_ibfk_1' are incompatible.
+Oct 26 20:11:09      at PromisePool.query (/app/node_modules/mysql2/lib/promise/pool.js:36:22)
+Oct 26 20:11:09      at createTable (file:///app/utils/dbTableValidator.js:300:16)
+Oct 26 20:11:09      at ensureTableExists (file:///app/utils/dbTableValidator.js:361:13)
+Oct 26 20:11:09      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Oct 26 20:11:09      at async initializeAllTables (file:///app/utils/dbTableValidator.js:379:28)
+Oct 26 20:11:09      at async initializeServer (file:///app/index.js:308:5) {
+Oct 26 20:11:09    code: 'ER_FK_INCOMPATIBLE_COLUMNS',
+Oct 26 20:11:09    errno: 3780,
+Oct 26 20:11:09    sql: '\n' +
+Oct 26 20:11:09      '    CREATE TABLE IF NOT EXISTS teacher_classes (\n' +
+Oct 26 20:11:09      '      id INT PRIMARY KEY AUTO_INCREMENT,\n' +
+Oct 26 20:11:09      '      teacher_id INT NOT NULL,\n' +
+Oct 26 20:11:09      '      classroom_id INT NOT NULL,\n' +
+Oct 26 20:11:09      '      center_id INT NOT NULL,\n' +
+Oct 26 20:11:09      '      is_primary BOOLEAN DEFAULT FALSE,\n' +
+Oct 26 20:11:09      '      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n' +
+Oct 26 20:11:09      '      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n' +
+Oct 26 20:11:09      '      FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE,\n' +
+Oct 26 20:11:09      '      FOREIGN KEY (classroom_id) REFERENCES classrooms(id) ON DELETE CASCADE,\n' +
+Oct 26 20:11:09      '      FOREIGN KEY (center_id) REFERENCES centers(id) ON DELETE CASCADE,\n' +
+Oct 26 20:11:09      '      UNIQUE KEY unique_teacher_class (teacher_id, classroom_id),\n' +
+Oct 26 20:11:09      '      INDEX idx_teacher (teacher_id),\n' +
+Oct 26 20:11:09      '      INDEX idx_classroom (classroom_id),\n' +
+Oct 26 20:11:09      '      INDEX idx_center (center_id)\n' +
+Oct 26 20:11:09      '    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n' +
+Oct 26 20:11:09      '  ',
+Oct 26 20:11:09    sqlState: 'HY000',
+Oct 26 20:11:09    sqlMessage: "Referencing column 'teacher_id' and referenced column 'id' in foreign key constraint 'teacher_classes_ibfk_1' are incompatible."
+Oct 26 20:11:09  }
+Oct 26 20:11:09  Attempting simplified CREATE TABLE for 'teacher_classes' (no FK)...
+Oct 26 20:11:09  ✅ Simplified table 'teacher_classes' created successfully
+Oct 26 20:11:09  ⚠️  Table 'digital_portfolio_items' does not exist, creating...
+Oct 26 20:11:09  ❌ Error creating table 'digital_portfolio_items': Error: Referencing column 'child_id' and referenced column 'id' in foreign key constraint 'digital_portfolio_items_ibfk_1' are incompatible.
+Oct 26 20:11:09      at PromisePool.query (/app/node_modules/mysql2/lib/promise/pool.js:36:22)
+Oct 26 20:11:09      at createTable (file:///app/utils/dbTableValidator.js:300:16)
+Oct 26 20:11:09      at ensureTableExists (file:///app/utils/dbTableValidator.js:361:13)
+Oct 26 20:11:09      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Oct 26 20:11:09      at async initializeAllTables (file:///app/utils/dbTableValidator.js:379:28)
+Oct 26 20:11:09      at async initializeServer (file:///app/index.js:308:5) {
+Oct 26 20:11:09    code: 'ER_FK_INCOMPATIBLE_COLUMNS',
+Oct 26 20:11:09    errno: 3780,
+Oct 26 20:11:09    sql: '\n' +
+Oct 26 20:11:09      '    CREATE TABLE IF NOT EXISTS digital_portfolio_items (\n' +
+Oct 26 20:11:09      '      id VARCHAR(36) PRIMARY KEY,\n' +
+Oct 26 20:11:09      '      child_id INT NOT NULL,\n' +
+Oct 26 20:11:09      '      title VARCHAR(255) NOT NULL,\n' +
+Oct 26 20:11:09      '      description TEXT,\n' +
+Oct 26 20:11:09      '      file_path VARCHAR(500),\n' +
+Oct 26 20:11:09      "      file_type ENUM('image', 'video', 'document', 'audio') NOT NULL,\n" +
+Oct 26 20:11:09      '      category VARCHAR(100),\n' +
+Oct 26 20:11:09      '      tags JSON,\n' +
+Oct 26 20:11:09      '      created_by INT NOT NULL,\n' +
+Oct 26 20:11:09      "      visibility ENUM('private', 'parents', 'teachers', 'public') DEFAULT 'parents',\n" +
+Oct 26 20:11:09      '      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n' +
+Oct 26 20:11:09      '      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n' +
+Oct 26 20:11:09  Attempting simplified CREATE TABLE for 'digital_portfolio_items' (no FK)...
+Oct 26 20:11:09      '      FOREIGN KEY (child_id) REFERENCES children(id) ON DELETE CASCADE,\n' +
+Oct 26 20:11:09      '      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE,\n' +
+Oct 26 20:11:09      '      INDEX idx_portfolio_child (child_id),\n' +
+Oct 26 20:11:09      '      INDEX idx_portfolio_category (category),\n' +
+Oct 26 20:11:09      '      INDEX idx_portfolio_created (created_at)\n' +
+Oct 26 20:11:09      '    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n' +
+Oct 26 20:11:09      '  ',
+Oct 26 20:11:09    sqlState: 'HY000',
+Oct 26 20:11:09    sqlMessage: "Referencing column 'child_id' and referenced column 'id' in foreign key constraint 'digital_portfolio_items_ibfk_1' are incompatible."
+Oct 26 20:11:09  }
+Oct 26 20:11:09  ✅ Simplified table 'digital_portfolio_items' created successfully
+Oct 26 20:11:09  ⚠️  Table 'messaging' does not exist, creating...
+Oct 26 20:11:09  ❌ Error creating table 'messaging': Error: Referencing column 'sender_id' and referenced column 'id' in foreign key constraint 'messaging_ibfk_1' are incompatible.
+Oct 26 20:11:09      at PromisePool.query (/app/node_modules/mysql2/lib/promise/pool.js:36:22)
+Oct 26 20:11:09      at createTable (file:///app/utils/dbTableValidator.js:300:16)
+Oct 26 20:11:09      at ensureTableExists (file:///app/utils/dbTableValidator.js:361:13)
+Oct 26 20:11:09      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Oct 26 20:11:09      at async initializeAllTables (file:///app/utils/dbTableValidator.js:379:28)
+Oct 26 20:11:09      at async initializeServer (file:///app/index.js:308:5) {
+Oct 26 20:11:09    code: 'ER_FK_INCOMPATIBLE_COLUMNS',
+Oct 26 20:11:09    errno: 3780,
+Oct 26 20:11:09    sql: '\n' +
+Oct 26 20:11:09      '    CREATE TABLE IF NOT EXISTS messaging (\n' +
+Oct 26 20:11:09      '      id VARCHAR(36) PRIMARY KEY,\n' +
+Oct 26 20:11:09      '      sender_id INT NOT NULL,\n' +
+Oct 26 20:11:09      '      recipient_id INT NOT NULL,\n' +
+Oct 26 20:11:09      '      subject VARCHAR(255),\n' +
+Oct 26 20:11:09      '      message TEXT NOT NULL,\n' +
+Oct 26 20:11:09      '      is_read BOOLEAN DEFAULT FALSE,\n' +
+Oct 26 20:11:09      '      reply_to VARCHAR(36),\n' +
+Oct 26 20:11:09      "      priority ENUM('low', 'medium', 'high') DEFAULT 'medium',\n" +
+Oct 26 20:11:09      "      message_type ENUM('personal', 'announcement', 'alert') DEFAULT 'personal',\n" +
+Oct 26 20:11:09      '      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n' +
+Oct 26 20:11:09      '      read_at TIMESTAMP NULL,\n' +
+Oct 26 20:11:09      '      FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,\n' +
+Oct 26 20:11:09      '      FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,\n' +
+Oct 26 20:11:09      '      FOREIGN KEY (reply_to) REFERENCES messaging(id) ON DELETE SET NULL,\n' +
+Oct 26 20:11:09      '      INDEX idx_messaging_sender (sender_id),\n' +
+Oct 26 20:11:09      '      INDEX idx_messaging_recipient (recipient_id),\n' +
+Oct 26 20:11:09      '      INDEX idx_messaging_created (created_at)\n' +
+Oct 26 20:11:09      '    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n' +
+Oct 26 20:11:09      '  ',
+Oct 26 20:11:09    sqlState: 'HY000',
+Oct 26 20:11:09    sqlMessage: "Referencing column 'sender_id' and referenced column 'id' in foreign key constraint 'messaging_ibfk_1' are incompatible."
+Oct 26 20:11:09  }
+Oct 26 20:11:09  Attempting simplified CREATE TABLE for 'messaging' (no FK)...
+Oct 26 20:11:09  ✅ Simplified table 'messaging' created successfully
+Oct 26 20:11:09  ✅ Database initialization complete: 13/13 tables ready
+Oct 26 20:11:09  🔁 Running second pass to apply full DDL for tables created without FK constraints...
+Oct 26 20:11:09  🔧 Applied full DDL for table 'invoice_requests'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'attendance'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'teacher_classes'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'digital_portfolio_items'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'lesson_plans'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'observation_logs'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'classroom_announcements'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'assignments'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'messaging'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'expenses'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'expense_audit_logs'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'expense_notifications'
+Oct 26 20:11:09  🔧 Applied full DDL for table 'expense_sequences'
+Oct 26 20:11:09  ✅ Server is running on port 5001
+Oct 26 20:11:09  🔌 WebSocket server ready for real-time updates
+Oct 26 20:11:09  🛡️  Global error handling enabled
+Oct 26 20:11:09  📊 Database tables validated and ready

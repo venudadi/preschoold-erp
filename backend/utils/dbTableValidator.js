@@ -10,13 +10,13 @@ const REQUIRED_TABLES = {
   invoice_requests: `
     CREATE TABLE IF NOT EXISTS invoice_requests (
       id VARCHAR(36) PRIMARY KEY,
-      child_id INT NOT NULL,
+      child_id VARCHAR(36) NOT NULL,
       amount DECIMAL(10,2) NOT NULL,
       due_date DATE NOT NULL,
       description TEXT,
       status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
-      requested_by INT NOT NULL,
-      reviewed_by INT,
+      requested_by VARCHAR(36) NOT NULL,
+      reviewed_by VARCHAR(36),
       reviewed_at TIMESTAMP NULL,
       rejection_reason TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -33,8 +33,8 @@ const REQUIRED_TABLES = {
   attendance: `
     CREATE TABLE IF NOT EXISTS attendance (
       id INT PRIMARY KEY AUTO_INCREMENT,
-      child_id INT NOT NULL,
-      center_id INT NOT NULL,
+      child_id VARCHAR(36) NOT NULL,
+      center_id VARCHAR(36) NOT NULL,
       date DATE NOT NULL,
       status ENUM('present', 'absent', 'late', 'excused') DEFAULT 'present',
       check_in_time TIME,
@@ -53,9 +53,9 @@ const REQUIRED_TABLES = {
   teacher_classes: `
     CREATE TABLE IF NOT EXISTS teacher_classes (
       id INT PRIMARY KEY AUTO_INCREMENT,
-      teacher_id INT NOT NULL,
-      classroom_id INT NOT NULL,
-      center_id INT NOT NULL,
+      teacher_id VARCHAR(36) NOT NULL,
+      classroom_id VARCHAR(36) NOT NULL,
+      center_id VARCHAR(36) NOT NULL,
       is_primary BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -72,14 +72,14 @@ const REQUIRED_TABLES = {
   digital_portfolio_items: `
     CREATE TABLE IF NOT EXISTS digital_portfolio_items (
       id VARCHAR(36) PRIMARY KEY,
-      child_id INT NOT NULL,
+      child_id VARCHAR(36) NOT NULL,
       title VARCHAR(255) NOT NULL,
       description TEXT,
       file_path VARCHAR(500),
       file_type ENUM('image', 'video', 'document', 'audio') NOT NULL,
       category VARCHAR(100),
       tags JSON,
-      created_by INT NOT NULL,
+      created_by VARCHAR(36) NOT NULL,
       visibility ENUM('private', 'parents', 'teachers', 'public') DEFAULT 'parents',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -96,8 +96,8 @@ const REQUIRED_TABLES = {
       id VARCHAR(36) PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
       description TEXT,
-      classroom_id INT NOT NULL,
-      teacher_id INT NOT NULL,
+      classroom_id VARCHAR(36) NOT NULL,
+      teacher_id VARCHAR(36) NOT NULL,
       subject VARCHAR(100),
       objectives TEXT,
       materials TEXT,
@@ -119,8 +119,8 @@ const REQUIRED_TABLES = {
   observation_logs: `
     CREATE TABLE IF NOT EXISTS observation_logs (
       id VARCHAR(36) PRIMARY KEY,
-      child_id INT NOT NULL,
-      observer_id INT NOT NULL,
+      child_id VARCHAR(36) NOT NULL,
+      observer_id VARCHAR(36) NOT NULL,
       observation_date DATE NOT NULL,
       observation_time TIME NOT NULL,
       category VARCHAR(100),
@@ -141,8 +141,8 @@ const REQUIRED_TABLES = {
   classroom_announcements: `
     CREATE TABLE IF NOT EXISTS classroom_announcements (
       id VARCHAR(36) PRIMARY KEY,
-      classroom_id INT NOT NULL,
-      teacher_id INT NOT NULL,
+      classroom_id VARCHAR(36) NOT NULL,
+      teacher_id VARCHAR(36) NOT NULL,
       title VARCHAR(255) NOT NULL,
       content TEXT NOT NULL,
       priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
@@ -164,8 +164,8 @@ const REQUIRED_TABLES = {
       id VARCHAR(36) PRIMARY KEY,
       title VARCHAR(255) NOT NULL,
       description TEXT,
-      classroom_id INT NOT NULL,
-      teacher_id INT NOT NULL,
+      classroom_id VARCHAR(36) NOT NULL,
+      teacher_id VARCHAR(36) NOT NULL,
       subject VARCHAR(100),
       instructions TEXT,
       due_date DATE,
@@ -184,8 +184,8 @@ const REQUIRED_TABLES = {
   messaging: `
     CREATE TABLE IF NOT EXISTS messaging (
       id VARCHAR(36) PRIMARY KEY,
-      sender_id INT NOT NULL,
-      recipient_id INT NOT NULL,
+      sender_id VARCHAR(36) NOT NULL,
+      recipient_id VARCHAR(36) NOT NULL,
       subject VARCHAR(255),
       message TEXT NOT NULL,
       is_read BOOLEAN DEFAULT FALSE,
