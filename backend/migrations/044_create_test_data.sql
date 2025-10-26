@@ -7,21 +7,21 @@
 
 -- Create test center first (required for FK constraints)
 INSERT INTO centers (id, name, address, phone_number, email, is_active) VALUES
-('test-center-1', 'Test Preschool Center', '123 Test Street, Test City', '555-0100', 'testcenter@vansris.com', TRUE)
+('test-center-1', 'Test Preschool Center', '123 Test Street, Test City', '555-0100', 'testcenter@vanisris.com', TRUE)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
 
 -- Create test users for all roles
 -- Password hash for 'Test@123' = $2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y
 INSERT INTO users (id, username, email, password_hash, role, full_name, phone_number, center_id, is_active, email_verified, phone_verified, must_reset_password) VALUES
-('test-super-admin', 'superadmin', 'superadmin@vansris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'super_admin', 'Test Super Admin', '555-0001', NULL, TRUE, TRUE, TRUE, FALSE),
-('test-owner', 'owner', 'owner@vansris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'owner', 'Test Owner', '555-0002', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
-('test-center-director', 'director', 'director@vansris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'center_director', 'Test Center Director', '555-0003', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
-('test-admin', 'admin', 'admin@vansris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'admin', 'Test Admin', '555-0004', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
-('test-financial-manager', 'finance', 'finance@vansris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'financial_manager', 'Test Financial Manager', '555-0005', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
-('test-teacher-1', 'teacher1', 'teacher1@vansris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'teacher', 'Test Teacher One', '555-0006', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
-('test-teacher-2', 'teacher2', 'teacher2@vansris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'teacher', 'Test Teacher Two', '555-0007', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
-('test-parent-1', 'parent1', 'parent1@vansris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'parent', 'Test Parent One', '555-0008', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
-('test-parent-2', 'parent2', 'parent2@vansris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'parent', 'Test Parent Two', '555-0009', 'test-center-1', TRUE, TRUE, TRUE, FALSE)
+('test-super-admin', 'superadmin', 'superadmin@vanisris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'super_admin', 'Test Super Admin', '555-0001', NULL, TRUE, TRUE, TRUE, FALSE),
+('test-owner', 'owner', 'owner@vanisris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'owner', 'Test Owner', '555-0002', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
+('test-center-director', 'director', 'director@vanisris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'center_director', 'Test Center Director', '555-0003', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
+('test-admin', 'admin', 'admin@vanisris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'admin', 'Test Admin', '555-0004', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
+('test-financial-manager', 'finance', 'finance@vanisris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'financial_manager', 'Test Financial Manager', '555-0005', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
+('test-teacher-1', 'teacher1', 'teacher1@vanisris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'teacher', 'Test Teacher One', '555-0006', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
+('test-teacher-2', 'teacher2', 'teacher2@vanisris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'teacher', 'Test Teacher Two', '555-0007', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
+('test-parent-1', 'parent1', 'parent1@vanisris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'parent', 'Test Parent One', '555-0008', 'test-center-1', TRUE, TRUE, TRUE, FALSE),
+('test-parent-2', 'parent2', 'parent2@vanisris.com', '$2b$10$8K1p/pxGKwU2YvnZ8Hc.5uKjKnmZxR.G9tqZ3xX5nVzN8vYrZqX5y', 'parent', 'Test Parent Two', '555-0009', 'test-center-1', TRUE, TRUE, TRUE, FALSE)
 ON DUPLICATE KEY UPDATE
   password_hash=VALUES(password_hash),
   role=VALUES(role),
@@ -46,8 +46,8 @@ ON DUPLICATE KEY UPDATE first_name=VALUES(first_name);
 
 -- Create parent records
 INSERT INTO parents (id, user_id, first_name, last_name, email, phone_number, relationship_to_child, is_primary_contact) VALUES
-('test-parent-rec-1', 'test-parent-1', 'Test', 'Parent One', 'parent1@vansris.com', '555-0008', 'Mother', TRUE),
-('test-parent-rec-2', 'test-parent-2', 'Test', 'Parent Two', 'parent2@vansris.com', '555-0009', 'Father', TRUE)
+('test-parent-rec-1', 'test-parent-1', 'Test', 'Parent One', 'parent1@vanisris.com', '555-0008', 'Mother', TRUE),
+('test-parent-rec-2', 'test-parent-2', 'Test', 'Parent Two', 'parent2@vanisris.com', '555-0009', 'Father', TRUE)
 ON DUPLICATE KEY UPDATE user_id=VALUES(user_id);
 
 -- Create parent-child relationships
@@ -60,11 +60,11 @@ ON DUPLICATE KEY UPDATE relationship_type=VALUES(relationship_type);
 
 -- Create staff records for teachers and admin users
 INSERT INTO staff (id, user_id, employee_id, first_name, last_name, email, phone_number, position, department, hire_date, center_id, is_active) VALUES
-('test-staff-1', 'test-teacher-1', 'EMP001', 'Test', 'Teacher One', 'teacher1@vansris.com', '555-0006', 'Lead Teacher', 'Education', '2023-01-01', 'test-center-1', TRUE),
-('test-staff-2', 'test-teacher-2', 'EMP002', 'Test', 'Teacher Two', 'teacher2@vansris.com', '555-0007', 'Assistant Teacher', 'Education', '2023-02-01', 'test-center-1', TRUE),
-('test-staff-3', 'test-admin', 'EMP003', 'Test', 'Admin', 'admin@vansris.com', '555-0004', 'Administrator', 'Administration', '2022-06-01', 'test-center-1', TRUE),
-('test-staff-4', 'test-center-director', 'EMP004', 'Test', 'Center Director', 'director@vansris.com', '555-0003', 'Center Director', 'Management', '2022-01-01', 'test-center-1', TRUE),
-('test-staff-5', 'test-financial-manager', 'EMP005', 'Test', 'Financial Manager', 'finance@vansris.com', '555-0005', 'Financial Manager', 'Finance', '2022-03-01', 'test-center-1', TRUE)
+('test-staff-1', 'test-teacher-1', 'EMP001', 'Test', 'Teacher One', 'teacher1@vanisris.com', '555-0006', 'Lead Teacher', 'Education', '2023-01-01', 'test-center-1', TRUE),
+('test-staff-2', 'test-teacher-2', 'EMP002', 'Test', 'Teacher Two', 'teacher2@vanisris.com', '555-0007', 'Assistant Teacher', 'Education', '2023-02-01', 'test-center-1', TRUE),
+('test-staff-3', 'test-admin', 'EMP003', 'Test', 'Admin', 'admin@vanisris.com', '555-0004', 'Administrator', 'Administration', '2022-06-01', 'test-center-1', TRUE),
+('test-staff-4', 'test-center-director', 'EMP004', 'Test', 'Center Director', 'director@vanisris.com', '555-0003', 'Center Director', 'Management', '2022-01-01', 'test-center-1', TRUE),
+('test-staff-5', 'test-financial-manager', 'EMP005', 'Test', 'Financial Manager', 'finance@vanisris.com', '555-0005', 'Financial Manager', 'Finance', '2022-03-01', 'test-center-1', TRUE)
 ON DUPLICATE KEY UPDATE user_id=VALUES(user_id);
 
 -- Create staff assignments
@@ -134,13 +134,13 @@ SELECT 'TEST ACCOUNTS CREATED SUCCESSFULLY' AS '';
 SELECT '==============================================' AS '';
 SELECT 'All test accounts use password: Test@123' AS '';
 SELECT '' AS '';
-SELECT 'Super Admin: superadmin@vansris.com / superadmin' AS '';
-SELECT 'Owner: owner@vansris.com / owner' AS '';
-SELECT 'Center Director: director@vansris.com / director' AS '';
-SELECT 'Admin: admin@vansris.com / admin' AS '';
-SELECT 'Financial Manager: finance@vansris.com / finance' AS '';
-SELECT 'Teacher 1: teacher1@vansris.com / teacher1' AS '';
-SELECT 'Teacher 2: teacher2@vansris.com / teacher2' AS '';
-SELECT 'Parent 1: parent1@vansris.com / parent1' AS '';
-SELECT 'Parent 2: parent2@vansris.com / parent2' AS '';
+SELECT 'Super Admin: superadmin@vanisris.com / superadmin' AS '';
+SELECT 'Owner: owner@vanisris.com / owner' AS '';
+SELECT 'Center Director: director@vanisris.com / director' AS '';
+SELECT 'Admin: admin@vanisris.com / admin' AS '';
+SELECT 'Financial Manager: finance@vanisris.com / finance' AS '';
+SELECT 'Teacher 1: teacher1@vanisris.com / teacher1' AS '';
+SELECT 'Teacher 2: teacher2@vanisris.com / teacher2' AS '';
+SELECT 'Parent 1: parent1@vanisris.com / parent1' AS '';
+SELECT 'Parent 2: parent2@vanisris.com / parent2' AS '';
 SELECT '==============================================' AS '';
