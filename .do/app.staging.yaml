@@ -1,14 +1,6 @@
 name: preschool-erp-staging
 region: nyc
 
-# Database - Managed MySQL (Staging)
-databases:
-  - name: preschool-db-staging
-    engine: MYSQL
-    version: "8"
-    production: true
-    cluster_name: preschool-db-staging-cluster
-
 # Backend API Service
 services:
   - name: backend-staging
@@ -38,15 +30,16 @@ services:
       - key: PORT
         value: "5001"
       - key: DB_HOST
-        value: ${preschool-db-staging.HOSTNAME}
+        value: preschool-db-staging-do-user-27294876-0.f.db.ondigitalocean.com
       - key: DB_PORT
-        value: ${preschool-db-staging.PORT}
+        value: "25060"
       - key: DB_USER
-        value: ${preschool-db-staging.USERNAME}
+        value: doadmin
       - key: DB_PASSWORD
-        value: ${preschool-db-staging.PASSWORD}
+        type: SECRET
+        value: SET_DB_PASSWORD_IN_CONSOLE
       - key: DB_NAME
-        value: ${preschool-db-staging.DATABASE}
+        value: defaultdb
       - key: DB_SSL
         value: "true"
       - key: SMTP_HOST
@@ -70,8 +63,6 @@ services:
       - key: JWT_REFRESH_SECRET
         type: SECRET
         value: staging_jwt_refresh_secret_change_this
-      - key: DATABASE_URL
-        value: ${preschool-db-staging.DATABASE_URL}
 
 # Frontend Static Site
 static_sites:
@@ -110,15 +101,16 @@ jobs:
       - key: NODE_ENV
         value: staging
       - key: DB_HOST
-        value: ${preschool-db-staging.HOSTNAME}
+        value: preschool-db-staging-do-user-27294876-0.f.db.ondigitalocean.com
       - key: DB_PORT
-        value: ${preschool-db-staging.PORT}
+        value: "25060"
       - key: DB_USER
-        value: ${preschool-db-staging.USERNAME}
+        value: doadmin
       - key: DB_PASSWORD
-        value: ${preschool-db-staging.PASSWORD}
+        type: SECRET
+        value: SET_DB_PASSWORD_IN_CONSOLE
       - key: DB_NAME
-        value: ${preschool-db-staging.DATABASE}
+        value: defaultdb
       - key: DB_SSL
         value: "true"
       - key: SMTP_HOST
