@@ -98,7 +98,7 @@ async function verifyDeployment() {
         SELECT COUNT(*) as count
         FROM users
         WHERE role = ?
-        AND email LIKE '%@test.com'
+        AND email LIKE '%@vansris.com'
       `, [role]);
 
       const status = users[0].count > 0 ? '✅' : '❌';
@@ -140,7 +140,7 @@ async function verifyDeployment() {
     const [testAccounts] = await pool.query(`
       SELECT username, email, role
       FROM users
-      WHERE email LIKE '%@test.com'
+      WHERE email LIKE '%@vansris.com'
       ORDER BY
         FIELD(role, 'super_admin', 'owner', 'center_director', 'admin', 'financial_manager', 'teacher', 'parent'),
         email
