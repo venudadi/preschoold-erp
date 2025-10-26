@@ -30,6 +30,8 @@ services:
       timeout_seconds: 3
       success_threshold: 1
       failure_threshold: 3
+    routes:
+      - path: /api
     envs:
       - key: NODE_ENV
         value: staging
@@ -84,6 +86,8 @@ static_sites:
     environment_slug: node-js
     index_document: index.html
     catchall_document: index.html
+    routes:
+      - path: /
     envs:
       - key: VITE_API_URL
         value: ${backend-staging.PUBLIC_URL}
