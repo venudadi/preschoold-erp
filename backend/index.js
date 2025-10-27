@@ -156,11 +156,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // --- ROUTES (Each one should only be listed once) ---
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
+// Note: /api prefix handled by DigitalOcean routing, not needed in route definitions
+app.use('/auth', authRoutes);
+app.use('/admin', adminRoutes);
 
 // Create specific route handlers for children and classrooms endpoints
-app.get('/api/children', protect, async (req, res) => {
+app.get('/children', protect, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT * FROM students WHERE center_id = ? ORDER BY first_name`,
@@ -173,7 +174,7 @@ app.get('/api/children', protect, async (req, res) => {
   }
 });
 
-app.get('/api/classrooms', protect, async (req, res) => {
+app.get('/classrooms', protect, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT * FROM classrooms WHERE center_id = ? ORDER BY name`,
@@ -186,16 +187,16 @@ app.get('/api/classrooms', protect, async (req, res) => {
   }
 });
 
-app.use('/api/enquiries', enquiryRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/admissions', admissionRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/invoices/requests', invoiceRequestRoutes);
-app.use('/api/centers', centerRoutes);
-app.use('/api/analytics', analyticsRoutes);
+app.use('/enquiries', enquiryRoutes);
+app.use('/settings', settingsRoutes);
+app.use('/admissions', admissionRoutes);
+app.use('/invoices', invoiceRoutes);
+app.use('/invoices/requests', invoiceRequestRoutes);
+app.use('/centers', centerRoutes);
+app.use('/analytics', analyticsRoutes);
 
 // Create explicit route handler for staff endpoint
-app.get('/api/staff', protect, requireRole(['super_admin', 'owner', 'center_director', 'admin', 'academic_coordinator', 'teacher']), async (req, res) => {
+app.get('/staff', protect, requireRole(['super_admin', 'owner', 'center_director', 'admin', 'academic_coordinator', 'teacher']), async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT s.*, u.email, u.full_name
@@ -212,7 +213,7 @@ app.get('/api/staff', protect, requireRole(['super_admin', 'owner', 'center_dire
 });
 
 // Create explicit route handler for attendance endpoint
-app.get('/api/attendance', protect, async (req, res) => {
+app.get('/attendance', protect, async (req, res) => {
   try {
     const date = req.query.date || new Date().toISOString().split('T')[0];
     const [rows] = await pool.query(
@@ -231,30 +232,30 @@ app.get('/api/attendance', protect, async (req, res) => {
 });
 
 // Original routes kept for more complex operations
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/staff', staffRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/fee-structures', feeStructureRoutes);
-app.use('/api/students', studentRoutes);
-app.use('/api/exits', exitRoutes);
-app.use('/api/owners', ownerRoutes);
-app.use('/api/expenses', expenseRoutes);
-app.use('/api/lesson-plans', lessonPlanRoutes);
-app.use('/api/assignments', assignmentRoutes);
-app.use('/api/messaging', messagingRoutes);
-app.use('/api/parent', parentModuleRoutes);
-app.use('/api/observation-logs', observationLogRoutes);
-app.use('/api/digital-portfolio', digitalPortfolioRoutes);
-app.use('/api/classroom-announcements', classroomAnnouncementRoutes);
-app.use('/api/admin-class/promotion', adminClassPromotionRoutes);
-app.use('/api/center-director', centerDirectorRoutes);
-app.use('/api/financial-manager', financialManagerRoutes);
-app.use('/api/health', healthRoutes);
-app.use('/api/auth', passwordResetRoutes);
-app.use('/api/auth', twoFactorRoutes);
-app.use('/api/claude', claudeRoutes);
-app.use('/api/debug', debugRoutes);
-app.use('/api/daily-activities', dailyActivityRoutes);
+app.use('/attendance', attendanceRoutes);
+app.use('/staff', staffRoutes);
+app.use('/documents', documentRoutes);
+app.use('/fee-structures', feeStructureRoutes);
+app.use('/students', studentRoutes);
+app.use('/exits', exitRoutes);
+app.use('/owners', ownerRoutes);
+app.use('/expenses', expenseRoutes);
+app.use('/lesson-plans', lessonPlanRoutes);
+app.use('/assignments', assignmentRoutes);
+app.use('/messaging', messagingRoutes);
+app.use('/parent', parentModuleRoutes);
+app.use('/observation-logs', observationLogRoutes);
+app.use('/digital-portfolio', digitalPortfolioRoutes);
+app.use('/classroom-announcements', classroomAnnouncementRoutes);
+app.use('/admin-class/promotion', adminClassPromotionRoutes);
+app.use('/center-director', centerDirectorRoutes);
+app.use('/financial-manager', financialManagerRoutes);
+app.use('/health', healthRoutes);
+app.use('/auth', passwordResetRoutes);
+app.use('/auth', twoFactorRoutes);
+app.use('/claude', claudeRoutes);
+app.use('/debug', debugRoutes);
+app.use('/daily-activities', dailyActivityRoutes);
 // --- WEBSOCKET CONFIGURATION ---
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
