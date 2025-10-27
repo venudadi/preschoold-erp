@@ -45,3 +45,14 @@ backups/
 
 # SSL certificates
 ssl/
+
+# DigitalOcean deployment configs (contain credentials)
+.do/
+*.READY_FOR_DIGITALOCEAN.yaml
+
+# Logs and temporary files with potential credentials
+*Failure*.txt
+*failure*.log
+*credentials*.txt
+*secret*.txt
+deployment*.yaml

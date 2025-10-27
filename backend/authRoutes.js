@@ -77,16 +77,25 @@ router.post(
     body('password').exists().withMessage('Password is required')
   ]),
   async (req, res) => {
+    console.log('🔐 Login attempt received for:', req.body.email);
     try {
       const { email, password } = req.body;
       const findUserSql = `SELECT * FROM users WHERE email = ?`;
       const [users] = await pool.query(findUserSql, [email]);
+      
+      console.log('👤 User query result:', users.length > 0 ? 'User found' : 'User not found');
+      
       if (users.length === 0) {
+        console.log('❌ Login failed: Invalid credentials (user not found)');
         return res.status(401).json({ message: 'Invalid credentials.' });
       }
       const user = users[0];
       const isPasswordCorrect = await bcrypt.compare(password, user.password_hash);
+      
+      console.log('🔑 Password check:', isPasswordCorrect ? 'Correct' : 'Incorrect');
+      
       if (!isPasswordCorrect) {
+        console.log('❌ Login failed: Invalid credentials (wrong password)');
         return res.status(401).json({ message: 'Invalid credentials.' });
       }
       // Check if user must reset password
@@ -156,10 +165,16 @@ router.post(
         }
       };
       if (refreshToken) resp.refreshToken = refreshToken;
+      
+      console.log('✅ Login successful for:', user.email, '- Role:', user.role);
       res.status(200).json(resp);
     } catch (error) {
-      console.error('Login Error:', error);
-      res.status(500).json({ message: 'Server error during login.' });
+      console.error('❌ Login Error:', error);
+      console.error('Error stack:', error.stack);
+      res.status(500).json({ 
+        message: 'Server error during login.',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+      });
     }
   }
 );

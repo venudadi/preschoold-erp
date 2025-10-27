@@ -142,12 +142,22 @@ export const loginUser = async (email, password) => {
         const response = await api.post('/auth/login', { email, password });
         return response.data;
     } catch (error) {
+        console.error('Login error details:', error);
         if (error.response) {
-            const msg = error.response.data?.message || error.response.data?.error || 'Login failed';
+            // Server responded with error status
+            const errorData = error.response.data;
+            const msg = errorData?.message || errorData?.error || `Login failed with status ${error.response.status}`;
+            console.error('Server error:', msg, errorData);
             throw new Error(msg);
         }
-        else if (error.request) { throw new Error('Could not connect to the server. Please try again later.'); }
-        else { throw new Error('An unexpected error occurred.'); }
+        else if (error.request) { 
+            console.error('No response from server:', error.request);
+            throw new Error('Could not connect to the server. Please try again later.'); 
+        }
+        else { 
+            console.error('Request setup error:', error.message);
+            throw new Error(error.message || 'An unexpected error occurred.'); 
+        }
     }
 };
 
