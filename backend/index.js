@@ -251,6 +251,8 @@ app.use('/admin-class/promotion', adminClassPromotionRoutes);
 app.use('/center-director', centerDirectorRoutes);
 app.use('/financial-manager', financialManagerRoutes);
 app.use('/health', healthRoutes);
+// Also expose health check at /api/health for DigitalOcean health checks (direct container access)
+app.use('/api/health', healthRoutes);
 app.use('/auth', passwordResetRoutes);
 app.use('/auth', twoFactorRoutes);
 app.use('/claude', claudeRoutes);
