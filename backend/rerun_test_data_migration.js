@@ -94,6 +94,10 @@ async function rerunTestDataMigration() {
             console.log(`  ✅ [${i+1}/${statements.length}] Created test center`);
           } else if (stmt.toUpperCase().includes('INSERT INTO USERS')) {
             console.log(`  ✅ [${i+1}/${statements.length}] Created test users`);
+            // CRITICAL: Commit immediately after creating users to prevent rollback
+            await conn.commit();
+            console.log(`  💾 Committed test users to database`);
+            await conn.beginTransaction();
           } else if (stmt.toUpperCase().includes('INSERT INTO CHILDREN')) {
             console.log(`  ✅ [${i+1}/${statements.length}] Created test children`);
           } else if (stmt.toUpperCase().includes('INSERT INTO PARENTS')) {
