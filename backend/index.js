@@ -12,6 +12,11 @@ import { protect } from './authMiddleware.js';
 import { requireRole } from './middleware/security.js';
 
 const app = express();
+
+// Trust proxy - required for DigitalOcean/Heroku/AWS etc
+// Allows Express to trust X-Forwarded-* headers from reverse proxies
+app.set('trust proxy', true);
+
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
