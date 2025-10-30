@@ -118,6 +118,23 @@ async function applyMigration(file) {
           console.log(`✅ CREATE TABLE SUCCESS:`, stmt.substring(0, 80) + '...');
         }
       } catch (e) {
+        // SPECIAL HANDLING: For test data migration, don't suppress ANY errors
+        if (file === '044_create_test_data.sql') {
+          console.error(`\n❌❌❌ CRITICAL ERROR in ${file} ❌❌❌`);
+          console.error(`Statement number: ${statements.indexOf(stmt) + 1}/${statements.length}`);
+          console.error(`Statement preview:`);
+          console.error(stmt.substring(0, 300) + '...');
+          console.error(`\nError Details:`);
+          console.error(`  Code: ${e.code}`);
+          console.error(`  Errno: ${e.errno}`);
+          console.error(`  SQL State: ${e.sqlState}`);
+          console.error(`  Message: ${e.message}`);
+          console.error(`\nFull stack trace:`);
+          console.error(e.stack);
+          console.error(`\n❌❌❌ STOPPING MIGRATION ❌❌❌\n`);
+          throw e; // Stop execution and fail the migration
+        }
+
         // Log CREATE TABLE errors with full details for debugging
         if (/CREATE\s+TABLE/i.test(stmt)) {
           console.error(`❌ CREATE TABLE FAILED:`, {

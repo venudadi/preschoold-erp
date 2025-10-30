@@ -120,7 +120,22 @@ async function applyMigration(file) {
         await conn.query(stmt);
         successCount++;
       } catch (err) {
-        // Handle benign errors
+        // SPECIAL HANDLING: For test data migration, don't suppress ANY errors
+        if (file === '044_create_test_data.sql') {
+          log(`\n❌ CRITICAL ERROR in ${file}:`, colors.bright + colors.red);
+          log(`Statement ${i+1}/${statements.length}:`, colors.red);
+          log(stmt.substring(0, 200) + '...', colors.yellow);
+          log(`\nError Code: ${err.code}`, colors.red);
+          log(`Error Number: ${err.errno}`, colors.red);
+          log(`SQL State: ${err.sqlState}`, colors.red);
+          log(`Full Error Message:`, colors.red);
+          log(err.message, colors.yellow);
+          log(`\nStack trace:`, colors.red);
+          log(err.stack, colors.yellow);
+          throw err; // Stop execution and fail the migration
+        }
+
+        // Handle benign errors for other migrations
         if (err.code === 'ER_DUP_FIELDNAME' ||
             err.code === 'ER_DUP_KEYNAME' ||
             err.code === 'ER_CANT_DROP_FIELD_OR_KEY' ||
