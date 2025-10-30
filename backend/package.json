@@ -16,6 +16,8 @@
     "migrate:all": "node run_all_migrations.js",
     "migrate:deploy": "node run_all_migrations.js",
     "check:integrity": "node check_db_integrity.js",
+    "check:testusers": "node check_test_users.js",
+    "fix:testdata": "node rerun_test_data_migration.js",
     "dev": "nodemon index.js"
   },
   "keywords": [],
