@@ -8,7 +8,7 @@ services:
   - name: backend-staging
     github:
       repo: venudadi/preschool-erp
-      branch: staging
+      branch: staging-clean
       deploy_on_push: true
     source_dir: /backend
     build_command: npm ci --legacy-peer-deps
@@ -71,7 +71,7 @@ static_sites:
   - name: frontend-staging
     github:
       repo: venudadi/preschool-erp
-      branch: staging
+      branch: staging-clean
       deploy_on_push: true
     source_dir: /frontend
     build_command: npm ci --legacy-peer-deps && npm run build
@@ -91,7 +91,7 @@ jobs:
     kind: PRE_DEPLOY
     github:
       repo: venudadi/preschool-erp
-      branch: staging
+      branch: staging-clean
       deploy_on_push: true
     source_dir: /backend
     build_command: npm ci --legacy-peer-deps
