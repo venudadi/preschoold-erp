@@ -128,3 +128,31 @@ jobs:
         value: Preschool ERP System
       - key: FROM_EMAIL
         value: support@vanisris.com
+
+  # One-time job to fix test data migration (remove after successful run)
+  - name: fix-test-data
+    kind: POST_DEPLOY
+    github:
+      repo: venudadi/preschool-erp
+      branch: staging-clean
+      deploy_on_push: true
+    source_dir: /backend
+    build_command: npm ci --legacy-peer-deps
+    run_command: npm run fix:testdata
+    environment_slug: node-js
+    envs:
+      - key: NODE_ENV
+        value: staging
+      - key: DB_HOST
+        value: preschool-db-staging-do-user-27294876-0.f.db.ondigitalocean.com
+      - key: DB_PORT
+        value: "25060"
+      - key: DB_USER
+        value: doadmin
+      - key: DB_PASSWORD
+        type: SECRET
+        value: SET_DB_PASSWORD_IN_CONSOLE
+      - key: DB_NAME
+        value: defaultdb
+      - key: DB_SSL
+        value: "true"
