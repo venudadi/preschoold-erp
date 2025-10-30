@@ -14,8 +14,9 @@ import { requireRole } from './middleware/security.js';
 const app = express();
 
 // Trust proxy - required for DigitalOcean/Heroku/AWS etc
-// Allows Express to trust X-Forwarded-* headers from reverse proxies
-app.set('trust proxy', true);
+// Trust only the first proxy (DigitalOcean's load balancer)
+// This prevents IP spoofing while allowing rate limiting to work correctly
+app.set('trust proxy', 1);
 
 const server = createServer(app);
 const io = new Server(server, {
