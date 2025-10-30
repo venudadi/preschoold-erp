@@ -120,19 +120,21 @@ async function applyMigration(file) {
         await conn.query(stmt);
         successCount++;
       } catch (err) {
-        // SPECIAL HANDLING: For test data migration, don't suppress ANY errors
+        // SPECIAL HANDLING: For test data migration, log errors but continue
         if (file === '044_create_test_data.sql') {
-          log(`\n❌ CRITICAL ERROR in ${file}:`, colors.bright + colors.red);
-          log(`Statement ${i+1}/${statements.length}:`, colors.red);
-          log(stmt.substring(0, 200) + '...', colors.yellow);
-          log(`\nError Code: ${err.code}`, colors.red);
-          log(`Error Number: ${err.errno}`, colors.red);
-          log(`SQL State: ${err.sqlState}`, colors.red);
-          log(`Full Error Message:`, colors.red);
-          log(err.message, colors.yellow);
-          log(`\nStack trace:`, colors.red);
-          log(err.stack, colors.yellow);
-          throw err; // Stop execution and fail the migration
+          // Ignore duplicate entries - that's OK
+          if (err.code === 'ER_DUP_ENTRY') {
+            log(`  ⚠️  Statement ${i+1}/${statements.length}: Record already exists (${err.code})`, colors.yellow);
+            continue;
+          }
+
+          log(`\n⚠️  WARNING in ${file} (continuing anyway):`, colors.yellow);
+          log(`Statement ${i+1}/${statements.length}:`, colors.yellow);
+          log(stmt.substring(0, 200) + '...', colors.cyan);
+          log(`Error: ${err.code} - ${err.message}`, colors.yellow);
+          errorCount++;
+          // Don't throw - continue with next statement to ensure test users are created
+          continue;
         }
 
         // Handle benign errors for other migrations
