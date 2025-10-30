@@ -77,14 +77,13 @@ export const createSession = async (userId, ipAddress, userAgent) => {
     try {
         const sessionToken = crypto.randomBytes(32).toString('hex');
         const csrfToken = generateCSRFToken();
-        const expiresAt = new Date();
-        expiresAt.setHours(expiresAt.getHours() + 24); // 24-hour session
 
+        // Use MySQL's NOW() + INTERVAL to avoid timezone mismatches
         await pool.query(
-            `INSERT INTO user_sessions 
+            `INSERT INTO user_sessions
              (id, user_id, session_token, csrf_token, ip_address, user_agent, expires_at)
-             VALUES (UUID(), ?, ?, ?, ?, ?, ?)`,
-            [userId, sessionToken, csrfToken, ipAddress, userAgent, expiresAt]
+             VALUES (UUID(), ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR))`,
+            [userId, sessionToken, csrfToken, ipAddress, userAgent]
         );
 
         return { sessionToken, csrfToken };
