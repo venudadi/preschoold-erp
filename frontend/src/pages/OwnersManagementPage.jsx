@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { 
-  Box, Typography, Grid, Card, CardContent, TextField, Button, Alert, 
+import {
+  Box, Typography, Grid, Card, CardContent, TextField, Button, Alert,
   Checkbox, FormControlLabel, FormGroup, Divider, CircularProgress, Chip,
   Select, MenuItem, FormControl, InputLabel, IconButton, Dialog, DialogTitle,
   DialogContent, DialogActions, List, ListItem, ListItemText, ListItemSecondaryAction,
   Switch, Tooltip, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 import { Edit, Delete, PersonAdd, Security, ToggleOn, ToggleOff } from '@mui/icons-material';
-import { getOwners, createOwner, getOwnerCenters, updateOwnerCenters, getAllCenters } from '../services/api';
+import api, { getOwners, createOwner, getOwnerCenters, updateOwnerCenters, getAllCenters } from '../services/api';
 
 const UserManagementPage = () => {
   const [users, setUsers] = useState([]);
@@ -36,21 +36,8 @@ const UserManagementPage = () => {
   // Load available roles from backend
   const loadRoles = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const sessionToken = localStorage.getItem('sessionToken');
-      const csrfToken = localStorage.getItem('csrfToken');
-
-      const response = await fetch('/api/owners/roles', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-Session-Token': sessionToken,
-          'X-CSRF-Token': csrfToken
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAvailableRoles(data.roles);
-      }
+      const response = await api.get('/owners/roles');
+      setAvailableRoles(response.data.roles);
     } catch (e) {
       console.error('Failed to load roles', e);
     }
@@ -84,24 +71,12 @@ const UserManagementPage = () => {
     setError('');
     setSuccess('');
     try {
-      const response = await fetch('/api/owners', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(form)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create user');
-      }
-      
-      setForm({ 
-        fullName: '', 
-        email: '', 
-        password: '', 
+      await api.post('/owners', form);
+
+      setForm({
+        fullName: '',
+        email: '',
+        password: '',
         role: '',
         centerId: '',
         phoneNumber: '',
@@ -110,7 +85,7 @@ const UserManagementPage = () => {
       setSuccess('User created successfully!');
       await load();
     } catch (e) {
-      setError(e?.message || 'Failed to create user');
+      setError(e?.response?.data?.message || e?.message || 'Failed to create user');
     } finally {
       setSaving(false);
     }
@@ -129,34 +104,22 @@ const UserManagementPage = () => {
     setError('');
     setSuccess('');
     try {
-      const response = await fetch(`/api/owners/${editingUser.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          fullName: editingUser.full_name,
-          email: editingUser.email,
-          role: editingUser.role,
-          centerId: editingUser.centerId || null,
-          phoneNumber: editingUser.phone_number,
-          jobTitle: editingUser.job_title,
-          isActive: editingUser.is_active
-        })
+      await api.put(`/owners/${editingUser.id}`, {
+        fullName: editingUser.full_name,
+        email: editingUser.email,
+        role: editingUser.role,
+        centerId: editingUser.centerId || null,
+        phoneNumber: editingUser.phone_number,
+        jobTitle: editingUser.job_title,
+        isActive: editingUser.is_active
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update user');
-      }
-      
+
       setSuccess('User updated successfully!');
       setEditDialogOpen(false);
       setEditingUser(null);
       await load();
     } catch (e) {
-      setError(e?.message || 'Failed to update user');
+      setError(e?.response?.data?.message || e?.message || 'Failed to update user');
     } finally {
       setSaving(false);
     }
@@ -167,22 +130,12 @@ const UserManagementPage = () => {
     setError('');
     setSuccess('');
     try {
-      const response = await fetch(`/api/owners/${userId}/toggle-status`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to toggle user status');
-      }
-      
+      await api.put(`/owners/${userId}/toggle-status`);
+
       setSuccess(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
       await load();
     } catch (e) {
-      setError(e?.message || 'Failed to toggle user status');
+      setError(e?.response?.data?.message || e?.message || 'Failed to toggle user status');
     } finally {
       setSaving(false);
     }
@@ -193,21 +146,11 @@ const UserManagementPage = () => {
     setError('');
     setSuccess('');
     try {
-      const response = await fetch(`/api/owners/${userId}/reset-password`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to force password reset');
-      }
-      
+      await api.put(`/owners/${userId}/reset-password`);
+
       setSuccess(`Password reset flag set for ${userName}. They will be required to reset their password on next login.`);
     } catch (e) {
-      setError(e?.message || 'Failed to force password reset');
+      setError(e?.response?.data?.message || e?.message || 'Failed to force password reset');
     } finally {
       setSaving(false);
     }

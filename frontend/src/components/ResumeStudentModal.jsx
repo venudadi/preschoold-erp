@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { PlayArrow, DateRange, AccessTime } from '@mui/icons-material';
 import dayjs from 'dayjs';
-import axios from 'axios';
+import api from '../services/api';
 
 const ResumeStudentModal = ({ open, onClose, student, onSuccess }) => {
     const [notes, setNotes] = useState('');
@@ -28,24 +28,7 @@ const ResumeStudentModal = ({ open, onClose, student, onSuccess }) => {
         setError('');
 
         try {
-            const token = localStorage.getItem('token');
-            const sessionToken = localStorage.getItem('sessionToken');
-
-            if (!token || !sessionToken) {
-                throw new Error('Authentication tokens not found');
-            }
-
-            await axios.patch(
-                `http://localhost:5000/api/students/${student.id}/resume`,
-                { notes },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'X-Session-Token': sessionToken,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
+            await api.patch(`/students/${student.id}/resume`, { notes });
 
             onSuccess({
                 type: 'success',

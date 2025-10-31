@@ -33,7 +33,7 @@ import {
 } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import dayjs from 'dayjs';
-import axios from 'axios';
+import api from '../services/api';
 import ResumeStudentModal from './ResumeStudentModal';
 
 const PausedStudentsView = ({ centerId, onStudentResumed }) => {
@@ -53,21 +53,8 @@ const PausedStudentsView = ({ centerId, onStudentResumed }) => {
         setLoading(true);
         setError('');
         try {
-            const token = localStorage.getItem('token');
-            const sessionToken = localStorage.getItem('sessionToken');
-
-            if (!token || !sessionToken) {
-                throw new Error('Authentication tokens not found');
-            }
-
             const params = centerId ? { center_id: centerId } : {};
-            const response = await axios.get('http://localhost:5000/api/students/paused', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'X-Session-Token': sessionToken
-                },
-                params
-            });
+            const response = await api.get('/students/paused', { params });
 
             setPausedStudents(response.data);
         } catch (err) {

@@ -17,7 +17,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
-import axios from 'axios';
+import api from '../services/api';
 
 const PauseStudentModal = ({ open, onClose, student, onSuccess }) => {
     const [formData, setFormData] = useState({
@@ -35,13 +35,6 @@ const PauseStudentModal = ({ open, onClose, student, onSuccess }) => {
         setError('');
 
         try {
-            const token = localStorage.getItem('token');
-            const sessionToken = localStorage.getItem('sessionToken');
-
-            if (!token || !sessionToken) {
-                throw new Error('Authentication tokens not found');
-            }
-
             const payload = {
                 pause_start_date: formData.pause_start_date.format('YYYY-MM-DD'),
                 pause_end_date: formData.pause_end_date.format('YYYY-MM-DD'),
@@ -49,17 +42,7 @@ const PauseStudentModal = ({ open, onClose, student, onSuccess }) => {
                 notes: formData.notes
             };
 
-            await axios.patch(
-                `http://localhost:5000/api/students/${student.id}/pause`,
-                payload,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'X-Session-Token': sessionToken,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
+            await api.patch(`/students/${student.id}/pause`, payload);
 
             onSuccess({
                 type: 'success',
