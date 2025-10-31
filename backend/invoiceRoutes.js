@@ -119,18 +119,18 @@ router.post('/generate-monthly', async (req, res) => {
                 fs.id as fee_structure_id,
                 fs.monthly_fee,
                 fs.program_name,
-                p.first_name as parent_first_name,
-                p.last_name as parent_last_name,
-                p.phone_number,
-                p.email
+                par.first_name as parent_first_name,
+                par.last_name as parent_last_name,
+                par.phone_number,
+                par.email
             FROM children c
             JOIN classrooms cl ON c.classroom_id = cl.id
             JOIN fee_structures fs ON cl.id = fs.classroom_id
-            JOIN parent_child_links pcl ON c.id = pcl.child_id
-            JOIN parents p ON pcl.parent_id = p.id
+            JOIN parents p ON c.id = p.child_id
+            JOIN parents par ON p.user_id = par.id
             WHERE c.center_id = ?
             AND c.created_at <= CURDATE()
-            AND pcl.relation_to_child = 'Father'  -- Primary parent for billing
+            AND p.relation_to_child = 'Father'  -- Primary parent for billing
             AND fs.billing_frequency = 'Monthly'
             AND fs.is_active = 1
         `, [centerId]);
@@ -265,9 +265,9 @@ router.get('/', protect, async (req, res) => {
             SELECT
                 i.id,
                 i.invoice_number,
-                CONCAT(p.first_name, ' ', p.last_name) as parent_name,
-                p.phone_number as parent_phone,
-                p.email as parent_email,
+                CONCAT(par.first_name, ' ', par.last_name) as parent_name,
+                par.phone_number as parent_phone,
+                par.email as parent_email,
                 i.created_at as issue_date,
                 DATE_ADD(i.created_at, INTERVAL 30 DAY) as due_date,
                 i.total_amount,
@@ -280,8 +280,8 @@ router.get('/', protect, async (req, res) => {
             FROM invoices i
             JOIN children c ON i.child_id = c.id
             JOIN classrooms cl ON c.classroom_id = cl.id
-            LEFT JOIN parent_child_links pcl ON c.id = pcl.child_id
-            LEFT JOIN parents p ON pcl.parent_id = p.id
+            LEFT JOIN parents p ON c.id = p.child_id
+            LEFT JOIN parents par ON p.user_id = par.id
             WHERE ${whereClause}
             ORDER BY i.created_at DESC
             LIMIT ? OFFSET ?

@@ -205,10 +205,10 @@ app.use('/analytics', analyticsRoutes);
 app.get('/staff', protect, requireRole(['super_admin', 'owner', 'center_director', 'admin', 'academic_coordinator', 'teacher']), async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT u.id, u.email, u.first_name, u.last_name, u.phone_number, u.role, u.is_active
+      `SELECT u.id, u.email, u.full_name, u.role, u.is_active
        FROM users u
        WHERE u.center_id = ? AND u.role IN ('admin', 'teacher', 'owner', 'academic_coordinator', 'center_director')
-       ORDER BY u.first_name, u.last_name`,
+       ORDER BY u.full_name`,
       [req.user.center_id || req.query.centerId]
     );
     res.json(rows);

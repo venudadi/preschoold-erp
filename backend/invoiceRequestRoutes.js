@@ -46,9 +46,9 @@ router.post('/', protect, checkRole(['admin', 'owner']), asyncHandler(async (req
 router.get('/', protect, checkRole(['financial_manager', 'super_admin']), asyncHandler(async (req, res) => {
     const requests = await safeDbOperation(async () => {
         const [results] = await pool.query(
-            `SELECT ir.*, c.first_name as child_name, 
-                    CONCAT(u.first_name, ' ', u.last_name) as requested_by_name,
-                    CONCAT(reviewer.first_name, ' ', reviewer.last_name) as reviewed_by_name
+            `SELECT ir.*, c.first_name as child_name,
+                    u.full_name as requested_by_name,
+                    reviewer.full_name as reviewed_by_name
              FROM invoice_requests ir
              LEFT JOIN children c ON ir.child_id = c.id
              LEFT JOIN users u ON ir.requested_by = u.id

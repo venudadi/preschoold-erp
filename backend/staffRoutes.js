@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/center/:centerId', protect, async (req, res) => {
     try {
         const [staff] = await pool.query(
-            `SELECT sp.*, u.email, u.first_name, u.last_name 
+            `SELECT sp.*, u.email, u.full_name
              FROM staff_profiles sp
              JOIN users u ON sp.user_id = u.id
              WHERE sp.center_id = ?`,
@@ -25,17 +25,17 @@ router.get('/center/:centerId', protect, async (req, res) => {
 router.get('/:staffId', protect, async (req, res) => {
     try {
         const [staff] = await pool.query(
-            `SELECT sp.*, u.email, u.first_name, u.last_name 
+            `SELECT sp.*, u.email, u.full_name
              FROM staff_profiles sp
              JOIN users u ON sp.user_id = u.id
              WHERE sp.id = ?`,
             [req.params.staffId]
         );
-        
+
         if (staff.length === 0) {
             return res.status(404).json({ message: 'Staff member not found' });
         }
-        
+
         res.json(staff[0]);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -48,7 +48,7 @@ router.post('/', protect, async (req, res) => {
     try {
         await connection.beginTransaction();
         
-        const { 
+        const {
             email, password, first_name, last_name, role,
             center_id, employee_id, date_of_birth, joining_date,
             designation, department, education_qualification,
@@ -59,9 +59,9 @@ router.post('/', protect, async (req, res) => {
         // Create user account
         const userId = uuidv4();
         await connection.query(
-            `INSERT INTO users (id, email, password, first_name, last_name, role, center_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [userId, email, password, first_name, last_name, role, center_id]
+            `INSERT INTO users (id, email, password, full_name, role, center_id)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [userId, email, password, `${first_name} ${last_name}`, role, center_id]
         );
 
         // Create staff profile
@@ -334,14 +334,14 @@ router.post('/:staffId/reviews', protect, async (req, res) => {
 router.get('/:staffId/reviews', protect, async (req, res) => {
     try {
         const [reviews] = await pool.query(
-            `SELECT r.*, u.first_name, u.last_name 
+            `SELECT r.*, u.full_name
              FROM staff_performance_reviews r
              JOIN users u ON r.reviewer_id = u.id
              WHERE r.staff_id = ?
              ORDER BY r.review_period_end DESC`,
             [req.params.staffId]
         );
-        
+
         res.json(reviews);
     } catch (error) {
         res.status(500).json({ message: error.message });

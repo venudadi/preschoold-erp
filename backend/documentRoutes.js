@@ -135,8 +135,8 @@ router.get('/', protect, async (req, res) => {
     try {
         const { category_id, center_id, status } = req.query;
         let query = `
-            SELECT d.*, dc.name as category_name, 
-                   u.first_name, u.last_name,
+            SELECT d.*, dc.name as category_name,
+                   u.full_name,
                    COUNT(DISTINCT dv.id) as version_count,
                    COUNT(DISTINCT dc2.id) as comment_count
             FROM documents d
@@ -172,7 +172,7 @@ router.get('/:id', protect, async (req, res) => {
     try {
         const [document] = await pool.query(
             `SELECT d.*, dc.name as category_name,
-                    u.first_name, u.last_name
+                    u.full_name
              FROM documents d
              LEFT JOIN document_categories dc ON d.category_id = dc.id
              LEFT JOIN users u ON d.uploaded_by = u.id
@@ -318,7 +318,7 @@ router.post('/:id/comments', protect, async (req, res) => {
 router.get('/:id/comments', protect, async (req, res) => {
     try {
         const [comments] = await pool.query(
-            `SELECT c.*, u.first_name, u.last_name 
+            `SELECT c.*, u.full_name
              FROM document_comments c
              JOIN users u ON c.user_id = u.id
              WHERE c.document_id = ?

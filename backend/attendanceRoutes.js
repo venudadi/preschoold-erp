@@ -70,18 +70,18 @@ router.post('/mark', protect, async (req, res) => {
 
             if (settings[0]?.notify_parents_on_absent) {
                 const notificationId = uuidv4();
-                // Get parent ID from parent_child_links junction table
+                // Get parent ID from parents table
                 const [result] = await pool.query(
-                    'SELECT parent_id FROM parent_child_links WHERE child_id = ? LIMIT 1',
+                    'SELECT user_id FROM parents WHERE child_id = ? LIMIT 1',
                     [child_id]
                 );
 
-                if (result[0]?.parent_id) {
+                if (result[0]?.user_id) {
                     await pool.query(
                         `INSERT INTO attendance_notifications
                          (id, attendance_id, parent_id, type)
                          VALUES (?, ?, ?, ?)`,
-                        [notificationId, id, result[0].parent_id, 'absent']
+                        [notificationId, id, result[0].user_id, 'absent']
                     );
                 }
             }

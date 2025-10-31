@@ -19,7 +19,7 @@ class TwoFactorController {
 
             // Get user info
             const [users] = await pool.query(
-                'SELECT email, first_name FROM users WHERE id = ?',
+                'SELECT email, full_name FROM users WHERE id = ?',
                 [userId]
             );
 
@@ -152,7 +152,7 @@ class TwoFactorController {
 
             // Get 2FA session
             const [sessions] = await pool.query(
-                `SELECT tfs.*, u.two_fa_secret, u.two_fa_backup_codes, u.email, u.first_name, u.role
+                `SELECT tfs.*, u.two_fa_secret, u.two_fa_backup_codes, u.email, u.full_name, u.role
                  FROM two_fa_sessions tfs
                  JOIN users u ON tfs.user_id = u.id
                  WHERE tfs.session_token = ?
@@ -237,7 +237,7 @@ class TwoFactorController {
                 user: {
                     id: session.user_id,
                     email: session.email,
-                    firstName: session.first_name,
+                    fullName: session.full_name,
                     role: session.role
                 },
                 message: usedBackupCode

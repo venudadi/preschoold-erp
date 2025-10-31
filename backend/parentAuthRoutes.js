@@ -138,27 +138,25 @@ router.post('/register',
             }, 'USER');
 
             await conn.query(`
-                INSERT INTO users (id, first_name, last_name, email, password, phone_number, role, center_id, is_active, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, 'parent', ?, 1, NOW())
+                INSERT INTO users (id, full_name, email, password, role, center_id, is_active, created_at)
+                VALUES (?, ?, ?, ?, 'parent', ?, 1, NOW())
             `, [
                 userId,
-                encryptedUserData.first_name,
-                encryptedUserData.last_name,
+                `${firstName} ${lastName}`,
                 encryptedUserData.email,
                 hashedPassword,
-                encryptedUserData.phone_number,
                 child.center_id
             ]);
 
             // 5. Create parent-child relationship if it doesn't exist
             const [existingRelation] = await conn.query(
-                'SELECT 1 FROM parent_child_links WHERE parent_id = ? AND child_id = ?',
+                'SELECT 1 FROM parents WHERE user_id = ? AND child_id = ?',
                 [parentId, child.id]
             );
 
             if (existingRelation.length === 0) {
                 await conn.query(`
-                    INSERT INTO parent_child_links (parent_id, child_id, relation_to_child, created_at)
+                    INSERT INTO parents (user_id, child_id, relation_to_child, created_at)
                     VALUES (?, ?, 'parent', NOW())
                 `, [parentId, child.id]);
             }
@@ -248,7 +246,7 @@ router.post('/login',
 
             // 1. Find user account
             const [userResults] = await pool.query(`
-                SELECT u.id, u.first_name, u.last_name, u.email, u.password, u.phone_number, 
+                SELECT u.id, u.full_name, u.email, u.password,
                        u.role, u.center_id, u.parent_id, u.is_active,
                        u.last_login, u.failed_login_attempts, u.locked_until
                 FROM users u
@@ -312,11 +310,11 @@ router.post('/login',
 
             const [childrenResults] = await pool.query(`
                 SELECT c.id, c.first_name, c.last_name, c.date_of_birth, c.gender,
-                       cl.name as classroom_name, pcl.relation_to_child
+                       cl.name as classroom_name, p.relation_to_child
                 FROM children c
                 LEFT JOIN classrooms cl ON c.classroom_id = cl.id
-                INNER JOIN parent_child_links pcl ON c.id = pcl.child_id
-                WHERE pcl.parent_id = ? AND c.is_active = 1
+                INNER JOIN parents p ON c.id = p.child_id
+                WHERE p.user_id = ? AND c.is_active = 1
             `, [user.parent_id]);
 
             // 7. Decrypt sensitive data
@@ -342,9 +340,8 @@ router.post('/login',
                 token,
                 user: {
                     id: decryptedUser.id,
-                    fullName: `${decryptedUser.first_name} ${decryptedUser.last_name}`,
+                    fullName: decryptedUser.full_name,
                     email: decryptedUser.email,
-                    phone: decryptedUser.phone_number,
                     role: decryptedUser.role,
                     parentId: user.parent_id,
                     centerId: user.center_id,
@@ -397,9 +394,8 @@ router.post('/request-verification-code',
             const [childResults] = await pool.query(`
                 SELECT c.id, c.first_name, c.last_name, c.verification_code
                 FROM children c
-                INNER JOIN parent_child_links pcl ON c.id = pcl.child_id
-                INNER JOIN parents p ON pcl.parent_id = p.id
-                WHERE c.first_name LIKE ? AND c.last_name LIKE ? 
+                INNER JOIN parents p ON c.id = p.child_id
+                WHERE c.first_name LIKE ? AND c.last_name LIKE ?
                 AND c.date_of_birth = ? AND p.phone_number LIKE ?
                 AND c.is_active = 1
             `, [`%${childFirstName}%`, `%${childLastName}%`, dateOfBirth, `%${parentPhone}%`]);

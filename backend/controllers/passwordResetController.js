@@ -178,7 +178,7 @@ class PasswordResetController {
 
             // Find the reset token
             const [resetTokens] = await pool.execute(
-                `SELECT prt.*, u.first_name, u.last_name
+                `SELECT prt.*, u.full_name
                  FROM password_reset_tokens prt
                  JOIN users u ON prt.user_id = u.id
                  WHERE prt.email = ? AND prt.challenge_code = ? AND prt.id = ?
@@ -250,7 +250,7 @@ class PasswordResetController {
                 action: 'reset_password',
                 resetToken: passwordResetToken,
                 resetId: resetToken.id,
-                userName: resetToken.first_name || email.split('@')[0]
+                userName: resetToken.full_name || email.split('@')[0]
             });
 
         } catch (error) {
@@ -282,7 +282,7 @@ class PasswordResetController {
 
             // Find and verify the reset token
             const [resetTokens] = await pool.execute(
-                `SELECT prt.*, u.id as user_id, u.first_name, u.last_name
+                `SELECT prt.*, u.id as user_id, u.full_name
                  FROM password_reset_tokens prt
                  JOIN users u ON prt.user_id = u.id
                  WHERE prt.id = ? AND prt.email = ? AND prt.is_used = FALSE`,
@@ -360,7 +360,7 @@ class PasswordResetController {
                 // Send confirmation email
                 await emailService.sendPasswordResetConfirmation(
                     email,
-                    tokenRecord.first_name || email.split('@')[0]
+                    tokenRecord.full_name || email.split('@')[0]
                 );
 
                 res.status(200).json({

@@ -77,9 +77,9 @@ router.post('/convert/:enquiryId', protect, async (req, res) => {
                     ]);
                 }
 
-                // Step 4b: Create the link in the junction table
+                // Step 4b: Create the link in the parents table
                 const insertLinkSql = `
-                    INSERT INTO parent_child_links (parent_id, child_id, relation_to_child)
+                    INSERT INTO parents (user_id, child_id, relation_to_child)
                     VALUES (?, ?, ?)
                 `;
                 await connection.query(insertLinkSql, [parentId, childId, parent.relation]);

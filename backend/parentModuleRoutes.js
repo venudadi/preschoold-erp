@@ -42,10 +42,10 @@ router.get('/my-children', protect, async (req, res) => {
         ctr.address AS center_address,
         ctr.phone AS center_phone
       FROM children c
-      LEFT JOIN parent_child_links pcl ON c.id = pcl.child_id
+      LEFT JOIN parents p ON c.id = p.child_id
       LEFT JOIN classrooms cls ON c.classroom_id = cls.id
       LEFT JOIN centers ctr ON c.center_id = ctr.id
-      WHERE pcl.parent_id = ? AND c.status IN ('active', 'paused')
+      WHERE p.user_id = ? AND c.status IN ('active', 'paused')
       ORDER BY c.first_name, c.last_name
     `;
 
