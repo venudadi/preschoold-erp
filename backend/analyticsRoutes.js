@@ -47,13 +47,13 @@ router.get('/overview', async (req, res) => {
 
         // Get overview metrics
         const [overview] = await pool.query(`
-            SELECT 
+            SELECT
                 (SELECT COUNT(*) FROM children ${filterClause}) as total_students,
                 (SELECT COUNT(*) FROM users WHERE role IN ('admin', 'teacher') AND (? IS NULL OR center_id = ?)) as total_staff,
                 (SELECT COUNT(*) FROM invoices WHERE status = 'Pending' AND (? IS NULL OR center_id = ?)) as pending_invoices,
                 (SELECT COUNT(*) FROM enquiries WHERE status = 'Open' AND (? IS NULL OR center_id = ?)) as open_enquiries,
                 (SELECT COUNT(*) FROM classrooms ${filterClause}) as total_classrooms,
-                (SELECT SUM(total_amount) FROM invoices WHERE status = 'Paid' AND MONTH(issue_date) = MONTH(CURRENT_DATE()) AND (? IS NULL OR center_id = ?)) as monthly_revenue
+                (SELECT SUM(total_amount) FROM invoices WHERE status = 'Paid' AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND (? IS NULL OR center_id = ?)) as monthly_revenue
         `, [...filterParams, ...filterParams, ...filterParams, ...filterParams, ...filterParams, ...filterParams]);
 
         res.status(200).json(overview[0]);
@@ -239,15 +239,15 @@ router.get('/financial-overview', async (req, res) => {
 
         // Revenue trends (last 12 months)
         const [revenueData] = await pool.query(`
-            SELECT 
-                DATE_FORMAT(issue_date, '%Y-%m') as month,
+            SELECT
+                DATE_FORMAT(created_at, '%Y-%m') as month,
                 SUM(CASE WHEN status = 'Paid' THEN total_amount ELSE 0 END) as paid_amount,
                 SUM(CASE WHEN status = 'Pending' THEN total_amount ELSE 0 END) as pending_amount,
                 SUM(CASE WHEN status = 'Overdue' THEN total_amount ELSE 0 END) as overdue_amount
-            FROM invoices 
+            FROM invoices
             ${invFilter}
-            AND issue_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
-            GROUP BY DATE_FORMAT(issue_date, '%Y-%m')
+            AND created_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
             ORDER BY month
         `, invParams);
 
@@ -279,14 +279,14 @@ router.get('/financial-overview', async (req, res) => {
 
         // Collection efficiency
         const [collectionData] = await pool.query(`
-            SELECT 
+            SELECT
                 COUNT(*) as total_invoices,
                 SUM(total_amount) as total_amount,
                 SUM(CASE WHEN status = 'Paid' THEN total_amount ELSE 0 END) as collected_amount,
                 ROUND((SUM(CASE WHEN status = 'Paid' THEN total_amount ELSE 0 END) / SUM(total_amount)) * 100, 2) as collection_rate
-            FROM invoices 
+            FROM invoices
             ${invFilter}
-            AND issue_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
+            AND created_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 MONTH)
         `, invParams);
 
         res.status(200).json({
@@ -310,13 +310,13 @@ router.get('/center-comparison', async (req, res) => {
     
     try {
         const [centerComparison] = await pool.query(`
-            SELECT 
+            SELECT
                 c.name as center_name,
                 c.id as center_id,
                 COUNT(DISTINCT ch.id) as total_students,
                 COUNT(DISTINCT cl.id) as total_classrooms,
                 COUNT(DISTINCT u.id) as total_staff,
-                COALESCE(SUM(CASE WHEN i.status = 'Paid' AND MONTH(i.issue_date) = MONTH(CURRENT_DATE()) THEN i.total_amount ELSE 0 END), 0) as monthly_revenue,
+                COALESCE(SUM(CASE WHEN i.status = 'Paid' AND MONTH(i.created_at) = MONTH(CURRENT_DATE()) THEN i.total_amount ELSE 0 END), 0) as monthly_revenue,
                 COALESCE(COUNT(CASE WHEN e.status = 'Closed' AND MONTH(e.created_at) = MONTH(CURRENT_DATE()) THEN 1 END), 0) as monthly_conversions
             FROM centers c
             LEFT JOIN children ch ON c.id = ch.center_id

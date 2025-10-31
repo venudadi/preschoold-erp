@@ -1,7 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { body } from 'express-validator';
-import connection from './db.js';
+import pool from './db.js';
 import { 
     rateLimiters, 
     validateInput, 
@@ -42,7 +42,7 @@ router.post('/register',
         try {
             const { email, password, phone, firstName, lastName, childVerificationCode } = req.body;
             
-            conn = await connection.getConnection();
+            conn = await pool.getConnection();
             await conn.beginTransaction();
 
             // 1. Verify child verification code and get child details
@@ -247,7 +247,7 @@ router.post('/login',
             const { email, password } = req.body;
 
             // 1. Find user account
-            const [userResults] = await connection.query(`
+            const [userResults] = await pool.query(`
                 SELECT u.id, u.first_name, u.last_name, u.email, u.password, u.phone_number, 
                        u.role, u.center_id, u.parent_id, u.is_active,
                        u.last_login, u.failed_login_attempts, u.locked_until
@@ -284,8 +284,8 @@ router.post('/login',
                 const failedAttempts = (user.failed_login_attempts || 0) + 1;
                 const lockUntil = failedAttempts >= 5 ? new Date(Date.now() + 30 * 60 * 1000) : null; // Lock for 30 minutes after 5 failed attempts
 
-                await connection.query(`
-                    UPDATE users 
+                await pool.query(`
+                    UPDATE users
                     SET failed_login_attempts = ?, locked_until = ?
                     WHERE id = ?
                 `, [failedAttempts, lockUntil, user.id]);
@@ -297,20 +297,20 @@ router.post('/login',
             }
 
             // 5. Reset failed login attempts and update last login
-            await connection.query(`
-                UPDATE users 
+            await pool.query(`
+                UPDATE users
                 SET failed_login_attempts = 0, locked_until = NULL, last_login = NOW()
                 WHERE id = ?
             `, [user.id]);
 
             // 6. Get parent and children information
-            const [parentResults] = await connection.query(`
+            const [parentResults] = await pool.query(`
                 SELECT p.id, p.first_name, p.last_name, p.email, p.phone_number
                 FROM parents p
                 WHERE p.id = ?
             `, [user.parent_id]);
 
-            const [childrenResults] = await connection.query(`
+            const [childrenResults] = await pool.query(`
                 SELECT c.id, c.first_name, c.last_name, c.date_of_birth, c.gender,
                        cl.name as classroom_name, pcl.relation_to_child
                 FROM children c
@@ -394,7 +394,7 @@ router.post('/request-verification-code',
             const { childFirstName, childLastName, parentPhone, dateOfBirth } = req.body;
 
             // Find child by name, DOB and verify parent phone is in records
-            const [childResults] = await connection.query(`
+            const [childResults] = await pool.query(`
                 SELECT c.id, c.first_name, c.last_name, c.verification_code
                 FROM children c
                 INNER JOIN parent_child_links pcl ON c.id = pcl.child_id
@@ -417,8 +417,8 @@ router.post('/request-verification-code',
             if (!verificationCode) {
                 verificationCode = generateToken(4).toUpperCase(); // 8-character alphanumeric code
                 
-                await connection.query(`
-                    UPDATE children 
+                await pool.query(`
+                    UPDATE children
                     SET verification_code = ?, verification_code_expires = DATE_ADD(NOW(), INTERVAL 24 HOUR)
                     WHERE id = ?
                 `, [verificationCode, child.id]);
@@ -458,7 +458,7 @@ router.post('/change-password',
             const userId = req.user.id;
 
             // Get current password hash
-            const [userResults] = await connection.query(
+            const [userResults] = await pool.query(
                 'SELECT password FROM users WHERE id = ? AND role = "parent"',
                 [userId]
             );
@@ -478,7 +478,7 @@ router.post('/change-password',
 
 
             // Update password and clear must_reset_password flag
-            await connection.query(
+            await pool.query(
                 'UPDATE users SET password = ?, must_reset_password = 0, updated_at = NOW() WHERE id = ?',
                 [hashedNewPassword, userId]
             );
