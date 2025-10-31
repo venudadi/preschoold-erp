@@ -3,45 +3,12 @@
  * Handles forgot password API calls
  */
 
-import axios from 'axios';
-import { apiCall, handleApiResponse, APIError } from '../utils/errorHandler.js';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+import api from './api';
 
 class PasswordResetAPI {
     constructor() {
-        this.apiClient = axios.create({
-            baseURL: `${API_BASE_URL}/api/auth`,
-            timeout: 10000,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        // Request interceptor
-        this.apiClient.interceptors.request.use(
-            (config) => {
-                console.log(`🔄 API Request: ${config.method?.toUpperCase()} ${config.url}`);
-                return config;
-            },
-            (error) => {
-                console.error('❌ Request interceptor error:', error);
-                return Promise.reject(error);
-            }
-        );
-
-        // Response interceptor
-        this.apiClient.interceptors.response.use(
-            (response) => {
-                console.log(`✅ API Response: ${response.status} ${response.config.url}`);
-                return response;
-            },
-            (error) => {
-                const errorMessage = error.response?.data?.error || error.message;
-                console.error(`❌ API Error: ${error.response?.status || 'Network'} - ${errorMessage}`);
-                return Promise.reject(error);
-            }
-        );
+        // Use the shared API instance for consistency
+        this.apiClient = api;
     }
 
     /**
@@ -51,7 +18,7 @@ class PasswordResetAPI {
      */
     async requestPasswordReset(email) {
         try {
-            const response = await this.apiClient.post('/forgot-password', { email });
+            const response = await this.apiClient.post('/auth/forgot-password', { email });
             return {
                 success: true,
                 data: response.data,
@@ -72,7 +39,7 @@ class PasswordResetAPI {
      */
     async verifyResetCode(email, challengeCode, resetId) {
         try {
-            const response = await this.apiClient.post('/verify-reset-code', {
+            const response = await this.apiClient.post('/auth/verify-reset-code', {
                 email,
                 challengeCode: challengeCode.toUpperCase(),
                 resetId
@@ -98,7 +65,7 @@ class PasswordResetAPI {
      */
     async resetPassword(email, newPassword, resetToken, resetId) {
         try {
-            const response = await this.apiClient.post('/reset-password', {
+            const response = await this.apiClient.post('/auth/reset-password', {
                 email,
                 newPassword,
                 resetToken,
@@ -120,7 +87,7 @@ class PasswordResetAPI {
      */
     async getResetStatus(resetId) {
         try {
-            const response = await this.apiClient.get(`/reset-status/${resetId}`);
+            const response = await this.apiClient.get(`/auth/reset-status/${resetId}`);
             return {
                 success: true,
                 data: response.data
@@ -144,7 +111,7 @@ class PasswordResetAPI {
         }
 
         try {
-            const response = await this.apiClient.post('/test-email', { email });
+            const response = await this.apiClient.post('/auth/test-email', { email });
             return {
                 success: true,
                 data: response.data
@@ -164,9 +131,9 @@ class PasswordResetAPI {
         const response = error.response;
         const data = response?.data;
 
-        // Extract error information
+        // Extract error information - handle different error formats
         const errorCode = data?.code || 'UNKNOWN_ERROR';
-        const errorMessage = data?.error || error.message || defaultMessage;
+        const errorMessage = data?.message || data?.error || error.message || defaultMessage;
         const statusCode = response?.status || 0;
 
         // Log error for debugging
@@ -177,9 +144,10 @@ class PasswordResetAPI {
             url: error.config?.url
         });
 
+        // Return error as string for React to render
         return {
             success: false,
-            error: errorMessage,
+            error: typeof errorMessage === 'string' ? errorMessage : defaultMessage,
             code: errorCode,
             status: statusCode,
             details: data?.details || null

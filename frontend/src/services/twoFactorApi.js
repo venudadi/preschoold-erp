@@ -3,49 +3,12 @@
  * Handles all 2FA-related API calls
  */
 
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+import api from './api';
 
 class TwoFactorAPI {
     constructor() {
-        this.apiClient = axios.create({
-            baseURL: `${API_BASE_URL}/api/auth`,
-            timeout: 15000,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        // Request interceptor - add auth token
-        this.apiClient.interceptors.request.use(
-            (config) => {
-                const token = localStorage.getItem('token');
-                if (token) {
-                    config.headers['Authorization'] = `Bearer ${token}`;
-                }
-
-                console.log(`🔄 2FA API Request: ${config.method?.toUpperCase()} ${config.url}`);
-                return config;
-            },
-            (error) => {
-                console.error('❌ 2FA Request error:', error);
-                return Promise.reject(error);
-            }
-        );
-
-        // Response interceptor
-        this.apiClient.interceptors.response.use(
-            (response) => {
-                console.log(`✅ 2FA API Response: ${response.status} ${response.config.url}`);
-                return response;
-            },
-            (error) => {
-                const errorMessage = error.response?.data?.error || error.message;
-                console.error(`❌ 2FA API Error: ${error.response?.status || 'Network'} - ${errorMessage}`);
-                return Promise.reject(error);
-            }
-        );
+        // Use the shared API instance for consistency
+        this.apiClient = api;
     }
 
     /**
@@ -54,7 +17,7 @@ class TwoFactorAPI {
      */
     async setup2FA() {
         try {
-            const response = await this.apiClient.get('/2fa/setup');
+            const response = await this.apiClient.get('/auth/2fa/setup');
             return {
                 success: true,
                 data: response.data
@@ -71,7 +34,7 @@ class TwoFactorAPI {
      */
     async verifyAndEnable2FA(token) {
         try {
-            const response = await this.apiClient.post('/2fa/verify-setup', { token });
+            const response = await this.apiClient.post('/auth/2fa/verify-setup', { token });
             return {
                 success: true,
                 data: response.data
@@ -89,7 +52,7 @@ class TwoFactorAPI {
      */
     async verify2FALogin(token, sessionToken) {
         try {
-            const response = await this.apiClient.post('/2fa/verify', {
+            const response = await this.apiClient.post('/auth/2fa/verify', {
                 token,
                 sessionToken
             });
@@ -108,7 +71,7 @@ class TwoFactorAPI {
      */
     async get2FAStatus() {
         try {
-            const response = await this.apiClient.get('/2fa/status');
+            const response = await this.apiClient.get('/auth/2fa/status');
             return {
                 success: true,
                 data: response.data
@@ -125,7 +88,7 @@ class TwoFactorAPI {
      */
     async disable2FA(password) {
         try {
-            const response = await this.apiClient.post('/2fa/disable', { password });
+            const response = await this.apiClient.post('/auth/2fa/disable', { password });
             return {
                 success: true,
                 data: response.data
@@ -142,7 +105,7 @@ class TwoFactorAPI {
      */
     async regenerateBackupCodes(password) {
         try {
-            const response = await this.apiClient.post('/2fa/regenerate-backup-codes', { password });
+            const response = await this.apiClient.post('/auth/2fa/regenerate-backup-codes', { password });
             return {
                 success: true,
                 data: response.data
