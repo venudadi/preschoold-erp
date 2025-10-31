@@ -126,14 +126,14 @@ router.post('/',
     ]),
     async (req, res) => {
         try {
-            const { fullName, email, password, role, centerId, phoneNumber, jobTitle } = req.body;
-            
+            const { fullName, email, password, role, centerId, jobTitle } = req.body;
+
             // Check if email already exists
             const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
             if (existing.length) {
                 return res.status(409).json({ message: 'Email already exists' });
             }
-            
+
             // Validate center exists if provided
             if (centerId) {
                 const [center] = await pool.query('SELECT id FROM centers WHERE id = ?', [centerId]);
@@ -141,15 +141,15 @@ router.post('/',
                     return res.status(400).json({ message: 'Invalid center ID' });
                 }
             }
-            
+
             const id = uuidv4();
             const salt = await bcrypt.genSalt(10);
             const hash = await bcrypt.hash(password, salt);
-            
+
             await pool.query(
-                `INSERT INTO users (id, full_name, email, password_hash, role, center_id, phone_number, job_title, created_at, must_reset_password)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 1)`,
-                [id, fullName, email, hash, role, centerId || null, phoneNumber || null, jobTitle || null]
+                `INSERT INTO users (id, full_name, email, password_hash, role, center_id, job_title, created_at, must_reset_password)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), 1)`,
+                [id, fullName, email, hash, role, centerId || null, jobTitle || null]
             );
             
             res.status(201).json({ 
@@ -172,13 +172,12 @@ router.get('/:userId', protect, async (req, res) => {
     try {
         const { userId } = req.params;
         const [users] = await pool.query(`
-            SELECT 
-                u.id, 
-                u.full_name, 
-                u.email, 
-                u.role, 
+            SELECT
+                u.id,
+                u.full_name,
+                u.email,
+                u.role,
                 u.center_id,
-                u.phone_number,
                 u.job_title,
                 u.is_active,
                 u.account_locked,
@@ -225,7 +224,7 @@ router.put('/:userId',
     async (req, res) => {
         try {
             const { userId } = req.params;
-            const { fullName, email, role, centerId, phoneNumber, jobTitle, isActive } = req.body;
+            const { fullName, email, role, centerId, jobTitle, isActive } = req.body;
             
             // Check if user exists and is not super_admin
             const [existingUser] = await pool.query('SELECT id, email FROM users WHERE id = ? AND role != ?', [userId, 'super_admin']);
@@ -267,10 +266,6 @@ router.put('/:userId',
             if (centerId !== undefined) {
                 updates.push('center_id = ?');
                 values.push(centerId || null);
-            }
-            if (phoneNumber !== undefined) {
-                updates.push('phone_number = ?');
-                values.push(phoneNumber);
             }
             if (jobTitle !== undefined) {
                 updates.push('job_title = ?');
