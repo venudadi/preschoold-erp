@@ -83,11 +83,17 @@ router.post(
     try {
         const { fullName, dateOfBirth, gender, enrollmentDate, classroomId } = req.body;
         const childId = uuidv4();
+
+        // Split fullName into first and last name
+        const nameParts = fullName.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
         const sql = `
-            INSERT INTO children (id, full_name, date_of_birth, gender, classroom_id)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO children (id, first_name, last_name, date_of_birth, gender, classroom_id)
+            VALUES (?, ?, ?, ?, ?, ?)
         `;
-        await pool.query(sql, [childId, fullName, dateOfBirth, gender, classroomId]);
+        await pool.query(sql, [childId, firstName, lastName, dateOfBirth, gender, classroomId]);
 
         res.status(201).json({ message: 'Child enrolled successfully!', childId });
 

@@ -170,7 +170,7 @@ app.use('/admin', adminRoutes);
 app.get('/children', protect, async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT * FROM students WHERE center_id = ? ORDER BY first_name`,
+      `SELECT * FROM children WHERE center_id = ? ORDER BY first_name, last_name`,
       [req.user.center_id || req.query.centerId]
     );
     res.json({ children: rows });
@@ -205,10 +205,10 @@ app.use('/analytics', analyticsRoutes);
 app.get('/staff', protect, requireRole(['super_admin', 'owner', 'center_director', 'admin', 'academic_coordinator', 'teacher']), async (req, res) => {
   try {
     const [rows] = await pool.query(
-      `SELECT s.*, u.email, u.full_name
-       FROM staff s
-       JOIN users u ON s.user_id = u.id
-       WHERE s.center_id = ?`,
+      `SELECT u.id, u.email, u.first_name, u.last_name, u.phone_number, u.role, u.is_active
+       FROM users u
+       WHERE u.center_id = ? AND u.role IN ('admin', 'teacher', 'owner', 'academic_coordinator', 'center_director')
+       ORDER BY u.first_name, u.last_name`,
       [req.user.center_id || req.query.centerId]
     );
     res.json(rows);
