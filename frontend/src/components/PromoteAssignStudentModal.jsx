@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Box, Typography, Button, TextField, MenuItem, Select, InputLabel, FormControl, CircularProgress, Alert } from '@mui/material';
+import api from '../services/api';
 
 // Modal for admin to promote or assign student to class
 export default function PromoteAssignStudentModal({ open, onClose, studentId, currentClassId, currentCenterId, onSuccess }) {
@@ -12,63 +13,55 @@ export default function PromoteAssignStudentModal({ open, onClose, studentId, cu
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    // Fetch centers and classes with auth headers
-    const token = localStorage.getItem('token');
-    const sessionToken = localStorage.getItem('sessionToken');
-    const csrfToken = localStorage.getItem('csrfToken');
+    if (open) {
+      api.get('/centers')
+        .then(res => setCenters(Array.isArray(res.data) ? res.data : []))
+        .catch(err => {
+          console.error('Error fetching centers:', err);
+          setCenters([]);
+        });
+    }
+  }, [open]);
 
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-      'X-Session-Token': sessionToken,
-      'X-CSRF-Token': csrfToken
-    };
-
-    fetch('/api/centers', { headers })
-      .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch centers'))
-      .then(data => setCenters(Array.isArray(data) ? data : []))
-      .catch(err => {
-        console.error('Error fetching centers:', err);
-        setCenters([]);
-      });
-
+  useEffect(() => {
     if (centerId) {
-      fetch(`/api/classrooms?center_id=${centerId}`, { headers })
-        .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch classrooms'))
-        .then(data => setClasses(Array.isArray(data) ? data : []))
+      api.get(`/classrooms?center_id=${centerId}`)
+        .then(res => setClasses(Array.isArray(res.data) ? res.data : []))
         .catch(err => {
           console.error('Error fetching classrooms:', err);
           setClasses([]);
         });
     }
-  }, [centerId, open]);
+  }, [centerId]);
 
   const handleAssign = async () => {
     setLoading(true); setError(''); setSuccess('');
     try {
-      await fetch('/api/admin-class/promotion/assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: studentId, class_id: classId, center_id: centerId })
+      await api.post('/admin-class/promotion/assign', {
+        student_id: studentId,
+        class_id: classId,
+        center_id: centerId
       });
       setSuccess('Student assigned successfully!');
       if (onSuccess) onSuccess();
     } catch (e) {
-      setError('Failed to assign student.');
+      setError(e?.response?.data?.message || 'Failed to assign student.');
     } finally { setLoading(false); }
   };
 
   const handlePromote = async () => {
     setLoading(true); setError(''); setSuccess('');
     try {
-      await fetch('/api/admin-class/promotion/promote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: studentId, from_class_id: currentClassId, to_class_id: classId, center_id: centerId })
+      await api.post('/admin-class/promotion/promote', {
+        student_id: studentId,
+        from_class_id: currentClassId,
+        to_class_id: classId,
+        center_id: centerId
       });
       setSuccess('Student promoted successfully!');
       if (onSuccess) onSuccess();
     } catch (e) {
-      setError('Failed to promote student.');
+      setError(e?.response?.data?.message || 'Failed to promote student.');
     } finally { setLoading(false); }
   };
 

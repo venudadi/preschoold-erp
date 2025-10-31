@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Box, Typography, Button, MenuItem, Select, InputLabel, FormControl, CircularProgress, Alert } from '@mui/material';
+import api from '../services/api';
 
 // Modal for admin to transfer student to another center
 export default function TransferStudentModal({ open, onClose, studentId, fromCenterId, onSuccess }) {
@@ -13,13 +14,13 @@ export default function TransferStudentModal({ open, onClose, studentId, fromCen
 
   useEffect(() => {
     if (open) {
-      fetch('/api/centers').then(res => res.json()).then(setCenters);
+      api.get('/centers').then(res => setCenters(res.data)).catch(console.error);
     }
   }, [open]);
 
   useEffect(() => {
     if (toCenterId) {
-      fetch(`/api/classrooms?center_id=${toCenterId}`).then(res => res.json()).then(setClasses);
+      api.get(`/classrooms?center_id=${toCenterId}`).then(res => setClasses(res.data)).catch(console.error);
     } else {
       setClasses([]);
     }
@@ -28,15 +29,16 @@ export default function TransferStudentModal({ open, onClose, studentId, fromCen
   const handleTransfer = async () => {
     setLoading(true); setError(''); setSuccess('');
     try {
-      await fetch('/api/admin-class/promotion/transfer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: studentId, from_center_id: fromCenterId, to_center_id: toCenterId, to_class_id: toClassId })
+      await api.post('/admin-class/promotion/transfer', {
+        student_id: studentId,
+        from_center_id: fromCenterId,
+        to_center_id: toCenterId,
+        to_class_id: toClassId
       });
       setSuccess('Student transferred successfully!');
       if (onSuccess) onSuccess();
     } catch (e) {
-      setError('Failed to transfer student.');
+      setError(e?.response?.data?.message || 'Failed to transfer student.');
     } finally { setLoading(false); }
   };
 
