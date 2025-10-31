@@ -46,12 +46,12 @@ router.post('/convert/:enquiryId', protect, async (req, res) => {
         // 3. Create the new child record (No change)
         const childId = uuidv4();
         const insertChildSql = `
-            INSERT INTO children (id, first_name, last_name, date_of_birth, gender, student_id, classroom_id, center_id, enrollment_date, probable_joining_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO children (id, first_name, last_name, date_of_birth, gender, student_id, classroom_id, center_id, probable_joining_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         await connection.query(insertChildSql, [
             childId, child.firstName, child.lastName, child.dateOfBirth, child.gender,
-            studentId, classroomId, centerId, new Date(), probableJoiningDate
+            studentId, classroomId, centerId, probableJoiningDate
         ]);
 
         // 4. --- NEW, ADVANCED LOGIC: Process each parent ---

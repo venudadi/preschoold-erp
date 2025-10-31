@@ -84,10 +84,10 @@ router.post(
         const { fullName, dateOfBirth, gender, enrollmentDate, classroomId } = req.body;
         const childId = uuidv4();
         const sql = `
-            INSERT INTO children (id, full_name, date_of_birth, gender, enrollment_date, classroom_id)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO children (id, full_name, date_of_birth, gender, classroom_id)
+            VALUES (?, ?, ?, ?, ?)
         `;
-        await pool.query(sql, [childId, fullName, dateOfBirth, gender, enrollmentDate, classroomId]);
+        await pool.query(sql, [childId, fullName, dateOfBirth, gender, classroomId]);
 
         res.status(201).json({ message: 'Child enrolled successfully!', childId });
 
@@ -122,7 +122,7 @@ router.get('/children', protect, async (req, res) => {
     try {
         const sql = `
             SELECT
-                c.id, c.first_name, c.last_name, c.date_of_birth, c.enrollment_date,
+                c.id, c.first_name, c.last_name, c.date_of_birth, c.created_at as enrollment_date,
                 c.status, c.pause_start_date, c.pause_end_date, c.pause_reason,
                 cl.name as classroom_name
             FROM children c

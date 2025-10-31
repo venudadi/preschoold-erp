@@ -133,13 +133,13 @@ router.get('/enrollment-trends', async (req, res) => {
 
         // Monthly enrollment trends (last 12 months)
         const [monthlyEnrollments] = await pool.query(`
-            SELECT 
-                DATE_FORMAT(enrollment_date, '%Y-%m') as month,
+            SELECT
+                DATE_FORMAT(created_at, '%Y-%m') as month,
                 COUNT(*) as enrollments
-            FROM children 
+            FROM children
             ${centerFilter}
-            AND enrollment_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
-            GROUP BY DATE_FORMAT(enrollment_date, '%Y-%m')
+            AND created_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH)
+            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
             ORDER BY month
         `, centerParams);
 

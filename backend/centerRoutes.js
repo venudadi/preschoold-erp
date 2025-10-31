@@ -42,15 +42,15 @@ router.get('/', async (req, res) => {
         const { role, center_id } = req.user;
         
         let query = `
-            SELECT 
+            SELECT
                 c.*,
                 COUNT(DISTINCT ch.id) as total_students,
                 COUNT(DISTINCT cl.id) as total_classrooms,
-                COUNT(DISTINCT s.user_id) as total_staff
+                COUNT(DISTINCT u.id) as total_staff
             FROM centers c
             LEFT JOIN children ch ON c.id = ch.center_id
             LEFT JOIN classrooms cl ON c.id = cl.center_id
-            LEFT JOIN staff_assignments s ON c.id = s.center_id
+            LEFT JOIN users u ON c.id = u.center_id AND u.role IN ('admin', 'teacher', 'owner')
         `;
         
         let queryParams = [];
