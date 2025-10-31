@@ -16,17 +16,20 @@ import {
 import multer from 'multer';
 import path from 'path';
 
-// Configure multer for receipt uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(process.cwd(), 'uploads', 'receipts'));
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+// Configure multer for receipt uploads - use memory storage for cloud upload
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit for receipts
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, and PDF are allowed.'), false);
+    }
   }
 });
-const upload = multer({ storage });
 import { requireRole } from './middleware/security.js';
 
 const router = express.Router();

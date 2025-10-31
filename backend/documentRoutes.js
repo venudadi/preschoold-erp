@@ -2,30 +2,16 @@ import express from 'express';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
-import fs from 'fs/promises';
 import { protect } from './authMiddleware.js';
 import pool from './db.js';
+import { uploadFileToCloud, deleteFileFromCloud } from './utils/cloudStorage.js';
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-    destination: async (req, file, cb) => {
-        const uploadDir = path.join(process.cwd(), 'uploads', 'documents');
-        try {
-            await fs.mkdir(uploadDir, { recursive: true });
-            cb(null, uploadDir);
-        } catch (error) {
-            cb(error, null);
-        }
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
-});
+// Configure multer for file uploads - use memory storage for cloud upload
+const storage = multer.memoryStorage();
 
-const upload = multer({ 
+const upload = multer({
     storage,
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
     fileFilter: (req, file, cb) => {
@@ -88,13 +74,35 @@ router.post('/upload', protect, upload.single('file'), async (req, res) => {
             metadata
         } = req.body;
 
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        // Upload file to cloud storage
         const documentId = uuidv4();
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const fileExtension = path.extname(req.file.originalname);
+        const sanitizedFilename = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const cloudKey = `documents/${center_id}/${documentId}_${timestamp}_${sanitizedFilename}`;
+
+        const uploadResult = await uploadFileToCloud({
+            buffer: req.file.buffer,
+            mimetype: req.file.mimetype,
+            originalname: req.file.originalname
+        }, cloudKey);
+
+        if (!uploadResult || !uploadResult.url) {
+            throw new Error('File upload to cloud storage failed');
+        }
+
+        const fileUrl = uploadResult.url;
+
         await connection.query(
-            `INSERT INTO documents 
-             (id, category_id, title, description, file_path, file_type, 
+            `INSERT INTO documents
+             (id, category_id, title, description, file_path, file_type,
               file_size, center_id, uploaded_by, tags, metadata)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [documentId, category_id, title, description, req.file.path,
+            [documentId, category_id, title, description, fileUrl,
              req.file.mimetype, req.file.size, center_id, req.user.id,
              tags ? JSON.stringify(tags) : null,
              metadata ? JSON.stringify(metadata) : null]
@@ -102,28 +110,30 @@ router.post('/upload', protect, upload.single('file'), async (req, res) => {
 
         // Create initial version
         await connection.query(
-            `INSERT INTO document_versions 
+            `INSERT INTO document_versions
              (id, document_id, version_number, file_path, file_size, modified_by)
              VALUES (?, ?, ?, ?, ?, ?)`,
-            [uuidv4(), documentId, 1, req.file.path, req.file.size, req.user.id]
+            [uuidv4(), documentId, 1, fileUrl, req.file.size, req.user.id]
         );
 
         // Log access
         await connection.query(
-            `INSERT INTO document_access_logs 
+            `INSERT INTO document_access_logs
              (id, document_id, user_id, action, ip_address, user_agent)
              VALUES (?, ?, ?, ?, ?, ?)`,
-            [uuidv4(), documentId, req.user.id, 'edit',
+            [uuidv4(), documentId, req.user.id, 'upload',
              req.ip, req.headers['user-agent']]
         );
 
         await connection.commit();
-        res.status(201).json({ 
+        res.status(201).json({
             message: 'Document uploaded successfully',
-            documentId
+            documentId,
+            fileUrl
         });
     } catch (error) {
         await connection.rollback();
+        console.error('Document upload error:', error);
         res.status(500).json({ message: error.message });
     } finally {
         connection.release();

@@ -34,6 +34,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
+import { uploadFileToCloud } from '../utils/cloudStorage.js';
 
 // Helper: generate next invoice number per type (atomic)
 async function generateInvoiceNumber(type) {
@@ -105,19 +106,38 @@ export async function uploadReceipt(req, res) {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
-    // Optionally, associate with an expense_id if provided
+
+    // Upload receipt to cloud storage
     const { expense_id } = req.body;
-    const filePath = path.relative(process.cwd(), req.file.path);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const sanitizedFilename = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const receiptId = uuidv4();
+    const cloudKey = `receipts/${receiptId}_${timestamp}_${sanitizedFilename}`;
+
+    const uploadResult = await uploadFileToCloud({
+      buffer: req.file.buffer,
+      mimetype: req.file.mimetype,
+      originalname: req.file.originalname
+    }, cloudKey);
+
+    if (!uploadResult || !uploadResult.url) {
+      throw new Error('Receipt upload to cloud storage failed');
+    }
+
+    const fileUrl = uploadResult.url;
     let updateResult = null;
+
     if (expense_id) {
       [updateResult] = await pool.query(
         'UPDATE expenses SET receipt_image_url=? WHERE expense_id=?',
-        [filePath, expense_id]
+        [fileUrl, expense_id]
       );
       await logAudit(expense_id, 'upload_receipt', req.user.id, 'Uploaded receipt image');
     }
-    res.status(200).json({ success: true, filePath, updated: !!updateResult });
+
+    res.status(200).json({ success: true, fileUrl, filePath: fileUrl, updated: !!updateResult });
   } catch (err) {
+    console.error('Receipt upload error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 }
