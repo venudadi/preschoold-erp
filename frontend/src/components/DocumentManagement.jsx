@@ -33,6 +33,7 @@ const DocumentManagement = () => {
     const [documents, setDocuments] = useState([]);
     const [openUpload, setOpenUpload] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [title, setTitle] = useState('');
     const [documentType, setDocumentType] = useState('');
     const [description, setDescription] = useState('');
     const [loading, setLoading] = useState(false);
@@ -55,23 +56,39 @@ const DocumentManagement = () => {
     };
 
     const handleUpload = async () => {
-        if (!selectedFile || !documentType) return;
+        if (!selectedFile || !documentType || !title) return;
 
         setLoading(true);
         const formData = new FormData();
         formData.append('file', selectedFile);
-        formData.append('type', documentType);
+        formData.append('title', title);
         formData.append('description', description);
+        formData.append('category_id', documentType); // Using documentType as category for now
+
+        // Get center_id from localStorage user data
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                if (user.center_id) {
+                    formData.append('center_id', user.center_id);
+                }
+            } catch (e) {
+                console.error('Error parsing user data:', e);
+            }
+        }
 
         try {
             await uploadDocument(formData);
             await fetchDocuments();
             setOpenUpload(false);
             setSelectedFile(null);
+            setTitle('');
             setDocumentType('');
             setDescription('');
         } catch (error) {
             console.error('Error uploading document:', error);
+            alert('Error uploading document: ' + (error.message || 'Unknown error'));
         } finally {
             setLoading(false);
         }
@@ -139,7 +156,7 @@ const DocumentManagement = () => {
                 </Table>
             </TableContainer>
 
-            <Dialog open={openUpload} onClose={() => setOpenUpload(false)}>
+            <Dialog open={openUpload} onClose={() => setOpenUpload(false)} maxWidth="sm" fullWidth>
                 <DialogTitle>Upload Document</DialogTitle>
                 <DialogContent>
                     <Box sx={{ mt: 2 }}>
@@ -160,12 +177,22 @@ const DocumentManagement = () => {
                             </Button>
                         </label>
                     </Box>
+                    <TextField
+                        fullWidth
+                        margin="normal"
+                        label="Document Title"
+                        placeholder="Enter a descriptive title for this document"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        required
+                    />
                     <FormControl fullWidth sx={{ mt: 2 }}>
                         <InputLabel>Document Type</InputLabel>
                         <Select
                             value={documentType}
                             onChange={(e) => setDocumentType(e.target.value)}
                             label="Document Type"
+                            required
                         >
                             <MenuItem value="policy">Policy Document</MenuItem>
                             <MenuItem value="contract">Contract</MenuItem>
@@ -179,7 +206,8 @@ const DocumentManagement = () => {
                         multiline
                         rows={3}
                         margin="normal"
-                        label="Description"
+                        label="Description (Optional)"
+                        placeholder="Add any additional details about this document"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                     />
@@ -188,10 +216,10 @@ const DocumentManagement = () => {
                     <Button onClick={() => setOpenUpload(false)}>Cancel</Button>
                     <Button
                         onClick={handleUpload}
-                        disabled={!selectedFile || !documentType || loading}
+                        disabled={!selectedFile || !documentType || !title || loading}
                         variant="contained"
                     >
-                        Upload
+                        {loading ? 'Uploading...' : 'Upload'}
                     </Button>
                 </DialogActions>
             </Dialog>
