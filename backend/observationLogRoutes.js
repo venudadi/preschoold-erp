@@ -4,37 +4,59 @@ import pool from './db.js';
 import { requireRole } from './middleware/security.js';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
+import { uploadFileToCloud } from './utils/cloudStorage.js';
 
 const router = express.Router();
 
-// Multer config for observation log attachments
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const dir = path.join(process.cwd(), 'uploads', 'observation_logs');
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+// Multer config for observation log attachments - use memory storage for cloud upload
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf', 'video/mp4', 'video/quicktime'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images, PDFs, and videos are allowed.'), false);
+    }
   }
 });
-const upload = multer({ storage });
 
 // Create observation log (teacher)
 router.post('/', requireRole(['teacher']), upload.array('attachments'), async (req, res) => {
   try {
     const { child_id, date, milestone, notes } = req.body;
     const teacher_id = req.user.id;
-    const attachments = req.files ? req.files.map(f => f.path) : [];
     const id = uuidv4();
+
+    // Upload attachments to cloud storage
+    const attachmentUrls = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const cloudKey = `observation_logs/${child_id}/${id}_${timestamp}_${sanitizedFilename}`;
+
+        const uploadResult = await uploadFileToCloud({
+          buffer: file.buffer,
+          mimetype: file.mimetype,
+          originalname: file.originalname
+        }, cloudKey);
+
+        if (uploadResult && uploadResult.url) {
+          attachmentUrls.push(uploadResult.url);
+        }
+      }
+    }
+
     await pool.query(
       `INSERT INTO observation_logs (id, child_id, teacher_id, date, milestone, notes, attachments) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, child_id, teacher_id, date, milestone, notes, JSON.stringify(attachments)]
+      [id, child_id, teacher_id, date, milestone, notes, JSON.stringify(attachmentUrls)]
     );
-    res.status(201).json({ success: true, id });
+    res.status(201).json({ success: true, id, attachments: attachmentUrls });
   } catch (err) {
+    console.error('Observation log upload error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
