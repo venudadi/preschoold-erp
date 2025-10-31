@@ -125,7 +125,7 @@ router.get('/', protect, (req, res, next) => {
             query += ' WHERE ' + whereClauses.join(' AND ');
         }
 
-        query += ' ORDER BY enquiry_date DESC';
+        query += ' ORDER BY created_at DESC';
 
         const [enquiries] = await pool.query(query, params);
         res.status(200).json(enquiries);

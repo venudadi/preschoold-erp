@@ -154,10 +154,10 @@ router.post('/generate-monthly', async (req, res) => {
             }
             // Check if invoice already exists for this child for current month
             const [existingInvoice] = await connection.query(`
-                SELECT id FROM invoices 
-                WHERE child_id = ? 
-                AND YEAR(issue_date) = YEAR(CURDATE()) 
-                AND MONTH(issue_date) = MONTH(CURDATE())
+                SELECT id FROM invoices
+                WHERE child_id = ?
+                AND YEAR(created_at) = YEAR(CURDATE())
+                AND MONTH(created_at) = MONTH(CURDATE())
             `, [child.child_id]);
             
             if (existingInvoice.length > 0) {
@@ -171,19 +171,13 @@ router.post('/generate-monthly', async (req, res) => {
             // Create invoice record
             await connection.query(`
                 INSERT INTO invoices (
-                    id, invoice_number, child_id, parent_name, parent_phone, 
-                    parent_email, issue_date, due_date, total_amount, 
+                    id, invoice_number, child_id, total_amount,
                     status, center_id, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?, NOW())
+                ) VALUES (?, ?, ?, ?, 'Pending', ?, NOW())
             `, [
                 invoiceId,
                 invoiceNumber,
                 child.child_id,
-                `${child.parent_first_name} ${child.parent_last_name}`.trim(),
-                child.phone_number,
-                child.email,
-                issueDate,
-                dueDate,
                 child.monthly_fee,
                 centerId
             ]);
@@ -266,16 +260,16 @@ router.get('/', protect, async (req, res) => {
         // Calculate offset for pagination
         const offset = (parseInt(page) - 1) * parseInt(limit);
         
-        // Get invoices with child information
+        // Get invoices with child and parent information
         const [invoices] = await pool.query(`
-            SELECT 
+            SELECT
                 i.id,
                 i.invoice_number,
-                i.parent_name,
-                i.parent_phone,
-                i.parent_email,
-                i.issue_date,
-                i.due_date,
+                CONCAT(p.first_name, ' ', p.last_name) as parent_name,
+                p.phone_number as parent_phone,
+                p.email as parent_email,
+                i.created_at as issue_date,
+                DATE_ADD(i.created_at, INTERVAL 30 DAY) as due_date,
                 i.total_amount,
                 i.status,
                 i.created_at,
@@ -286,6 +280,8 @@ router.get('/', protect, async (req, res) => {
             FROM invoices i
             JOIN children c ON i.child_id = c.id
             JOIN classrooms cl ON c.classroom_id = cl.id
+            LEFT JOIN parent_child_links pcl ON c.id = pcl.child_id
+            LEFT JOIN parents p ON pcl.parent_id = p.id
             WHERE ${whereClause}
             ORDER BY i.created_at DESC
             LIMIT ? OFFSET ?
