@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress, Chip, IconButton, Tooltip, Alert, Tab, Tabs, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import { Button } from '@mui/material';
-import { Pause, PlayArrow, FilterList } from '@mui/icons-material';
+import { Pause, PlayArrow, FilterList, Visibility } from '@mui/icons-material';
 import PromoteAssignStudentModal from './PromoteAssignStudentModal';
 import TransferStudentModal from './TransferStudentModal';
 import PauseStudentModal from './PauseStudentModal';
 import ResumeStudentModal from './ResumeStudentModal';
 import PausedStudentsView from './PausedStudentsView';
+import ChildProfileModal from './ChildProfileModal';
 import { getChildren } from '../services/api';
 import dayjs from 'dayjs';
 
@@ -27,6 +28,8 @@ const ChildList = () => {
     const [pauseChild, setPauseChild] = useState(null);
     const [resumeModalOpen, setResumeModalOpen] = useState(false);
     const [resumeChild, setResumeChild] = useState(null);
+    const [profileModalOpen, setProfileModalOpen] = useState(false);
+    const [profileChildId, setProfileChildId] = useState(null);
 
     useEffect(() => {
         fetchChildren();
@@ -173,6 +176,18 @@ const ChildList = () => {
                                             <TableCell>{child.enrollment_date ? new Date(child.enrollment_date).toLocaleDateString() : 'N/A'}</TableCell>
                                             <TableCell>
                                                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                                    <Tooltip title="View Profile">
+                                                        <IconButton
+                                                            size="small"
+                                                            color="primary"
+                                                            onClick={() => {
+                                                                setProfileChildId(child.id);
+                                                                setProfileModalOpen(true);
+                                                            }}
+                                                        >
+                                                            <Visibility />
+                                                        </IconButton>
+                                                    </Tooltip>
                                                     {child.status !== 'paused' && child.status !== 'left' && (
                                                         <>
                                                             <Tooltip title="Pause Student">
@@ -277,6 +292,14 @@ const ChildList = () => {
                 onClose={() => setResumeModalOpen(false)}
                 student={resumeChild}
                 onSuccess={handleResumeSuccess}
+            />
+            <ChildProfileModal
+                open={profileModalOpen}
+                onClose={() => {
+                    setProfileModalOpen(false);
+                    setProfileChildId(null);
+                }}
+                childId={profileChildId}
             />
         </Box>
     );

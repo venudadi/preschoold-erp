@@ -175,6 +175,17 @@ export const getChildren = async () => {
     }
 };
 
+export const getChildProfile = async (childId) => {
+    try {
+        const response = await api.get(`/admin/children/${childId}`);
+        return response.data;
+    } catch (error) {
+        if (error.response) { throw error.response.data; }
+        else if (error.request) { throw new Error('Could not connect to the server.'); }
+        else { throw new Error('An unexpected error occurred.'); }
+    }
+};
+
 
 // --- ENQUIRY FUNCTIONS ---
 

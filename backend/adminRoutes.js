@@ -143,6 +143,202 @@ router.get('/children', protect, async (req, res) => {
     }
 });
 
+// URL: GET /api/admin/children/:id
+// Retrieves comprehensive profile for a single child including parents and billing
+router.get('/children/:id', protect, async (req, res) => {
+    // Role-based access control
+    const allowedRoles = ['admin', 'super_admin', 'center_director', 'owner'];
+    if (!allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators and center directors.' });
+    }
+
+    try {
+        const { id } = req.params;
+
+        // Get child basic information
+        const childSql = `
+            SELECT
+                c.id,
+                c.first_name,
+                c.last_name,
+                c.date_of_birth,
+                c.gender,
+                c.student_id,
+                c.status,
+                c.center_id,
+                c.classroom_id,
+                c.company_id,
+                c.has_tie_up,
+                c.allergies,
+                c.emergency_contact_name,
+                c.emergency_contact_phone,
+                c.medical_info,
+                c.service_hours,
+                c.program_start_time,
+                c.program_end_time,
+                c.pause_start_date,
+                c.pause_end_date,
+                c.pause_reason,
+                c.created_at as enrollment_date,
+                cl.name as classroom_name,
+                ce.name as center_name,
+                co.company_name,
+                co.discount_percentage as company_discount
+            FROM children c
+            LEFT JOIN classrooms cl ON c.classroom_id = cl.id
+            LEFT JOIN centers ce ON c.center_id = ce.id
+            LEFT JOIN companies co ON c.company_id = co.id
+            WHERE c.id = ?
+        `;
+
+        const [childRows] = await pool.query(childSql, [id]);
+
+        if (childRows.length === 0) {
+            return res.status(404).json({ message: 'Child not found' });
+        }
+
+        const child = childRows[0];
+
+        // Filter by center if not super_admin
+        if (req.user.role !== 'super_admin') {
+            if (!child.center_id || child.center_id !== req.user.center_id) {
+                return res.status(403).json({ message: 'Forbidden: You can only access children in your center.' });
+            }
+        }
+
+        // Get all parents/guardians
+        const parentsSql = `
+            SELECT
+                p.id,
+                p.first_name,
+                p.last_name,
+                p.email,
+                p.phone_number,
+                p.relationship_to_child,
+                pc.relationship_type,
+                pc.is_primary,
+                p.user_id
+            FROM parent_children pc
+            JOIN parents p ON pc.parent_id = p.id
+            WHERE pc.child_id = ?
+            ORDER BY pc.is_primary DESC, p.created_at ASC
+        `;
+
+        const [parents] = await pool.query(parentsSql, [id]);
+
+        // Get billing summary
+        const billingSql = `
+            SELECT
+                SUM(CASE WHEN status IN ('Sent', 'Partial', 'Overdue') THEN balance ELSE 0 END) as outstanding_balance,
+                SUM(amount_paid) as total_paid,
+                MAX(payment_date) as last_payment_date,
+                COUNT(CASE WHEN status = 'Overdue' THEN 1 END) as overdue_count,
+                COUNT(*) as total_invoices
+            FROM invoices
+            WHERE child_id = ?
+        `;
+
+        const [billingRows] = await pool.query(billingSql, [id]);
+        const billing = billingRows[0] || {
+            outstanding_balance: 0,
+            total_paid: 0,
+            last_payment_date: null,
+            overdue_count: 0,
+            total_invoices: 0
+        };
+
+        // Calculate age from date of birth
+        const calculateAge = (dob) => {
+            if (!dob) return null;
+            const today = new Date();
+            const birthDate = new Date(dob);
+            let years = today.getFullYear() - birthDate.getFullYear();
+            let months = today.getMonth() - birthDate.getMonth();
+
+            if (months < 0 || (months === 0 && today.getDate() < birthDate.getDate())) {
+                years--;
+                months += 12;
+            }
+
+            if (today.getDate() < birthDate.getDate()) {
+                months--;
+            }
+
+            return { years, months };
+        };
+
+        const age = calculateAge(child.date_of_birth);
+
+        // Construct comprehensive profile
+        const profile = {
+            child: {
+                id: child.id,
+                first_name: child.first_name,
+                last_name: child.last_name,
+                full_name: `${child.first_name} ${child.last_name}`,
+                date_of_birth: child.date_of_birth,
+                age: age,
+                gender: child.gender,
+                student_id: child.student_id,
+                status: child.status,
+                enrollment_date: child.enrollment_date,
+                allergies: child.allergies,
+                medical_info: child.medical_info,
+                service_hours: child.service_hours,
+                program_start_time: child.program_start_time,
+                program_end_time: child.program_end_time,
+                pause_info: child.status === 'paused' ? {
+                    start_date: child.pause_start_date,
+                    end_date: child.pause_end_date,
+                    reason: child.pause_reason
+                } : null
+            },
+            parents: parents.map(p => ({
+                id: p.id,
+                first_name: p.first_name,
+                last_name: p.last_name,
+                full_name: `${p.first_name} ${p.last_name}`,
+                email: p.email,
+                phone: p.phone_number,
+                relationship: p.relationship_type || p.relationship_to_child,
+                is_primary: p.is_primary,
+                has_user_account: !!p.user_id
+            })),
+            classroom: {
+                id: child.classroom_id,
+                name: child.classroom_name
+            },
+            center: {
+                id: child.center_id,
+                name: child.center_name
+            },
+            company: child.has_tie_up ? {
+                id: child.company_id,
+                name: child.company_name,
+                discount_percentage: child.company_discount
+            } : null,
+            emergency: {
+                contact_name: child.emergency_contact_name,
+                contact_phone: child.emergency_contact_phone
+            },
+            billing: {
+                outstanding_balance: parseFloat(billing.outstanding_balance) || 0,
+                total_paid: parseFloat(billing.total_paid) || 0,
+                last_payment_date: billing.last_payment_date,
+                overdue_count: billing.overdue_count,
+                total_invoices: billing.total_invoices,
+                payment_status: billing.outstanding_balance > 0 ? (billing.overdue_count > 0 ? 'Overdue' : 'Pending') : 'Paid'
+            }
+        };
+
+        res.status(200).json(profile);
+
+    } catch (error) {
+        console.error('Error fetching child profile:', error);
+        res.status(500).json({ message: 'Server error while fetching child profile.' });
+    }
+});
+
 
 // --- CLASSROOM MANAGEMENT ---
 
