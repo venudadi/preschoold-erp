@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress, Chip, IconButton, Tooltip, Alert, Tab, Tabs, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
+import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress, Chip, IconButton, Tooltip, Alert, Tab, Tabs, MenuItem, Select, FormControl, InputLabel, TextField, InputAdornment } from '@mui/material';
 import { Button } from '@mui/material';
-import { Pause, PlayArrow, FilterList, Visibility } from '@mui/icons-material';
+import { Pause, PlayArrow, FilterList, Visibility, Search, Clear } from '@mui/icons-material';
 import PromoteAssignStudentModal from './PromoteAssignStudentModal';
 import TransferStudentModal from './TransferStudentModal';
 import PauseStudentModal from './PauseStudentModal';
@@ -16,6 +16,7 @@ const ChildList = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
     const [currentTab, setCurrentTab] = useState(0);
     const [alertMessage, setAlertMessage] = useState(null);
 
@@ -78,8 +79,24 @@ const ChildList = () => {
     };
 
     const getFilteredChildren = () => {
-        if (statusFilter === 'all') return children;
-        return children.filter(child => child.status === statusFilter);
+        let filtered = children;
+
+        // Filter by status
+        if (statusFilter !== 'all') {
+            filtered = filtered.filter(child => child.status === statusFilter);
+        }
+
+        // Filter by search query (name or student ID)
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            filtered = filtered.filter(child => {
+                const fullName = `${child.first_name || ''} ${child.last_name || ''}`.toLowerCase();
+                const studentId = (child.student_id || '').toLowerCase();
+                return fullName.includes(query) || studentId.includes(query);
+            });
+        }
+
+        return filtered;
     };
 
     if (loading) {
@@ -111,24 +128,51 @@ const ChildList = () => {
 
             {currentTab === 0 && (
                 <Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, gap: 2, flexWrap: 'wrap' }}>
                         <Typography variant="h5" component="h2">
-                            Enrolled Children
+                            Enrolled Children ({getFilteredChildren().length})
                         </Typography>
-                        <FormControl sx={{ minWidth: 120 }}>
-                            <InputLabel>Filter by Status</InputLabel>
-                            <Select
-                                value={statusFilter}
-                                label="Filter by Status"
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                startAdornment={<FilterList />}
-                            >
-                                <MenuItem value="all">All</MenuItem>
-                                <MenuItem value="active">Active</MenuItem>
-                                <MenuItem value="paused">Paused</MenuItem>
-                                <MenuItem value="left">Left</MenuItem>
-                            </Select>
-                        </FormControl>
+                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                            <TextField
+                                placeholder="Search by name or student ID..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                sx={{ minWidth: 300 }}
+                                size="small"
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Search />
+                                        </InputAdornment>
+                                    ),
+                                    endAdornment: searchQuery && (
+                                        <InputAdornment position="end">
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => setSearchQuery('')}
+                                                edge="end"
+                                            >
+                                                <Clear />
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                }}
+                            />
+                            <FormControl sx={{ minWidth: 150 }} size="small">
+                                <InputLabel>Filter by Status</InputLabel>
+                                <Select
+                                    value={statusFilter}
+                                    label="Filter by Status"
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    startAdornment={<FilterList sx={{ ml: 1, mr: -0.5 }} />}
+                                >
+                                    <MenuItem value="all">All</MenuItem>
+                                    <MenuItem value="active">Active</MenuItem>
+                                    <MenuItem value="paused">Paused</MenuItem>
+                                    <MenuItem value="left">Left</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Box>
                     </Box>
                     <TableContainer component={Paper}>
                         <Table>
