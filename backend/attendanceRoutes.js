@@ -70,9 +70,13 @@ router.post('/mark', protect, async (req, res) => {
 
             if (settings[0]?.notify_parents_on_absent) {
                 const notificationId = uuidv4();
-                // Get parent ID from parents table
+                // Get parent user_id via parent_children junction table
                 const [result] = await pool.query(
-                    'SELECT user_id FROM parents WHERE child_id = ? LIMIT 1',
+                    `SELECT p.user_id
+                     FROM parent_children pc
+                     JOIN parents p ON pc.parent_id = p.id
+                     WHERE pc.child_id = ? AND pc.is_primary = TRUE
+                     LIMIT 1`,
                     [child_id]
                 );
 
