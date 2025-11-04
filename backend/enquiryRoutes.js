@@ -72,18 +72,18 @@ router.post(
         const enquiryDate = new Date().toISOString().slice(0, 10);
         const enquiryId = uuidv4();
 
-        // SQL query includes id field (required by database schema)
+        // SQL query includes id and phone_number fields (required by database schema)
         const sql = `
             INSERT INTO enquiries (
-                id, source, enquiry_date, child_name, child_dob, parent_name, mobile_number, company, has_tie_up, email,
+                id, source, enquiry_date, child_name, child_dob, parent_name, phone_number, mobile_number, company, has_tie_up, email,
                 parent_location, major_program, specific_program, service_hours, status,
                 reason_for_closure, follow_up_flag, assigned_to, remarks, follow_up_date, visited
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
-        // Values array matches the query (id is first)
+        // Values array matches the query (id is first, phone_number and mobile_number get same value)
         await pool.query(sql, [
-            enquiryId, source, enquiryDate, childName, childDob || null, parentName, mobileNumber, company, hasTieUp || false, email,
+            enquiryId, source, enquiryDate, childName, childDob || null, parentName, mobileNumber, mobileNumber, company, hasTieUp || false, email,
             parentLocation, majorProgram, specificProgram, serviceHours || null, status || 'Open',
             reasonForClosure, followUpFlag || false, assignedTo, remarks, followUpDate || null, visited || false
         ]);
