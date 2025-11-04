@@ -93,6 +93,129 @@ Enquiries table - Key columns:
 
 ---
 
+## 🔒 Forced Migration (Failsafe Method)
+
+**Use this if the normal migration system skips migrations 045 and 046.**
+
+This script will force-apply migrations 045 and 046 even if the migration tracking system thinks they're already applied. It's completely safe to run multiple times.
+
+### On DigitalOcean Console:
+
+```bash
+cd /app/backend
+node scripts/force_migrations_045_046.js
+```
+
+Or using the shell script:
+
+```bash
+cd /app/backend
+chmod +x force_migrations.sh
+./force_migrations.sh
+```
+
+### What This Does:
+
+1. ✅ **Bypasses migration tracking** - Runs migrations directly regardless of tracking status
+2. ✅ **Safe to repeat** - Handles "column already exists" errors gracefully
+3. ✅ **Detailed output** - Shows exactly what was applied
+4. ✅ **Updates tracking** - Records migrations in the tracking table after execution
+5. ✅ **Verifies results** - Checks that all columns exist and ENUM values are correct
+
+### Expected Output:
+
+```
+======================================================================
+🚀 FORCED MIGRATION SCRIPT - Migrations 045 & 046
+======================================================================
+
+This script will force-apply migrations 045 and 046
+regardless of the migration tracking system.
+
+It is SAFE to run multiple times - uses IF NOT EXISTS patterns.
+
+✅ Database connected successfully
+
+📋 Current Migration Status:
+   045_fix_schema_mismatches.sql: ❌ Not recorded
+   046_fix_enquiries_status_enum.sql: ❌ Not recorded
+
+======================================================================
+🔧 FORCING MIGRATION: 045_fix_schema_mismatches.sql
+   Adds missing columns to children and enquiries tables
+======================================================================
+
+  ✅ Statement 1: ALTER TABLE children ADD COLUMN student_id VARCHAR(50)...
+  ✅ Statement 2: UPDATE children SET student_id = admission_number...
+  ✅ Statement 3: CREATE INDEX idx_student_id ON children(student_id)...
+  ... (30+ more statements)
+
+✅ Migration record updated in tracking table
+
+======================================================================
+🔧 FORCING MIGRATION: 046_fix_enquiries_status_enum.sql
+   Fixes enquiries.status ENUM to include Open and Closed
+======================================================================
+
+  ✅ Statement 1: ALTER TABLE enquiries MODIFY COLUMN status ENUM(...)...
+  ✅ Statement 2: UPDATE enquiries SET status = 'Open' WHERE status = 'New'
+
+✅ Migration record updated in tracking table
+
+======================================================================
+🔍 FINAL VERIFICATION
+======================================================================
+
+✅ Children table columns:
+   • student_id
+   • status
+   • pause_start_date
+   • service_hours
+
+✅ Enquiries table columns:
+   • source
+   • enquiry_date
+   • mobile_number
+   • company
+   • follow_up_flag
+
+✅ Enquiries status ENUM values:
+   enum('Open','New','Contacted','Visit Scheduled','Enrolled','Declined','Closed')
+   ✅ "Open" status is available
+
+======================================================================
+📊 OVERALL SUMMARY
+======================================================================
+✅ Both migrations applied successfully!
+✅ Database schema is now up to date.
+
+💡 Next Steps:
+   1. Test enquiry submission with "Open" status
+   2. Test invoice viewing (uses student_id column)
+   3. Check application logs for any remaining issues
+```
+
+### When to Use This:
+
+- ✅ After auto-deploy if migrations 045/046 were skipped
+- ✅ If you see "Unknown column" errors after deployment
+- ✅ If migration logs show "already applied" but columns are missing
+- ✅ As a safety check to ensure schema is up to date
+
+### Why This Works:
+
+The normal migration system tracks applied migrations in the `migrations` table by filename. If the system incorrectly thinks a migration was already applied, it will skip it. This forced migration script:
+
+1. Reads the migration SQL files directly
+2. Executes each statement individually
+3. Handles "already exists" errors gracefully
+4. Ensures the migration is recorded in tracking table
+5. Verifies the final schema state
+
+**Bottom line**: This is the nuclear option that guarantees migrations 045 and 046 are applied, no matter what the tracking system says.
+
+---
+
 ## 📝 Alternative: Manual SQL Execution
 
 If you prefer to run SQL directly:
