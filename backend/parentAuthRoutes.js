@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { body } from 'express-validator';
+import { v4 as uuidv4 } from 'uuid';
 import pool from './db.js';
 import { 
     rateLimiters, 
@@ -150,15 +151,16 @@ router.post('/register',
 
             // 5. Create parent-child relationship if it doesn't exist
             const [existingRelation] = await conn.query(
-                'SELECT 1 FROM parents WHERE user_id = ? AND child_id = ?',
+                'SELECT 1 FROM parent_children WHERE parent_id = ? AND child_id = ?',
                 [parentId, child.id]
             );
 
             if (existingRelation.length === 0) {
+                const linkId = uuidv4();
                 await conn.query(`
-                    INSERT INTO parents (user_id, child_id, relation_to_child, created_at)
-                    VALUES (?, ?, 'parent', NOW())
-                `, [parentId, child.id]);
+                    INSERT INTO parent_children (id, parent_id, child_id, relationship_type, is_primary, created_at)
+                    VALUES (?, ?, ?, 'Guardian', FALSE, NOW())
+                `, [linkId, parentId, child.id]);
             }
 
             // 6. Link user to parent record

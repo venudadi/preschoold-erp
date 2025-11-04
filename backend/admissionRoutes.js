@@ -77,12 +77,13 @@ router.post('/convert/:enquiryId', protect, async (req, res) => {
                     ]);
                 }
 
-                // Step 4b: Create the link in the parents table
+                // Step 4b: Create the link in the parent_children table
+                const linkId = uuidv4();
                 const insertLinkSql = `
-                    INSERT INTO parents (user_id, child_id, relation_to_child)
-                    VALUES (?, ?, ?)
+                    INSERT INTO parent_children (id, parent_id, child_id, relationship_type, is_primary)
+                    VALUES (?, ?, ?, ?, ?)
                 `;
-                await connection.query(insertLinkSql, [parentId, childId, parent.relation]);
+                await connection.query(insertLinkSql, [linkId, parentId, childId, parent.relation || 'Guardian', parent.isPrimary || false]);
             }
         }
 
