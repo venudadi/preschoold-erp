@@ -4,6 +4,7 @@ import pool from './db.js';
 import { protect } from './authMiddleware.js';
 import { validateInput, validationRules, sanitizeInput, rateLimiters } from './middleware/security.js';
 import { body } from 'express-validator';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
@@ -69,24 +70,25 @@ router.post(
         }
         
         const enquiryDate = new Date().toISOString().slice(0, 10);
+        const enquiryId = uuidv4();
 
-        // UPDATED: SQL query now includes all new fields and removes the 'id'
+        // SQL query includes id field (required by database schema)
         const sql = `
             INSERT INTO enquiries (
-                source, enquiry_date, child_name, child_dob, parent_name, mobile_number, company, has_tie_up, email,
+                id, source, enquiry_date, child_name, child_dob, parent_name, mobile_number, company, has_tie_up, email,
                 parent_location, major_program, specific_program, service_hours, status,
                 reason_for_closure, follow_up_flag, assigned_to, remarks, follow_up_date, visited
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
-        
-        // UPDATED: Values array matches the new query
-        const [result] = await pool.query(sql, [
-            source, enquiryDate, childName, childDob || null, parentName, mobileNumber, company, hasTieUp || false, email,
+
+        // Values array matches the query (id is first)
+        await pool.query(sql, [
+            enquiryId, source, enquiryDate, childName, childDob || null, parentName, mobileNumber, company, hasTieUp || false, email,
             parentLocation, majorProgram, specificProgram, serviceHours || null, status || 'Open',
             reasonForClosure, followUpFlag || false, assignedTo, remarks, followUpDate || null, visited || false
         ]);
 
-        res.status(201).json({ message: 'Enquiry submitted successfully!', enquiryId: result.insertId });
+        res.status(201).json({ message: 'Enquiry submitted successfully!', enquiryId });
 
     } catch (error) {
         console.error('Error submitting enquiry:', error);
