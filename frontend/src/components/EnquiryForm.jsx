@@ -149,15 +149,10 @@ const EnquiryForm = ({ onEnquiryAdded }) => {
         if (name === "majorProgram") {
             setFormData(prev => ({ ...prev, specificProgram: '' }));
         }
-        
-        // Auto-trigger admission for 'Closed' status
-        if (name === "status" && newValue === "Closed") {
+
+        // Auto-trigger admission for 'Enrolled' status
+        if (name === "status" && newValue === "Enrolled") {
             handleClosedStatusSelected();
-        }
-        
-        // Auto-set follow-up flag for 'Follow-up' status
-        if (name === "status" && newValue === "Follow-up") {
-            setFormData(prev => ({ ...prev, followUpFlag: true }));
         }
 
         // Clear validation error when user starts typing
@@ -175,8 +170,8 @@ const EnquiryForm = ({ onEnquiryAdded }) => {
         if (name === 'followUpDate' && formData.followUpFlag && !value) {
             conditionalError = 'Follow-up date is required when follow-up is enabled';
         }
-        if (name === 'reasonForClosure' && formData.status === 'Lost' && !value) {
-            conditionalError = 'Reason for closure is required when status is Lost';
+        if (name === 'reasonForClosure' && formData.status === 'Declined' && !value) {
+            conditionalError = 'Reason for closure is required when status is Declined';
         }
         
         setValidationErrors(prev => ({
@@ -235,8 +230,8 @@ const EnquiryForm = ({ onEnquiryAdded }) => {
         if (formData.followUpFlag && !formData.followUpDate) {
             errors.followUpDate = 'Follow-up date is required when follow-up is enabled';
         }
-        if (formData.status === 'Lost' && !formData.reasonForClosure) {
-            errors.reasonForClosure = 'Reason for closure is required when status is Lost';
+        if (formData.status === 'Declined' && !formData.reasonForClosure) {
+            errors.reasonForClosure = 'Reason for closure is required when status is Declined';
         }
         if (!formData.source) errors.source = 'Source is required';
         if (!formData.majorProgram) errors.majorProgram = 'Major program is required';
@@ -415,12 +410,15 @@ const EnquiryForm = ({ onEnquiryAdded }) => {
                     {/* Status & Follow-up Section */}
                     <Grid item xs={12}><Typography variant="h6" sx={{ mt: 2 }}>Status & Follow-up</Typography></Grid>
                     <Grid item xs={12} sm={3}><FormControl fullWidth><InputLabel>Status</InputLabel>
-                        {/* UPDATED: Status options now match your schema */}
+                        {/* Status options matching database ENUM */}
                         <Select name="status" value={formData.status} label="Status" onChange={handleChange}>
                             <MenuItem value="Open">Open</MenuItem>
-                            <MenuItem value="Follow-up">Follow-up</MenuItem>
+                            <MenuItem value="New">New</MenuItem>
+                            <MenuItem value="Contacted">Contacted</MenuItem>
+                            <MenuItem value="Visit Scheduled">Visit Scheduled</MenuItem>
+                            <MenuItem value="Enrolled">Enrolled</MenuItem>
+                            <MenuItem value="Declined">Declined</MenuItem>
                             <MenuItem value="Closed">Closed</MenuItem>
-                            <MenuItem value="Lost">Lost</MenuItem>
                         </Select>
                     </FormControl></Grid>
                     <Grid item xs={12} sm={3}><FormControl fullWidth><InputLabel>Follow up?</InputLabel><Select name="followUpFlag" value={formData.followUpFlag} label="Follow up?" onChange={handleChange}><MenuItem value={true}>Yes</MenuItem><MenuItem value={false}>No</MenuItem></Select></FormControl></Grid>
@@ -453,17 +451,17 @@ const EnquiryForm = ({ onEnquiryAdded }) => {
                     
                     <Grid item xs={12} sm={6}><TextField fullWidth name="assignedTo" label="Assigned To" value={formData.assignedTo} onChange={handleChange} /></Grid>
                     <Grid item xs={12} sm={6}>
-                        <TextField 
-                            fullWidth 
-                            name="reasonForClosure" 
-                            label="Reason (if Lost)" 
-                            value={formData.reasonForClosure} 
+                        <TextField
+                            fullWidth
+                            name="reasonForClosure"
+                            label="Reason (if Declined)"
+                            value={formData.reasonForClosure}
                             onChange={handleChange}
                             onBlur={handleBlur}
                             error={!!validationErrors.reasonForClosure}
                             helperText={validationErrors.reasonForClosure}
-                            required={formData.status === 'Lost'}
-                            disabled={formData.status !== 'Lost'}
+                            required={formData.status === 'Declined'}
+                            disabled={formData.status !== 'Declined'}
                         />
                     </Grid>
                     <Grid item xs={12}>
