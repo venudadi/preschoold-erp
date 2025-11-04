@@ -2,6 +2,7 @@ import express from 'express';
 import pool from './db.js';
 import { protect } from './authMiddleware.js';
 import { requireRole } from './middleware/security.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
@@ -87,12 +88,15 @@ router.post('/food', protect, requireRole(['teacher', 'admin', 'super_admin']), 
       });
     }
 
+    const entryId = uuidv4();
+
     const queryStr = `
-      INSERT INTO daily_food_tracking (child_id, date, meal_type, food_consumed, notes, recorded_by)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO daily_food_tracking (id, child_id, date, meal_type, food_consumed, notes, recorded_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const result = await query(queryStr, [
+    await query(queryStr, [
+      entryId,
       child_id,
       date,
       meal_type,
@@ -103,7 +107,7 @@ router.post('/food', protect, requireRole(['teacher', 'admin', 'super_admin']), 
 
     const newEntry = await query(
       'SELECT * FROM daily_food_tracking WHERE id = ?',
-      [result[0].insertId]
+      [entryId]
     );
 
     res.status(201).json(newEntry[0]);
@@ -142,12 +146,15 @@ router.post('/sleep', protect, requireRole(['teacher', 'admin', 'super_admin']),
       });
     }
 
+    const entryId = uuidv4();
+
     const queryStr = `
-      INSERT INTO daily_sleep_tracking (child_id, date, start_time, end_time, duration_hours, notes, recorded_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO daily_sleep_tracking (id, child_id, date, start_time, end_time, duration_hours, notes, recorded_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const result = await query(queryStr, [
+    await query(queryStr, [
+      entryId,
       child_id,
       date,
       start_time,
@@ -159,7 +166,7 @@ router.post('/sleep', protect, requireRole(['teacher', 'admin', 'super_admin']),
 
     const newEntry = await query(
       'SELECT * FROM daily_sleep_tracking WHERE id = ?',
-      [result[0].insertId]
+      [entryId]
     );
 
     res.status(201).json(newEntry[0]);
@@ -204,12 +211,15 @@ router.post('/potty', protect, requireRole(['teacher', 'admin', 'super_admin']),
       });
     }
 
+    const entryId = uuidv4();
+
     const queryStr = `
-      INSERT INTO daily_potty_tracking (child_id, date, type, diaper_status, notes, recorded_by)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO daily_potty_tracking (id, child_id, date, type, diaper_status, notes, recorded_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const result = await query(queryStr, [
+    await query(queryStr, [
+      entryId,
       child_id,
       date,
       type,
@@ -220,7 +230,7 @@ router.post('/potty', protect, requireRole(['teacher', 'admin', 'super_admin']),
 
     const newEntry = await query(
       'SELECT * FROM daily_potty_tracking WHERE id = ?',
-      [result[0].insertId]
+      [entryId]
     );
 
     res.status(201).json(newEntry[0]);
