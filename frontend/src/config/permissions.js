@@ -32,6 +32,7 @@ export const FEATURES = {
     // Operations
     ATTENDANCE_MANAGEMENT: 'attendance_management',
     ENQUIRY_MANAGEMENT: 'enquiry_management',
+    ADMISSION_APPROVALS: 'admission_approvals',
     BILLING_MANAGEMENT: 'billing_management',
     INVOICE_GENERATION: 'invoice_generation',
     PAYMENT_PROCESSING: 'payment_processing',
@@ -118,6 +119,7 @@ export const ROLE_PERMISSIONS = {
         FEATURES.STAFF_PERFORMANCE,
         FEATURES.ATTENDANCE_MANAGEMENT,
         FEATURES.ENQUIRY_MANAGEMENT,
+        FEATURES.ADMISSION_APPROVALS,
         FEATURES.BILLING_MANAGEMENT,
         FEATURES.INVOICE_GENERATION,
         FEATURES.PAYMENT_PROCESSING,
@@ -171,6 +173,7 @@ export const ROLE_PERMISSIONS = {
         FEATURES.STAFF_PERFORMANCE,
         FEATURES.ATTENDANCE_MANAGEMENT,
         FEATURES.ENQUIRY_MANAGEMENT,
+        FEATURES.ADMISSION_APPROVALS,
         FEATURES.BILLING_MANAGEMENT,
         FEATURES.INVOICE_GENERATION,
         // Budget approval up to defined limit
@@ -294,6 +297,12 @@ export const NAVIGATION_ITEMS = [
         icon: 'QuestionAnswerIcon',
         path: '/enquiries',
         requiredFeatures: [FEATURES.ENQUIRY_MANAGEMENT]
+    },
+    {
+        text: 'Admission Approvals',
+        icon: 'HowToRegIcon',
+        path: '/admission-approvals',
+        requiredFeatures: [FEATURES.ADMISSION_APPROVALS]
     },
     {
         text: 'Billing',

@@ -273,23 +273,23 @@ const EnquiryForm = ({ onEnquiryAdded }) => {
         try {
             // First create the enquiry
             const enquiryResponse = await createEnquiry({ ...formData, hasTieUp, status: 'Closed' });
-            
-            // Then process admission (assuming the API returns the enquiry ID)
+
+            // Then submit admission for approval with fee details
             if (enquiryResponse.enquiryId) {
-                const { convertEnquiryToStudent } = await import('../services/api');
-                await convertEnquiryToStudent(enquiryResponse.enquiryId, admissionData);
+                const { submitAdmissionForApproval } = await import('../services/api');
+                await submitAdmissionForApproval(enquiryResponse.enquiryId, admissionData);
             }
-            
+
             setIsAdmissionModalOpen(false);
             setEnquiryForAdmission(null);
-            setSuccess('Student admitted successfully!');
+            setSuccess('Admission submitted for approval successfully!');
             onEnquiryAdded();
             setFormData(initialFormData);
             setHasTieUp(null);
             setValidationErrors({});
         } catch (error) {
-            console.error("Admission failed", error);
-            alert(error.message || 'Failed to admit student.');
+            console.error("Admission submission failed", error);
+            alert(error.message || 'Failed to submit admission for approval.');
         }
     };
 

@@ -21,6 +21,7 @@ import ObservationLogsPage from './pages/ObservationLogsPage.jsx';
 import DigitalPortfolioPage from './pages/DigitalPortfolioPage.jsx';
 import ClassroomAnnouncementsPage from './pages/ClassroomAnnouncementsPage.jsx';
 import AdminPortfolioPage from './pages/AdminPortfolioPage.jsx';
+import AdmissionApprovalsPage from './pages/AdmissionApprovalsPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import VerifyResetCodePage from './pages/VerifyResetCodePage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
@@ -81,6 +82,7 @@ function App() {
           <Route path="digital-portfolio" element={<DigitalPortfolioPage />} />
           <Route path="classroom-announcements" element={<ClassroomAnnouncementsPage />} />
           <Route path="admin/portfolios" element={<AdminPortfolioPage />} />
+          <Route path="admission-approvals" element={<AdmissionApprovalsPage />} />
         </Route>
       </Routes>
       </Router>

@@ -295,6 +295,46 @@ export const convertEnquiryToStudent = async (enquiryId, admissionData) => {
     }
 };
 
+// Submit admission with fee details for approval
+export const submitAdmissionForApproval = async (enquiryId, admissionData) => {
+    try {
+        const response = await api.post(`/admissions/submit-for-approval/${enquiryId}`, admissionData);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || new Error('Could not connect to the server.');
+    }
+};
+
+// Get pending admission approvals (center director only)
+export const getPendingApprovals = async () => {
+    try {
+        const response = await api.get('/admissions/approvals/pending');
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || new Error('Could not connect to the server.');
+    }
+};
+
+// Approve an admission (center director only)
+export const approveAdmission = async (approvalId, notes = '') => {
+    try {
+        const response = await api.post(`/admissions/approvals/${approvalId}/approve`, { notes });
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || new Error('Could not connect to the server.');
+    }
+};
+
+// Reject an admission (center director only)
+export const rejectAdmission = async (approvalId, notes = '') => {
+    try {
+        const response = await api.post(`/admissions/approvals/${approvalId}/reject`, { notes });
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || new Error('Could not connect to the server.');
+    }
+};
+
 // --- INVOICE FUNCTIONS ---
 
 // Generate monthly invoices for all eligible students

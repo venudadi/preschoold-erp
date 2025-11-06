@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, TextField,
-    Typography, Box, Select, MenuItem, FormControl, InputLabel
+    Typography, Box, Select, MenuItem, FormControl, InputLabel, Checkbox, FormControlLabel
 } from '@mui/material';
 import { getClassrooms } from '../services/api'; // We'll need to fetch classrooms for the dropdown
 
@@ -16,6 +16,15 @@ const AdmissionFormModal = ({ open, onClose, enquiryData, onConfirm }) => {
     const [probableJoiningDate, setProbableJoiningDate] = useState('');
     const [availableClassrooms, setAvailableClassrooms] = useState([]);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Fee details state
+    const [feeDetails, setFeeDetails] = useState({
+        originalFeePerMonth: '',
+        finalFeePerMonth: '',
+        annualFeeWaiveOff: false,
+        studentKitAmount: '',
+        discountPercentage: 0
+    });
 
     // Fetch available classrooms when the modal opens
     useEffect(() => {
@@ -67,9 +76,23 @@ const AdmissionFormModal = ({ open, onClose, enquiryData, onConfirm }) => {
         setChild(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleFeeDetailsChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFeeDetails(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+    };
+
     const handleConfirm = async () => {
         setIsSaving(true);
-        const admissionData = { child, parents, classroomId, probableJoiningDate };
+        const admissionData = {
+            child,
+            parents,
+            classroomId,
+            probableJoiningDate,
+            feeDetails
+        };
         try {
             await onConfirm(admissionData);
         } catch (error) {
@@ -115,6 +138,76 @@ const AdmissionFormModal = ({ open, onClose, enquiryData, onConfirm }) => {
                             </FormControl>
                         </Grid>
                         <Grid item xs={12} sm={6}><TextField fullWidth type="date" label="Probable Date of Joining" value={probableJoiningDate} onChange={(e) => setProbableJoiningDate(e.target.value)} InputLabelProps={{ shrink: true }} /></Grid>
+                    </Grid>
+
+                    <Typography variant="h6" sx={{ mt: 4 }}>Fee Details</Typography>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                required
+                                type="number"
+                                label="Original Fee per Month"
+                                name="originalFeePerMonth"
+                                value={feeDetails.originalFeePerMonth}
+                                onChange={handleFeeDetailsChange}
+                                InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                required
+                                type="number"
+                                label="Final Fee per Month"
+                                name="finalFeePerMonth"
+                                value={feeDetails.finalFeePerMonth}
+                                onChange={handleFeeDetailsChange}
+                                InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                fullWidth
+                                type="number"
+                                label="Student Kit Amount"
+                                name="studentKitAmount"
+                                value={feeDetails.studentKitAmount}
+                                onChange={handleFeeDetailsChange}
+                                InputProps={{ inputProps: { min: 0, step: 0.01 } }}
+                            />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth>
+                                <InputLabel>Discount Percentage</InputLabel>
+                                <Select
+                                    name="discountPercentage"
+                                    value={feeDetails.discountPercentage}
+                                    label="Discount Percentage"
+                                    onChange={handleFeeDetailsChange}
+                                >
+                                    <MenuItem value={0}>0%</MenuItem>
+                                    <MenuItem value={5}>5%</MenuItem>
+                                    <MenuItem value={10}>10%</MenuItem>
+                                    <MenuItem value={15}>15%</MenuItem>
+                                    <MenuItem value={20}>20%</MenuItem>
+                                    <MenuItem value={25}>25%</MenuItem>
+                                    <MenuItem value={30}>30%</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        name="annualFeeWaiveOff"
+                                        checked={feeDetails.annualFeeWaiveOff}
+                                        onChange={handleFeeDetailsChange}
+                                    />
+                                }
+                                label="Annual Fee Waive Off"
+                            />
+                        </Grid>
                     </Grid>
                 </Box>
             </DialogContent>
