@@ -232,6 +232,224 @@ router.post('/generate-monthly', async (req, res) => {
     }
 });
 
+// POST /api/invoices/generate-company-invoices
+// Generates invoices for tie-up companies with consolidation options
+router.post('/generate-company-invoices', async (req, res) => {
+    const { centerId } = req.user;
+    const { month, year, consolidationType } = req.body;
+
+    // Validate required fields
+    if (!month || !year || !consolidationType) {
+        return res.status(400).json({ message: 'Month, year, and consolidationType are required.' });
+    }
+
+    if (!['per_child', 'per_company', 'per_main_vendor'].includes(consolidationType)) {
+        return res.status(400).json({ message: 'Invalid consolidationType. Must be: per_child, per_company, or per_main_vendor.' });
+    }
+
+    const connection = await pool.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const now = new Date();
+        const issueDate = now.toISOString().slice(0, 10);
+        const dueDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
+
+        // Fetch all tie-up children with their company and fee details
+        const [tieUpChildren] = await connection.query(`
+            SELECT
+                c.id as child_id,
+                c.first_name as child_first_name,
+                c.last_name as child_last_name,
+                c.student_id,
+                c.company_id,
+                c.locked_monthly_fee,
+                c.payment_mode,
+                comp.company_name,
+                comp.main_vendor_id,
+                mv.vendor_name as main_vendor_name,
+                mv.gst_number as main_vendor_gst,
+                mv.billing_address as main_vendor_address,
+                afd.company_amount_before_gst,
+                afd.company_gst_amount,
+                afd.company_total_with_gst,
+                afd.parent_contribution_percent,
+                afd.company_contribution_percent
+            FROM children c
+            JOIN companies comp ON c.company_id = comp.id
+            JOIN main_vendors mv ON comp.main_vendor_id = mv.id
+            LEFT JOIN admission_fee_details afd ON c.id = afd.child_id
+            WHERE c.center_id = ?
+            AND c.has_tie_up = true
+            AND c.is_active = true
+            AND comp.is_active = true
+            AND mv.is_active = true
+        `, [centerId]);
+
+        if (tieUpChildren.length === 0) {
+            await connection.rollback();
+            return res.status(200).json({
+                message: 'No tie-up children found for invoice generation.',
+                count: 0
+            });
+        }
+
+        let generatedCount = 0;
+        const invoiceIds = [];
+
+        // Group children based on consolidation type
+        let groups = [];
+
+        if (consolidationType === 'per_child') {
+            // Each child gets their own invoice
+            groups = tieUpChildren.map(child => ({
+                key: child.child_id,
+                mainVendorId: child.main_vendor_id,
+                mainVendorName: child.main_vendor_name,
+                mainVendorGst: child.main_vendor_gst,
+                mainVendorAddress: child.main_vendor_address,
+                companyName: child.company_name,
+                children: [child]
+            }));
+        } else if (consolidationType === 'per_company') {
+            // Group by company
+            const companyMap = new Map();
+            tieUpChildren.forEach(child => {
+                if (!companyMap.has(child.company_id)) {
+                    companyMap.set(child.company_id, {
+                        key: child.company_id,
+                        mainVendorId: child.main_vendor_id,
+                        mainVendorName: child.main_vendor_name,
+                        mainVendorGst: child.main_vendor_gst,
+                        mainVendorAddress: child.main_vendor_address,
+                        companyName: child.company_name,
+                        children: []
+                    });
+                }
+                companyMap.get(child.company_id).children.push(child);
+            });
+            groups = Array.from(companyMap.values());
+        } else if (consolidationType === 'per_main_vendor') {
+            // Group by main vendor
+            const vendorMap = new Map();
+            tieUpChildren.forEach(child => {
+                if (!vendorMap.has(child.main_vendor_id)) {
+                    vendorMap.set(child.main_vendor_id, {
+                        key: child.main_vendor_id,
+                        mainVendorId: child.main_vendor_id,
+                        mainVendorName: child.main_vendor_name,
+                        mainVendorGst: child.main_vendor_gst,
+                        mainVendorAddress: child.main_vendor_address,
+                        companyName: 'Multiple Companies',
+                        children: []
+                    });
+                }
+                vendorMap.get(child.main_vendor_id).children.push(child);
+            });
+            groups = Array.from(vendorMap.values());
+        }
+
+        // Generate invoices for each group
+        for (const group of groups) {
+            // Check for existing invoice
+            const checkQuery = consolidationType === 'per_child'
+                ? `SELECT id FROM invoices WHERE child_id = ? AND invoice_type = 'Company'
+                   AND YEAR(created_at) = ? AND MONTH(created_at) = ?`
+                : consolidationType === 'per_company'
+                ? `SELECT id FROM invoices WHERE company_id = ? AND invoice_type = 'Company'
+                   AND YEAR(created_at) = ? AND MONTH(created_at) = ?`
+                : `SELECT id FROM invoices WHERE main_vendor_id = ? AND invoice_type = 'Company'
+                   AND YEAR(created_at) = ? AND MONTH(created_at) = ?`;
+
+            const [existing] = await connection.query(checkQuery, [group.key, year, month]);
+
+            if (existing.length > 0) {
+                continue; // Skip if invoice already exists
+            }
+
+            // Calculate total amount for this group
+            let totalAmount = 0;
+            let lineItems = [];
+
+            for (const child of group.children) {
+                const companyAmount = child.company_total_with_gst || child.company_amount_before_gst || 0;
+                totalAmount += parseFloat(companyAmount);
+
+                lineItems.push({
+                    childId: child.child_id,
+                    studentId: child.student_id,
+                    childName: `${child.child_first_name} ${child.child_last_name}`,
+                    companyName: child.company_name,
+                    description: `Monthly Fee - ${child.child_first_name} ${child.child_last_name} (${child.student_id})`,
+                    baseAmount: parseFloat(child.company_amount_before_gst || 0),
+                    gstAmount: parseFloat(child.company_gst_amount || 0),
+                    totalAmount: parseFloat(companyAmount)
+                });
+            }
+
+            // Generate invoice number
+            const invoiceNumber = await generateInvoiceNumber(connection, centerId);
+            const invoiceId = uuidv4();
+
+            // Create invoice record
+            await connection.query(`
+                INSERT INTO invoices (
+                    id, invoice_number, child_id, company_id, main_vendor_id,
+                    total_amount, status, center_id, invoice_type, consolidation_type,
+                    issue_date, due_date, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 'Pending', ?, 'Company', ?, ?, ?, NOW())
+            `, [
+                invoiceId,
+                invoiceNumber,
+                consolidationType === 'per_child' ? group.children[0].child_id : null,
+                consolidationType === 'per_company' ? group.key : null,
+                group.mainVendorId,
+                totalAmount,
+                centerId,
+                consolidationType,
+                issueDate,
+                dueDate
+            ]);
+
+            // Create line items
+            for (const item of lineItems) {
+                const lineItemId = uuidv4();
+                await connection.query(`
+                    INSERT INTO invoice_line_items (
+                        id, invoice_id, description, quantity, unit_price, total_price
+                    ) VALUES (?, ?, ?, 1, ?, ?)
+                `, [
+                    lineItemId,
+                    invoiceId,
+                    item.description,
+                    item.totalAmount,
+                    item.totalAmount
+                ]);
+            }
+
+            invoiceIds.push(invoiceId);
+            generatedCount++;
+        }
+
+        await connection.commit();
+
+        res.status(201).json({
+            message: `${generatedCount} company invoices generated successfully with ${consolidationType} consolidation.`,
+            count: generatedCount,
+            invoiceIds,
+            consolidationType
+        });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Error generating company invoices:', error);
+        res.status(500).json({ message: 'Server error during company invoice generation.', error: error.message });
+    } finally {
+        connection.release();
+    }
+});
+
 // 2. GET /api/invoices
 // Fetches all invoices with filtering and pagination
 
