@@ -5,6 +5,121 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
+// --- CALCULATE ADMISSION PREVIEW (NEW) ---
+// Real-time fee calculation for admission modal
+router.post('/calculate-preview', protect, async (req, res) => {
+    const {
+        originalFeePerMonth,
+        studentKitAmount,
+        annualFeeWaiveOff,
+        paymentMode,
+        billingFrequency,
+        hasTieUp,
+        companyId,
+        discountPercentage
+    } = req.body;
+
+    if (!originalFeePerMonth) {
+        return res.status(400).json({ message: 'Original fee per month is required.' });
+    }
+
+    try {
+        const GST_RATE = 18.0;
+        let calculationResult = {
+            originalFeePerMonth: parseFloat(originalFeePerMonth),
+            studentKitAmount: parseFloat(studentKitAmount) || 0,
+            annualFeeWaiveOff: annualFeeWaiveOff || false,
+            paymentMode: paymentMode || 'Online',
+            billingFrequency: billingFrequency || 'Monthly',
+            hasTieUp: hasTieUp || false,
+            gstRate: GST_RATE
+        };
+
+        // Get company contribution if tie-up
+        if (hasTieUp && companyId) {
+            const [companies] = await pool.query(
+                'SELECT parent_contribution_percent, company_contribution_percent, company_name FROM companies WHERE id = ?',
+                [companyId]
+            );
+
+            if (companies.length > 0) {
+                calculationResult.companyName = companies[0].company_name;
+                calculationResult.parentContributionPercent = parseFloat(companies[0].parent_contribution_percent);
+                calculationResult.companyContributionPercent = parseFloat(companies[0].company_contribution_percent);
+
+                // Calculate split amounts
+                const monthlyFee = parseFloat(originalFeePerMonth);
+                calculationResult.parentAmountBeforeGst = (monthlyFee * calculationResult.parentContributionPercent) / 100;
+                calculationResult.companyAmountBeforeGst = (monthlyFee * calculationResult.companyContributionPercent) / 100;
+
+                // Add student kit to parent portion
+                calculationResult.parentSubtotal = calculationResult.parentAmountBeforeGst + calculationResult.studentKitAmount;
+
+                // Calculate GST only if payment mode is Online
+                if (paymentMode === 'Online') {
+                    calculationResult.parentGstAmount = (calculationResult.parentSubtotal * GST_RATE) / 100;
+                    calculationResult.companyGstAmount = (calculationResult.companyAmountBeforeGst * GST_RATE) / 100;
+                } else {
+                    calculationResult.parentGstAmount = 0;
+                    calculationResult.companyGstAmount = 0;
+                }
+
+                calculationResult.parentTotalWithGst = calculationResult.parentSubtotal + calculationResult.parentGstAmount;
+                calculationResult.companyTotalWithGst = calculationResult.companyAmountBeforeGst + calculationResult.companyGstAmount;
+                calculationResult.finalFeePerMonth = calculationResult.parentAmountBeforeGst; // Final fee for parent
+
+            } else {
+                return res.status(404).json({ message: 'Company not found.' });
+            }
+        } else {
+            // Non-tie-up: Apply discount
+            const discount = parseFloat(discountPercentage) || 0;
+            const discountAmount = (parseFloat(originalFeePerMonth) * discount) / 100;
+            calculationResult.discountPercentage = discount;
+            calculationResult.discountAmount = discountAmount;
+            calculationResult.finalFeePerMonth = parseFloat(originalFeePerMonth) - discountAmount;
+
+            // Parent pays 100%
+            calculationResult.parentContributionPercent = 100;
+            calculationResult.companyContributionPercent = 0;
+            calculationResult.parentAmountBeforeGst = calculationResult.finalFeePerMonth;
+            calculationResult.parentSubtotal = calculationResult.parentAmountBeforeGst + calculationResult.studentKitAmount;
+
+            // Calculate GST only if payment mode is Online
+            if (paymentMode === 'Online') {
+                calculationResult.parentGstAmount = (calculationResult.parentSubtotal * GST_RATE) / 100;
+            } else {
+                calculationResult.parentGstAmount = 0;
+            }
+
+            calculationResult.parentTotalWithGst = calculationResult.parentSubtotal + calculationResult.parentGstAmount;
+        }
+
+        // Calculate total based on billing frequency
+        const monthlyDue = calculationResult.parentTotalWithGst;
+
+        if (billingFrequency === 'Term') {
+            // Term: 4 months + 3 months + 3 months
+            calculationResult.term1Total = monthlyDue * 4;
+            calculationResult.term2Total = monthlyDue * 3;
+            calculationResult.term3Total = monthlyDue * 3;
+            calculationResult.annualTotal = calculationResult.term1Total + calculationResult.term2Total + calculationResult.term3Total;
+        } else if (billingFrequency === 'Annual') {
+            // Annual: 10 months upfront
+            calculationResult.annualTotal = monthlyDue * 10;
+        } else {
+            // Monthly
+            calculationResult.monthlyTotal = monthlyDue;
+        }
+
+        res.status(200).json({ calculation: calculationResult });
+
+    } catch (error) {
+        console.error('Error calculating preview:', error);
+        res.status(500).json({ message: 'Server error calculating preview.' });
+    }
+});
+
 // --- SUBMIT ADMISSION FOR APPROVAL (NEW) ---
 // Submits admission with fee details for center director approval
 router.post('/submit-for-approval/:enquiryId', protect, async (req, res) => {
@@ -13,7 +128,7 @@ router.post('/submit-for-approval/:enquiryId', protect, async (req, res) => {
     }
 
     const { enquiryId } = req.params;
-    const { child, parents, classroomId, probableJoiningDate, feeDetails } = req.body;
+    const { child, parents, classroomId, probableJoiningDate, feeDetails, companyId } = req.body;
     const { centerId, userId } = req.user;
 
     const connection = await pool.getConnection();
@@ -27,6 +142,7 @@ router.post('/submit-for-approval/:enquiryId', protect, async (req, res) => {
             await connection.rollback();
             return res.status(404).json({ message: 'Enquiry not found.' });
         }
+        const enquiry = enquiries[0];
 
         // 2. Validate fee details
         if (!feeDetails || !feeDetails.originalFeePerMonth || !feeDetails.finalFeePerMonth) {
@@ -34,13 +150,26 @@ router.post('/submit-for-approval/:enquiryId', protect, async (req, res) => {
             return res.status(400).json({ message: 'Fee details are required.' });
         }
 
-        // 3. Create admission_fee_details record
+        // 3. Validate tie-up billing restrictions
+        if (enquiry.has_tie_up && feeDetails.billingFrequency !== 'Monthly') {
+            await connection.rollback();
+            return res.status(400).json({
+                message: 'Tie-up students must use Monthly billing frequency only.'
+            });
+        }
+
+        // 3. Create admission_fee_details record with enhanced fields
         const feeDetailsId = uuidv4();
         const insertFeeDetailsSql = `
             INSERT INTO admission_fee_details (
                 id, enquiry_id, original_fee_per_month, final_fee_per_month,
-                annual_fee_waive_off, student_kit_amount, discount_percentage
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                annual_fee_waive_off, student_kit_amount, discount_percentage,
+                payment_mode, billing_frequency,
+                parent_contribution_percent, company_contribution_percent,
+                parent_amount_before_gst, company_amount_before_gst,
+                parent_gst_amount, company_gst_amount,
+                parent_total_with_gst, company_total_with_gst
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         await connection.query(insertFeeDetailsSql, [
             feeDetailsId,
@@ -49,7 +178,17 @@ router.post('/submit-for-approval/:enquiryId', protect, async (req, res) => {
             feeDetails.finalFeePerMonth,
             feeDetails.annualFeeWaiveOff || false,
             feeDetails.studentKitAmount || 0,
-            feeDetails.discountPercentage || 0
+            feeDetails.discountPercentage || 0,
+            feeDetails.paymentMode || 'Online',
+            feeDetails.billingFrequency || 'Monthly',
+            feeDetails.parentContributionPercent || 100,
+            feeDetails.companyContributionPercent || 0,
+            feeDetails.parentAmountBeforeGst || feeDetails.finalFeePerMonth,
+            feeDetails.companyAmountBeforeGst || 0,
+            feeDetails.parentGstAmount || 0,
+            feeDetails.companyGstAmount || 0,
+            feeDetails.parentTotalWithGst || feeDetails.finalFeePerMonth,
+            feeDetails.companyTotalWithGst || 0
         ]);
 
         // 4. Create admission_approvals record
@@ -62,7 +201,16 @@ router.post('/submit-for-approval/:enquiryId', protect, async (req, res) => {
         await connection.query(insertApprovalSql, [approvalId, enquiryId, feeDetailsId, userId]);
 
         // 5. Store admission data as JSON in approval notes for later processing
-        const admissionData = JSON.stringify({ child, parents, classroomId, probableJoiningDate });
+        const admissionData = JSON.stringify({
+            child,
+            parents,
+            classroomId,
+            probableJoiningDate,
+            companyId: companyId || null,
+            paymentMode: feeDetails.paymentMode || 'Online',
+            billingFrequency: feeDetails.billingFrequency || 'Monthly',
+            lockedMonthlyFee: feeDetails.finalFeePerMonth
+        });
         await connection.query(
             'UPDATE admission_approvals SET approval_notes = ? WHERE id = ?',
             [admissionData, approvalId]
@@ -184,7 +332,15 @@ router.post('/approvals/:approvalId/approve', protect, async (req, res) => {
             return res.status(400).json({ message: 'Invalid admission data.' });
         }
 
-        const { child, parents, classroomId } = admissionData;
+        const {
+            child,
+            parents,
+            classroomId,
+            companyId = null,
+            paymentMode = 'Online',
+            billingFrequency = 'Monthly',
+            lockedMonthlyFee = null
+        } = admissionData;
 
         // 4. Generate unique Student ID
         const now = new Date();
@@ -203,12 +359,26 @@ router.post('/approvals/:approvalId/approve', protect, async (req, res) => {
         // 5. Create the new child record
         const childId = uuidv4();
         const insertChildSql = `
-            INSERT INTO children (id, first_name, last_name, date_of_birth, gender, student_id, classroom_id, center_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO children (
+                id, first_name, last_name, date_of_birth, gender, student_id, classroom_id, center_id,
+                payment_mode, billing_frequency, locked_monthly_fee, company_id, has_tie_up
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         await connection.query(insertChildSql, [
-            childId, child.firstName, child.lastName, child.dateOfBirth, child.gender,
-            studentId, classroomId, centerId
+            childId,
+            child.firstName,
+            child.lastName,
+            child.dateOfBirth,
+            child.gender,
+            studentId,
+            classroomId,
+            centerId,
+            paymentMode,
+            billingFrequency,
+            lockedMonthlyFee,
+            companyId,
+            companyId ? true : false  // has_tie_up is true if companyId exists
         ]);
 
         // 6. Update fee_details with child_id

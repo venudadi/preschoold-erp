@@ -229,19 +229,21 @@ export const createProgram = async (programData) => {
         throw error.response?.data || new Error('Could not connect to the server.');
     }
 };
-//Gets the list of companies that are part of the program
-export const getCompanies = async () => {
+// Gets the list of companies that are part of the program
+export const getCompanies = async (includeInactive = false, mainVendorId = null) => {
     try {
-        const response = await api.get('/settings/companies');
+        const response = await api.get('/companies', {
+            params: { includeInactive, mainVendorId }
+        });
         return response.data;
     } catch (error) {
         throw error.response?.data || new Error('Could not connect to the server.');
     }
 };
-// CReates new company
+// Creates new company
 export const createCompany = async (companyData) => {
     try {
-        const response = await api.post('/settings/companies', companyData);
+        const response = await api.post('/companies', companyData);
         return response.data;
     } catch (error) {
         throw error.response?.data || new Error('Could not connect to the server.');
@@ -250,7 +252,7 @@ export const createCompany = async (companyData) => {
 // Checks if a company has a tie-up
 export const checkCompanyTieUp = async (companyName) => {
     try {
-        const response = await api.get(`/enquiries/check-company?name=${companyName}`);
+        const response = await api.get(`/companies/check-tieup/${encodeURIComponent(companyName)}`);
         return response.data;
     } catch (error) {
         throw error.response?.data || new Error('Could not connect to the server.');
@@ -289,6 +291,16 @@ export const getPrograms = async () => {
 export const convertEnquiryToStudent = async (enquiryId, admissionData) => {
     try {
         const response = await api.post(`/admissions/convert/${enquiryId}`, admissionData);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || new Error('Could not connect to the server.');
+    }
+};
+
+// Calculate admission fee preview with real-time calculations
+export const calculateAdmissionPreview = async (data) => {
+    try {
+        const response = await api.post('/admissions/calculate-preview', data);
         return response.data;
     } catch (error) {
         throw error.response?.data || new Error('Could not connect to the server.');
@@ -335,6 +347,282 @@ export const rejectAdmission = async (approvalId, notes = '') => {
     }
 };
 
+// --- MAIN VENDOR FUNCTIONS ---
+
+// Create a new main vendor
+export const createMainVendor = async (data) => {
+    try {
+        const response = await api.post('/main-vendors', data);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Get all main vendors
+export const getMainVendors = async (includeInactive = false) => {
+    try {
+        const response = await api.get('/main-vendors', {
+            params: { includeInactive }
+        });
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Get single main vendor by ID
+export const getMainVendor = async (id) => {
+    try {
+        const response = await api.get(`/main-vendors/${id}`);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Update main vendor
+export const updateMainVendor = async (id, data) => {
+    try {
+        const response = await api.put(`/main-vendors/${id}`, data);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Delete (deactivate) main vendor
+export const deleteMainVendor = async (id) => {
+    try {
+        const response = await api.delete(`/main-vendors/${id}`);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Get revenue report for main vendor
+export const getMainVendorRevenue = async (id, startDate, endDate) => {
+    try {
+        const response = await api.get(`/main-vendors/${id}/revenue-report`, {
+            params: { startDate, endDate }
+        });
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// --- COMPANY FUNCTIONS (ENHANCED) ---
+
+// Get single company by ID
+export const getCompany = async (id) => {
+    try {
+        const response = await api.get(`/companies/${id}`);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Update company
+export const updateCompany = async (id, data) => {
+    try {
+        const response = await api.put(`/companies/${id}`, data);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Delete (deactivate) company
+export const deleteCompany = async (id) => {
+    try {
+        const response = await api.delete(`/companies/${id}`);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Get company contribution configuration
+export const getCompanyContributionConfig = async (id) => {
+    try {
+        const response = await api.get(`/companies/${id}/contribution-config`);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// --- RECEIPT FUNCTIONS ---
+
+// Create a new receipt
+export const createReceipt = async (data) => {
+    try {
+        const response = await api.post('/receipts', data);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Get receipts with filters
+export const getReceipts = async (filters = {}) => {
+    try {
+        const response = await api.get('/receipts', { params: filters });
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Get single receipt by ID
+export const getReceipt = async (id) => {
+    try {
+        const response = await api.get(`/receipts/${id}`);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Update receipt
+export const updateReceipt = async (id, data) => {
+    try {
+        const response = await api.put(`/receipts/${id}`, data);
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Get pending cash payments
+export const getPendingCashPayments = async () => {
+    try {
+        const response = await api.get('/receipts/pending');
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Generate receipt PDF
+export const generateReceiptPDF = async (id) => {
+    try {
+        const response = await api.get(`/receipts/${id}/pdf`, {
+            responseType: 'blob'
+        });
+        // Create blob link to download
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Receipt_${id}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
 // --- INVOICE FUNCTIONS ---
 
 // Generate monthly invoices for all eligible students
@@ -343,12 +631,32 @@ export const generateMonthlyInvoices = async () => {
         const response = await api.post('/invoices/generate-monthly');
         return response.data;
     } catch (error) {
-        if (error.response) { 
-            throw error.response.data; 
-        } else if (error.request) { 
-            throw new Error('Could not connect to the server. Please try again later.'); 
-        } else { 
-            throw new Error('An unexpected error occurred.'); 
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server. Please try again later.');
+        } else {
+            throw new Error('An unexpected error occurred.');
+        }
+    }
+};
+
+// Generate company invoices with consolidation options
+export const generateCompanyInvoices = async (month, year, consolidationType) => {
+    try {
+        const response = await api.post('/invoices/generate-company-invoices', {
+            month,
+            year,
+            consolidationType
+        });
+        return response.data;
+    } catch (error) {
+        if (error.response) {
+            throw error.response.data;
+        } else if (error.request) {
+            throw new Error('Could not connect to the server. Please try again later.');
+        } else {
+            throw new Error('An unexpected error occurred.');
         }
     }
 };

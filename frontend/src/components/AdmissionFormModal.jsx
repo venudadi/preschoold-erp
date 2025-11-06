@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, TextField,
-    Typography, Box, Select, MenuItem, FormControl, InputLabel, Checkbox, FormControlLabel
+    Typography, Box, Select, MenuItem, FormControl, InputLabel, Checkbox, FormControlLabel,
+    RadioGroup, Radio, Card, CardContent, CircularProgress, Alert, FormHelperText
 } from '@mui/material';
-import { getClassrooms } from '../services/api'; // We'll need to fetch classrooms for the dropdown
+import { getClassrooms, checkCompanyTieUp, calculateAdmissionPreview } from '../services/api';
 
 const AdmissionFormModal = ({ open, onClose, enquiryData, onConfirm }) => {
     const [child, setChild] = useState({ firstName: '', lastName: '', dateOfBirth: '', gender: '' });
@@ -25,6 +26,20 @@ const AdmissionFormModal = ({ open, onClose, enquiryData, onConfirm }) => {
         studentKitAmount: '',
         discountPercentage: 0
     });
+
+    // Payment configuration state
+    const [paymentMode, setPaymentMode] = useState('Online');
+    const [billingFrequency, setBillingFrequency] = useState('Monthly');
+
+    // Tie-up state
+    const [hasTieUp, setHasTieUp] = useState(false);
+    const [companyId, setCompanyId] = useState(null);
+    const [companyDetails, setCompanyDetails] = useState(null);
+
+    // Fee calculation state
+    const [calculationResult, setCalculationResult] = useState(null);
+    const [isCalculating, setIsCalculating] = useState(false);
+    const [calculationError, setCalculationError] = useState(null);
 
     // Fetch available classrooms when the modal opens
     useEffect(() => {
@@ -61,8 +76,84 @@ const AdmissionFormModal = ({ open, onClose, enquiryData, onConfirm }) => {
                 return newParents;
             });
             setProbableJoiningDate(enquiryData.probable_joining_date ? new Date(enquiryData.probable_joining_date).toISOString().slice(0, 10) : '');
+
+            // Check for company tie-up
+            if (enquiryData.company_name) {
+                checkCompanyTieUp(enquiryData.company_name)
+                    .then(response => {
+                        if (response.hasTieUp) {
+                            setHasTieUp(true);
+                            setCompanyId(response.company.id);
+                            setCompanyDetails(response.company);
+                            setBillingFrequency('Monthly'); // Force monthly for tie-ups
+                            setFeeDetails(prev => ({ ...prev, discountPercentage: 0 })); // No discount for tie-ups
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking company tie-up:', error);
+                    });
+            }
         }
     }, [enquiryData]);
+
+    // Calculate fee preview whenever relevant fields change
+    useEffect(() => {
+        const shouldCalculate = feeDetails.originalFeePerMonth &&
+                               feeDetails.studentKitAmount !== '' &&
+                               paymentMode &&
+                               billingFrequency;
+
+        if (shouldCalculate && open) {
+            const timer = setTimeout(() => {
+                calculateFeePreview();
+            }, 300); // Debounce for 300ms
+
+            return () => clearTimeout(timer);
+        }
+    }, [
+        feeDetails.originalFeePerMonth,
+        feeDetails.studentKitAmount,
+        feeDetails.annualFeeWaiveOff,
+        feeDetails.discountPercentage,
+        paymentMode,
+        billingFrequency,
+        hasTieUp,
+        companyId,
+        open
+    ]);
+
+    const calculateFeePreview = async () => {
+        setIsCalculating(true);
+        setCalculationError(null);
+
+        try {
+            const response = await calculateAdmissionPreview({
+                originalFeePerMonth: parseFloat(feeDetails.originalFeePerMonth) || 0,
+                studentKitAmount: parseFloat(feeDetails.studentKitAmount) || 0,
+                annualFeeWaiveOff: feeDetails.annualFeeWaiveOff,
+                paymentMode,
+                billingFrequency,
+                hasTieUp,
+                companyId: hasTieUp ? companyId : null,
+                discountPercentage: hasTieUp ? 0 : parseFloat(feeDetails.discountPercentage) || 0
+            });
+
+            setCalculationResult(response.calculation);
+
+            // Auto-set finalFeePerMonth based on calculation
+            if (!hasTieUp && response.calculation.finalFeePerMonth) {
+                setFeeDetails(prev => ({
+                    ...prev,
+                    finalFeePerMonth: response.calculation.finalFeePerMonth
+                }));
+            }
+        } catch (error) {
+            console.error('Fee calculation error:', error);
+            setCalculationError(error.message || 'Failed to calculate fees');
+        } finally {
+            setIsCalculating(false);
+        }
+    };
 
     const handleParentChange = (index, e) => {
         const { name, value } = e.target;
@@ -86,13 +177,32 @@ const AdmissionFormModal = ({ open, onClose, enquiryData, onConfirm }) => {
 
     const handleConfirm = async () => {
         setIsSaving(true);
+
+        // Prepare enhanced fee details with payment configuration
+        const enhancedFeeDetails = {
+            ...feeDetails,
+            paymentMode,
+            billingFrequency,
+            // Include calculation results for validation
+            parentContributionPercent: calculationResult?.parentContributionPercent || 0,
+            companyContributionPercent: calculationResult?.companyContributionPercent || 0,
+            parentAmountBeforeGst: calculationResult?.parentAmountBeforeGst || 0,
+            companyAmountBeforeGst: calculationResult?.companyAmountBeforeGst || 0,
+            parentGstAmount: calculationResult?.parentGstAmount || 0,
+            companyGstAmount: calculationResult?.companyGstAmount || 0,
+            parentTotalWithGst: calculationResult?.parentTotalWithGst || 0,
+            companyTotalWithGst: calculationResult?.companyTotalWithGst || 0
+        };
+
         const admissionData = {
             child,
             parents,
             classroomId,
             probableJoiningDate,
-            feeDetails
+            feeDetails: enhancedFeeDetails,
+            companyId: hasTieUp ? companyId : null
         };
+
         try {
             await onConfirm(admissionData);
         } catch (error) {
@@ -140,6 +250,51 @@ const AdmissionFormModal = ({ open, onClose, enquiryData, onConfirm }) => {
                         <Grid item xs={12} sm={6}><TextField fullWidth type="date" label="Probable Date of Joining" value={probableJoiningDate} onChange={(e) => setProbableJoiningDate(e.target.value)} InputLabelProps={{ shrink: true }} /></Grid>
                     </Grid>
 
+                    {hasTieUp && companyDetails && (
+                        <Alert severity="info" sx={{ mt: 3 }}>
+                            This enquiry has a tie-up with <strong>{companyDetails.company_name}</strong>.
+                            Contribution split: Parent {companyDetails.parent_contribution_percent}% | Company {companyDetails.company_contribution_percent}%
+                        </Alert>
+                    )}
+
+                    <Typography variant="h6" sx={{ mt: 4 }}>Payment Configuration</Typography>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth required>
+                                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Payment Mode</Typography>
+                                <RadioGroup
+                                    row
+                                    value={paymentMode}
+                                    onChange={(e) => setPaymentMode(e.target.value)}
+                                >
+                                    <FormControlLabel value="Online" control={<Radio />} label="Online" />
+                                    <FormControlLabel value="Cash" control={<Radio />} label="Cash" />
+                                </RadioGroup>
+                                <FormHelperText>
+                                    {paymentMode === 'Online' ? '18% GST will be applied' : 'Cash payments generate receipts'}
+                                </FormHelperText>
+                            </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth required>
+                                <InputLabel>Billing Frequency</InputLabel>
+                                <Select
+                                    value={billingFrequency}
+                                    label="Billing Frequency"
+                                    onChange={(e) => setBillingFrequency(e.target.value)}
+                                    disabled={hasTieUp}
+                                >
+                                    <MenuItem value="Monthly">Monthly</MenuItem>
+                                    <MenuItem value="Term">Term (4+3+3 months)</MenuItem>
+                                    <MenuItem value="Annual">Annual (10 months)</MenuItem>
+                                </Select>
+                                {hasTieUp && (
+                                    <FormHelperText>Tie-up students must use Monthly billing</FormHelperText>
+                                )}
+                            </FormControl>
+                        </Grid>
+                    </Grid>
+
                     <Typography variant="h6" sx={{ mt: 4 }}>Fee Details</Typography>
                     <Grid container spacing={2}>
                         <Grid item xs={12} sm={6}>
@@ -178,7 +333,7 @@ const AdmissionFormModal = ({ open, onClose, enquiryData, onConfirm }) => {
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth>
+                            <FormControl fullWidth disabled={hasTieUp}>
                                 <InputLabel>Discount Percentage</InputLabel>
                                 <Select
                                     name="discountPercentage"
@@ -194,6 +349,9 @@ const AdmissionFormModal = ({ open, onClose, enquiryData, onConfirm }) => {
                                     <MenuItem value={25}>25%</MenuItem>
                                     <MenuItem value={30}>30%</MenuItem>
                                 </Select>
+                                {hasTieUp && (
+                                    <FormHelperText>Discounts not applicable for tie-up students</FormHelperText>
+                                )}
                             </FormControl>
                         </Grid>
                         <Grid item xs={12}>
@@ -209,6 +367,123 @@ const AdmissionFormModal = ({ open, onClose, enquiryData, onConfirm }) => {
                             />
                         </Grid>
                     </Grid>
+
+                    {/* Fee Calculation Preview */}
+                    {calculationResult && (
+                        <Card sx={{ mt: 3, bgcolor: '#f5f5f5' }}>
+                            <CardContent>
+                                <Typography variant="h6" gutterBottom>
+                                    Fee Calculation Preview {isCalculating && <CircularProgress size={20} sx={{ ml: 2 }} />}
+                                </Typography>
+
+                                {calculationError && (
+                                    <Alert severity="error" sx={{ mb: 2 }}>{calculationError}</Alert>
+                                )}
+
+                                <Grid container spacing={2}>
+                                    {hasTieUp ? (
+                                        <>
+                                            {/* Tie-up calculation display */}
+                                            <Grid item xs={12} md={6}>
+                                                <Card variant="outlined">
+                                                    <CardContent>
+                                                        <Typography variant="subtitle1" fontWeight="bold" color="primary">
+                                                            Parent Contribution
+                                                        </Typography>
+                                                        <Typography variant="body2">
+                                                            Base Amount: ₹{calculationResult.parentAmountBeforeGst?.toFixed(2) || '0.00'}
+                                                        </Typography>
+                                                        <Typography variant="body2">
+                                                            Student Kit: ₹{parseFloat(feeDetails.studentKitAmount || 0).toFixed(2)}
+                                                        </Typography>
+                                                        <Typography variant="body2">
+                                                            Subtotal: ₹{calculationResult.parentSubtotal?.toFixed(2) || '0.00'}
+                                                        </Typography>
+                                                        {paymentMode === 'Online' && (
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                GST (18%): ₹{calculationResult.parentGstAmount?.toFixed(2) || '0.00'}
+                                                            </Typography>
+                                                        )}
+                                                        <Typography variant="h6" sx={{ mt: 1 }}>
+                                                            Total: ₹{calculationResult.parentTotalWithGst?.toFixed(2) || '0.00'}
+                                                        </Typography>
+                                                    </CardContent>
+                                                </Card>
+                                            </Grid>
+                                            <Grid item xs={12} md={6}>
+                                                <Card variant="outlined">
+                                                    <CardContent>
+                                                        <Typography variant="subtitle1" fontWeight="bold" color="secondary">
+                                                            Company Contribution
+                                                        </Typography>
+                                                        <Typography variant="body2">
+                                                            Base Amount: ₹{calculationResult.companyAmountBeforeGst?.toFixed(2) || '0.00'}
+                                                        </Typography>
+                                                        {paymentMode === 'Online' && (
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                GST (18%): ₹{calculationResult.companyGstAmount?.toFixed(2) || '0.00'}
+                                                            </Typography>
+                                                        )}
+                                                        <Typography variant="h6" sx={{ mt: 1 }}>
+                                                            Total: ₹{calculationResult.companyTotalWithGst?.toFixed(2) || '0.00'}
+                                                        </Typography>
+                                                    </CardContent>
+                                                </Card>
+                                            </Grid>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* Non-tie-up calculation display */}
+                                            <Grid item xs={12}>
+                                                <Typography variant="body2">
+                                                    Original Fee: ₹{parseFloat(feeDetails.originalFeePerMonth || 0).toFixed(2)}
+                                                </Typography>
+                                                {calculationResult.discountAmount > 0 && (
+                                                    <Typography variant="body2" color="success.main">
+                                                        Discount ({feeDetails.discountPercentage}%): -₹{calculationResult.discountAmount?.toFixed(2)}
+                                                    </Typography>
+                                                )}
+                                                <Typography variant="body2">
+                                                    Final Fee per Month: ₹{calculationResult.finalFeePerMonth?.toFixed(2) || '0.00'}
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    Student Kit: ₹{parseFloat(feeDetails.studentKitAmount || 0).toFixed(2)}
+                                                </Typography>
+                                                <Typography variant="body2">
+                                                    Subtotal: ₹{calculationResult.parentSubtotal?.toFixed(2) || '0.00'}
+                                                </Typography>
+                                                {paymentMode === 'Online' && (
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        GST (18%): ₹{calculationResult.parentGstAmount?.toFixed(2) || '0.00'}
+                                                    </Typography>
+                                                )}
+                                                <Typography variant="h6" sx={{ mt: 1 }}>
+                                                    Total Monthly: ₹{calculationResult.parentTotalWithGst?.toFixed(2) || '0.00'}
+                                                </Typography>
+                                            </Grid>
+                                        </>
+                                    )}
+
+                                    {/* Billing frequency breakdown */}
+                                    {billingFrequency === 'Term' && calculationResult.term1Total && (
+                                        <Grid item xs={12}>
+                                            <Typography variant="subtitle2" sx={{ mt: 2 }}>Term Payment Breakdown:</Typography>
+                                            <Typography variant="body2">Term 1 (4 months): ₹{calculationResult.term1Total.toFixed(2)}</Typography>
+                                            <Typography variant="body2">Term 2 (3 months): ₹{calculationResult.term2Total.toFixed(2)}</Typography>
+                                            <Typography variant="body2">Term 3 (3 months): ₹{calculationResult.term3Total.toFixed(2)}</Typography>
+                                        </Grid>
+                                    )}
+
+                                    {billingFrequency === 'Annual' && calculationResult.annualTotal && (
+                                        <Grid item xs={12}>
+                                            <Typography variant="subtitle2" sx={{ mt: 2 }}>Annual Payment (10 months):</Typography>
+                                            <Typography variant="h6">₹{calculationResult.annualTotal.toFixed(2)}</Typography>
+                                        </Grid>
+                                    )}
+                                </Grid>
+                            </CardContent>
+                        </Card>
+                    )}
                 </Box>
             </DialogContent>
             <DialogActions>
