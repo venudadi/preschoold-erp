@@ -72,6 +72,9 @@ import twoFactorRoutes from './twoFactorRoutes.js';
 import claudeRoutes from './claudeRoutes.js';
 import debugRoutes from './debugRoutes.js';
 import dailyActivityRoutes from './dailyActivityRoutes.js';
+import mainVendorRoutes from './mainVendorRoutes.js';
+import receiptRoutes from './receiptRoutes.js';
+import companyRoutes from './companyRoutes.js';
 
 // --- MIDDLEWARE ---
 // Production-ready CORS configuration
@@ -264,6 +267,9 @@ app.use('/auth', twoFactorRoutes);
 app.use('/claude', claudeRoutes);
 app.use('/debug', debugRoutes);
 app.use('/daily-activities', dailyActivityRoutes);
+app.use('/main-vendors', mainVendorRoutes);
+app.use('/receipts', receiptRoutes);
+app.use('/companies', companyRoutes);
 // --- WEBSOCKET CONFIGURATION ---
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
