@@ -77,20 +77,57 @@ const generateInvoiceNumber = async (connection, centerId) => {
     const year = now.getFullYear().toString().slice(-2);
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     const prefix = `INV${year}${month}`;
-    
+
     // Get the last invoice number for this month/year
     const [lastInvoices] = await connection.query(
         'SELECT invoice_number FROM invoices WHERE invoice_number LIKE ? ORDER BY invoice_number DESC LIMIT 1',
         [`${prefix}%`]
     );
-    
+
     let newSerial = 1;
     if (lastInvoices.length > 0 && lastInvoices[0].invoice_number) {
         const lastSerial = parseInt(lastInvoices[0].invoice_number.slice(-4));
         newSerial = lastSerial + 1;
     }
-    
+
     return `${prefix}${newSerial.toString().padStart(4, '0')}`;
+};
+
+// Helper function to calculate GST breakdown
+const calculateGST = (baseAmount, gstRate = 18.00, isInterstate = false) => {
+    const amount = parseFloat(baseAmount);
+    const rate = parseFloat(gstRate);
+
+    if (isInterstate) {
+        // Interstate: IGST only
+        const igstAmount = (amount * rate) / 100;
+        return {
+            cgstRate: 0,
+            cgstAmount: 0,
+            sgstRate: 0,
+            sgstAmount: 0,
+            igstRate: rate,
+            igstAmount: parseFloat(igstAmount.toFixed(2)),
+            totalTax: parseFloat(igstAmount.toFixed(2)),
+            totalAmount: parseFloat((amount + igstAmount).toFixed(2))
+        };
+    } else {
+        // Intrastate: CGST + SGST (split equally)
+        const halfRate = rate / 2;
+        const cgstAmount = (amount * halfRate) / 100;
+        const sgstAmount = (amount * halfRate) / 100;
+        const totalTax = cgstAmount + sgstAmount;
+        return {
+            cgstRate: halfRate,
+            cgstAmount: parseFloat(cgstAmount.toFixed(2)),
+            sgstRate: halfRate,
+            sgstAmount: parseFloat(sgstAmount.toFixed(2)),
+            igstRate: 0,
+            igstAmount: 0,
+            totalTax: parseFloat(totalTax.toFixed(2)),
+            totalAmount: parseFloat((amount + totalTax).toFixed(2))
+        };
+    }
 };
 
 // 1. POST /api/invoices/generate-monthly
@@ -107,15 +144,17 @@ router.post('/generate-monthly', async (req, res) => {
         const issueDate = now.toISOString().slice(0, 10);
         const dueDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10); // 30 days from now
         
-        // Find all eligible children with their fee structures
+        // Find all eligible children with their fee structures and HSN codes
         const [eligibleChildren] = await connection.query(`
-            SELECT 
+            SELECT
                 c.id as child_id,
                 c.first_name,
                 c.last_name,
                 c.student_id,
                 cl.name as classroom_name,
                 cl.id as classroom_id,
+                cl.hsn_code,
+                cl.service_type,
                 fs.id as fee_structure_id,
                 fs.monthly_fee,
                 fs.program_name,
@@ -167,34 +206,64 @@ router.post('/generate-monthly', async (req, res) => {
             // Generate unique invoice number
             const invoiceNumber = await generateInvoiceNumber(connection, centerId);
             const invoiceId = uuidv4();
-            
-            // Create invoice record
+
+            // Get HSN code for the classroom (default to Pre-School if not set)
+            const hsnCode = child.hsn_code || '999210';
+            const serviceType = child.service_type || 'Pre-School';
+
+            // Calculate GST breakdown (assuming intrastate for now)
+            const baseAmount = parseFloat(child.monthly_fee);
+            const gstBreakdown = calculateGST(baseAmount, 18.00, false);
+
+            // Create invoice record with GST breakdown
             await connection.query(`
                 INSERT INTO invoices (
                     id, invoice_number, child_id, total_amount,
+                    hsn_code, subtotal_before_tax,
+                    cgst_rate, cgst_amount, sgst_rate, sgst_amount,
+                    igst_rate, igst_amount, is_interstate,
                     status, center_id, created_at
-                ) VALUES (?, ?, ?, ?, 'Pending', ?, NOW())
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?, NOW())
             `, [
                 invoiceId,
                 invoiceNumber,
                 child.child_id,
-                child.monthly_fee,
+                gstBreakdown.totalAmount,
+                hsnCode,
+                baseAmount,
+                gstBreakdown.cgstRate,
+                gstBreakdown.cgstAmount,
+                gstBreakdown.sgstRate,
+                gstBreakdown.sgstAmount,
+                gstBreakdown.igstRate,
+                gstBreakdown.igstAmount,
+                false,
                 centerId
             ]);
-            
-            // Create invoice line item
+
+            // Create invoice line item with GST details
             const lineItemId = uuidv4();
             await connection.query(`
                 INSERT INTO invoice_line_items (
-                    id, invoice_id, description, quantity, unit_price, 
-                    total_price, fee_structure_id
-                ) VALUES (?, ?, ?, 1, ?, ?, ?)
+                    id, invoice_id, description, quantity, unit_price,
+                    hsn_code, base_amount,
+                    cgst_rate, cgst_amount, sgst_rate, sgst_amount,
+                    igst_rate, igst_amount, total_price, fee_structure_id
+                ) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 lineItemId,
                 invoiceId,
                 `Monthly Fee - ${child.program_name} (${child.classroom_name})`,
-                child.monthly_fee,
-                child.monthly_fee,
+                baseAmount,
+                hsnCode,
+                baseAmount,
+                gstBreakdown.cgstRate,
+                gstBreakdown.cgstAmount,
+                gstBreakdown.sgstRate,
+                gstBreakdown.sgstAmount,
+                gstBreakdown.igstRate,
+                gstBreakdown.igstAmount,
+                gstBreakdown.totalAmount,
                 child.fee_structure_id
             ]);
             
@@ -539,17 +608,25 @@ router.get('/generate-pdf/:id', require2FAForSensitiveDownload, async (req, res)
     const { centerId } = req.user;
     
     try {
-        // Fetch invoice details with all related information
+        // Fetch invoice details with all related information including center GST details
         const [invoiceData] = await pool.query(`
-            SELECT 
+            SELECT
                 i.*,
                 c.first_name as child_first_name,
                 c.last_name as child_last_name,
                 c.student_id,
-                cl.name as classroom_name
+                cl.name as classroom_name,
+                cl.service_type,
+                ctr.name as center_name,
+                ctr.gstin as center_gstin,
+                ctr.address as center_address,
+                ctr.phone as center_phone,
+                ctr.email as center_email,
+                ctr.place_of_supply
             FROM invoices i
             JOIN children c ON i.child_id = c.id
             JOIN classrooms cl ON c.classroom_id = cl.id
+            JOIN centers ctr ON i.center_id = ctr.id
             WHERE i.id = ? AND i.center_id = ?
         `, [id, centerId]);
         
@@ -579,21 +656,32 @@ router.get('/generate-pdf/:id', require2FAForSensitiveDownload, async (req, res)
         if (fs.existsSync(logoPath)) {
             doc.image(logoPath, 50, 50, { width: 100 });
         }
-        
-        // Company header
-        doc.fontSize(20).text('NELDRAC KIDS DAYCARE', 200, 60);
-        doc.fontSize(12).text('Address: Your Company Address', 200, 85);
-        doc.text('Phone: Your Phone Number', 200, 100);
-        doc.text('Email: your-email@company.com', 200, 115);
-        
-        // Invoice title
-        doc.fontSize(24).text('INVOICE', 50, 160);
-        
+
+        // Company header with GST details
+        doc.fontSize(20).text(invoice.center_name || 'NELDRAC KIDS DAYCARE', 200, 50);
+        doc.fontSize(10).text(invoice.center_address || 'Address: Your Company Address', 200, 75);
+        doc.text(`Phone: ${invoice.center_phone || 'Your Phone Number'}`, 200, 90);
+        doc.text(`Email: ${invoice.center_email || 'your-email@company.com'}`, 200, 105);
+        if (invoice.center_gstin) {
+            doc.fontSize(11).font('Helvetica-Bold').text(`GSTIN: ${invoice.center_gstin}`, 200, 120);
+            doc.font('Helvetica');
+        }
+
+        // Draw line separator
+        doc.moveTo(50, 145).lineTo(550, 145).stroke();
+
+        // Invoice title and tax invoice label
+        doc.fontSize(24).font('Helvetica-Bold').text('TAX INVOICE', 50, 160);
+        doc.font('Helvetica');
+
         // Invoice details
-        doc.fontSize(12);
+        doc.fontSize(11);
         doc.text(`Invoice Number: ${invoice.invoice_number}`, 50, 200);
-        doc.text(`Issue Date: ${new Date(invoice.issue_date).toLocaleDateString()}`, 50, 220);
-        doc.text(`Due Date: ${new Date(invoice.due_date).toLocaleDateString()}`, 50, 240);
+        doc.text(`Invoice Date: ${new Date(invoice.created_at || invoice.issue_date).toLocaleDateString('en-IN')}`, 50, 218);
+        doc.text(`Due Date: ${new Date(invoice.due_date || new Date(Date.now() + 30*24*60*60*1000)).toLocaleDateString('en-IN')}`, 50, 236);
+        if (invoice.place_of_supply) {
+            doc.text(`Place of Supply: ${invoice.place_of_supply}`, 50, 254);
+        }
         
         // Bill to section
         doc.text('Bill To:', 350, 200);
@@ -609,46 +697,103 @@ router.get('/generate-pdf/:id', require2FAForSensitiveDownload, async (req, res)
         doc.text(`Student ID: ${invoice.student_id}`, 50, 340);
         doc.text(`Classroom: ${invoice.classroom_name}`, 50, 360);
         
-        // Line items table
-        let yPosition = 420;
-        
+        // Line items table with HSN code and GST breakdown
+        let yPosition = 380;
+
         // Table headers
+        doc.fontSize(10).font('Helvetica-Bold');
         doc.text('Description', 50, yPosition);
-        doc.text('Quantity', 300, yPosition);
-        doc.text('Unit Price', 380, yPosition);
-        doc.text('Total', 480, yPosition);
-        
+        doc.text('HSN', 250, yPosition);
+        doc.text('Qty', 300, yPosition);
+        doc.text('Rate', 340, yPosition);
+        doc.text('Amount', 420, yPosition);
+        doc.font('Helvetica');
+
         // Draw line under headers
-        doc.moveTo(50, yPosition + 20).lineTo(550, yPosition + 20).stroke();
-        
-        yPosition += 40;
-        
+        doc.moveTo(50, yPosition + 18).lineTo(550, yPosition + 18).stroke();
+
+        yPosition += 30;
+
         // Add line items
+        let subtotal = 0;
         lineItems.forEach(item => {
-            doc.text(item.description, 50, yPosition);
+            const baseAmount = parseFloat(item.base_amount || item.unit_price || 0);
+            subtotal += baseAmount;
+
+            doc.fontSize(9);
+            doc.text(item.description, 50, yPosition, { width: 190 });
+            doc.text(item.hsn_code || invoice.hsn_code || '999210', 250, yPosition);
             doc.text(item.quantity.toString(), 300, yPosition);
-            doc.text(`₹${parseFloat(item.unit_price).toFixed(2)}`, 380, yPosition);
-            doc.text(`₹${parseFloat(item.total_price).toFixed(2)}`, 480, yPosition);
+            doc.text(`₹${baseAmount.toFixed(2)}`, 340, yPosition);
+            doc.text(`₹${baseAmount.toFixed(2)}`, 420, yPosition, { align: 'right', width: 100 });
             yPosition += 25;
         });
-        
+
+        // Draw line before tax calculation
+        doc.moveTo(50, yPosition + 5).lineTo(550, yPosition + 5).stroke();
+        yPosition += 20;
+
+        // Tax breakdown section
+        doc.fontSize(10);
+
+        // Subtotal
+        doc.text('Subtotal (Before Tax):', 340, yPosition);
+        doc.text(`₹${(invoice.subtotal_before_tax || subtotal).toFixed(2)}`, 420, yPosition, { align: 'right', width: 100 });
+        yPosition += 20;
+
+        // GST breakdown based on interstate flag
+        if (invoice.is_interstate) {
+            // IGST (Interstate)
+            const igstRate = parseFloat(invoice.igst_rate || 0);
+            const igstAmount = parseFloat(invoice.igst_amount || 0);
+            doc.text(`IGST @ ${igstRate.toFixed(2)}%:`, 340, yPosition);
+            doc.text(`₹${igstAmount.toFixed(2)}`, 420, yPosition, { align: 'right', width: 100 });
+            yPosition += 20;
+        } else {
+            // CGST + SGST (Intrastate)
+            const cgstRate = parseFloat(invoice.cgst_rate || 0);
+            const cgstAmount = parseFloat(invoice.cgst_amount || 0);
+            const sgstRate = parseFloat(invoice.sgst_rate || 0);
+            const sgstAmount = parseFloat(invoice.sgst_amount || 0);
+
+            doc.text(`CGST @ ${cgstRate.toFixed(2)}%:`, 340, yPosition);
+            doc.text(`₹${cgstAmount.toFixed(2)}`, 420, yPosition, { align: 'right', width: 100 });
+            yPosition += 20;
+
+            doc.text(`SGST @ ${sgstRate.toFixed(2)}%:`, 340, yPosition);
+            doc.text(`₹${sgstAmount.toFixed(2)}`, 420, yPosition, { align: 'right', width: 100 });
+            yPosition += 20;
+        }
+
         // Draw line above total
-        doc.moveTo(300, yPosition + 10).lineTo(550, yPosition + 10).stroke();
-        
+        doc.moveTo(300, yPosition + 5).lineTo(550, yPosition + 5).stroke();
+        yPosition += 20;
+
         // Total section
-        yPosition += 30;
-        doc.fontSize(14).text(`Total Amount: ₹${parseFloat(invoice.total_amount).toFixed(2)}`, 380, yPosition);
+        doc.fontSize(12).font('Helvetica-Bold');
+        doc.text('Total Amount:', 340, yPosition);
+        doc.text(`₹${parseFloat(invoice.total_amount).toFixed(2)}`, 420, yPosition, { align: 'right', width: 100 });
+        doc.font('Helvetica');
         
         // Amount in words
         yPosition += 30;
         const amountInWords = numberToWords.toWords(Math.floor(invoice.total_amount));
-        doc.fontSize(12).text(`Amount in Words: ${amountInWords.charAt(0).toUpperCase() + amountInWords.slice(1)} Rupees Only`, 50, yPosition);
-        
+        doc.fontSize(10).font('Helvetica-Bold').text('Amount in Words:', 50, yPosition);
+        doc.font('Helvetica').text(`${amountInWords.charAt(0).toUpperCase() + amountInWords.slice(1)} Rupees Only`, 50, yPosition + 15);
+
+        // GST Declaration
+        yPosition += 45;
+        doc.fontSize(9).font('Helvetica-Bold');
+        doc.text('Declaration:', 50, yPosition);
+        doc.font('Helvetica').fontSize(8);
+        doc.text('This is a computer-generated invoice. GST is payable on reverse charge basis if applicable.', 50, yPosition + 15, { width: 500 });
+
         // Payment terms
-        yPosition += 50;
-        doc.text('Payment Terms:', 50, yPosition);
-        doc.fontSize(10).text('Please make payment within 30 days of invoice date.', 50, yPosition + 20);
-        doc.text('Thank you for your business!', 50, yPosition + 40);
+        yPosition += 40;
+        doc.fontSize(9).font('Helvetica-Bold').text('Payment Terms:', 50, yPosition);
+        doc.font('Helvetica').fontSize(8);
+        doc.text('Please make payment within 30 days of invoice date.', 50, yPosition + 15);
+        doc.text('Thank you for your business!', 50, yPosition + 30);
         
         // Status watermark
         if (invoice.status !== 'Paid') {
