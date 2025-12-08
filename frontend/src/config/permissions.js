@@ -74,6 +74,13 @@ export const FEATURES = {
     DOCUMENT_MANAGEMENT: 'document_management',
     DOCUMENT_UPLOAD: 'document_upload',
 
+    // Lesson Planning
+    LESSON_PLAN_CREATE: 'lesson_plan_create',
+    LESSON_PLAN_VIEW: 'lesson_plan_view',
+    LESSON_PLAN_FORWARD: 'lesson_plan_forward',
+    LESSON_PLAN_FEEDBACK: 'lesson_plan_feedback',
+    LESSON_PLAN_MANAGE: 'lesson_plan_manage',
+
     // Personal Features
     VIEW_OWN_CHILDREN: 'view_own_children',
     VIEW_ASSIGNED_CLASSES: 'view_assigned_classes'
@@ -196,7 +203,10 @@ export const ROLE_PERMISSIONS = {
         FEATURES.PERFORMANCE_ANALYTICS,
         FEATURES.PROGRAM_SETTINGS,
         FEATURES.DOCUMENT_MANAGEMENT,
-        FEATURES.DOCUMENT_UPLOAD
+        FEATURES.DOCUMENT_UPLOAD,
+        // Lesson Planning - Forward plans and feedback
+        FEATURES.LESSON_PLAN_VIEW,
+        FEATURES.LESSON_PLAN_FORWARD
     ],
     
     [ROLES.ADMIN]: [
@@ -212,7 +222,10 @@ export const ROLE_PERMISSIONS = {
         FEATURES.ATTENDANCE_REPORTS,
         FEATURES.PROGRAM_SETTINGS,
         FEATURES.DOCUMENT_MANAGEMENT,
-        FEATURES.DOCUMENT_UPLOAD
+        FEATURES.DOCUMENT_UPLOAD,
+        // Lesson Planning - Admin forwards plans and feedback
+        FEATURES.LESSON_PLAN_VIEW,
+        FEATURES.LESSON_PLAN_FORWARD
     ],
     
     [ROLES.ACADEMIC_COORDINATOR]: [
@@ -224,7 +237,11 @@ export const ROLE_PERMISSIONS = {
         FEATURES.ENQUIRY_MANAGEMENT,
         FEATURES.REPORTS_VIEW,
         FEATURES.ATTENDANCE_REPORTS,
-        FEATURES.DOCUMENT_MANAGEMENT
+        FEATURES.DOCUMENT_MANAGEMENT,
+        // Lesson Planning - Create and manage lesson plans
+        FEATURES.LESSON_PLAN_CREATE,
+        FEATURES.LESSON_PLAN_VIEW,
+        FEATURES.LESSON_PLAN_MANAGE
     ],
     
     [ROLES.TEACHER]: [
@@ -232,7 +249,10 @@ export const ROLE_PERMISSIONS = {
         FEATURES.BASIC_DASHBOARD,
         FEATURES.VIEW_ASSIGNED_CLASSES,
         FEATURES.ATTENDANCE_MANAGEMENT,
-        FEATURES.DOCUMENT_MANAGEMENT
+        FEATURES.DOCUMENT_MANAGEMENT,
+        // Lesson Planning - View assigned plans and provide feedback
+        FEATURES.LESSON_PLAN_VIEW,
+        FEATURES.LESSON_PLAN_FEEDBACK
     ],
     
     [ROLES.PARENT]: [
@@ -291,6 +311,13 @@ export const NAVIGATION_ITEMS = [
         icon: 'HowToRegIcon',
         path: '/attendance',
         requiredFeatures: [FEATURES.ATTENDANCE_MANAGEMENT]
+    },
+    {
+        text: 'Lesson Planning',
+        icon: 'AssignmentIcon',
+        path: '/lesson-plans',
+        requiredFeatures: [FEATURES.LESSON_PLAN_CREATE, FEATURES.LESSON_PLAN_VIEW, FEATURES.LESSON_PLAN_FORWARD, FEATURES.LESSON_PLAN_FEEDBACK],
+        requireAny: true
     },
     {
         text: 'Enquiries',
