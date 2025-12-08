@@ -147,7 +147,7 @@ router.get('/children', protect, async (req, res) => {
 // Retrieves comprehensive profile for a single child including parents and billing
 router.get('/children/:id', protect, async (req, res) => {
     // Role-based access control
-    const allowedRoles = ['admin', 'super_admin', 'center_director', 'owner'];
+    const allowedRoles = ['admin', 'super_admin', 'center_director', 'owner', 'academic_coordinator'];
     if (!allowedRoles.includes(req.user.role)) {
         return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators and center directors.' });
     }

@@ -12,7 +12,7 @@ import { body } from 'express-validator';
 import jwt from 'jsonwebtoken';
 
 
-const allowedRoles = ['parent', 'admin', 'owner', 'super_admin', 'teacher', 'financial_manager'];
+const allowedRoles = ['parent', 'admin', 'owner', 'super_admin', 'teacher', 'financial_manager', 'center_director', 'academic_coordinator'];
 const router = express.Router();
 // Apply rate limiting and sanitization to all auth routes
 router.use(rateLimiters.auth);
