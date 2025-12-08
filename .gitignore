@@ -54,5 +54,23 @@ ssl/
 *Failure*.txt
 *failure*.log
 *credentials*.txt
+*credentials*.md
+*CREDENTIALS*.md
 *secret*.txt
 deployment*.yaml
+
+# Temporary scripts with database credentials
+backend/scripts/get_live_credentials.js
+backend/scripts/create_academic_coordinator.js
+backend/scripts/fix_academic_password.js
+backend/scripts/get_academic_credentials.js
+backend/scripts/get_test_credentials.js
+backend/scripts/remove_users.js
+backend/scripts/run_get_credentials.*
+backend/fix_schema.sh
+
+# Temporary documentation files
+GET_LIVE_CREDENTIALS_GUIDE.md
+USER_CLEANUP_SUMMARY.md
+COMPLETED_TASKS_SUMMARY.md
+TEST_CREDENTIALS.md

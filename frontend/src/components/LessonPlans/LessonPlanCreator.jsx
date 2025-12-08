@@ -16,7 +16,11 @@ import {
     AccordionSummary,
     AccordionDetails,
     IconButton,
-    Chip
+    Chip,
+    Radio,
+    RadioGroup,
+    FormControlLabel,
+    FormLabel
 } from '@mui/material';
 import {
     ExpandMore as ExpandMoreIcon,
@@ -34,20 +38,24 @@ const LessonPlanCreator = ({ onSuccess, onCancel }) => {
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
+
+    // Data lists
+    const [centers, setCenters] = useState([]);
+    const [classrooms, setClassrooms] = useState([]);
     const [children, setChildren] = useState([]);
 
     // Form state
+    const [planType, setPlanType] = useState('child'); // 'child' or 'classroom'
+    const [selectedCenter, setSelectedCenter] = useState('');
     const [selectedChild, setSelectedChild] = useState('');
+    const [selectedClassroom, setSelectedClassroom] = useState('');
     const [weekStartDate, setWeekStartDate] = useState('');
     const [overallObjectives, setOverallObjectives] = useState('');
     const [specialNotes, setSpecialNotes] = useState('');
     const [activities, setActivities] = useState([]);
 
     useEffect(() => {
-        loadChildren();
-    }, []);
-
-    useEffect(() => {
+        loadCenters();
         // Set default week start date to next Monday
         const getNextMonday = () => {
             const today = new Date();
@@ -60,16 +68,65 @@ const LessonPlanCreator = ({ onSuccess, onCancel }) => {
         setWeekStartDate(getNextMonday());
     }, []);
 
-    const loadChildren = async () => {
+    // Load children/classrooms when center or plan type changes
+    useEffect(() => {
+        if (selectedCenter) {
+            if (planType === 'child') {
+                loadChildren(selectedCenter);
+            } else {
+                loadClassrooms(selectedCenter);
+            }
+        }
+    }, [selectedCenter, planType]);
+
+    const loadCenters = async () => {
         setLoading(true);
         try {
-            const data = await lessonPlanCoordinatorAPI.getChildren();
+            const data = await lessonPlanCoordinatorAPI.getCenters();
+            setCenters(data.centers || []);
+        } catch (err) {
+            setError('Failed to load centers');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadChildren = async (centerId) => {
+        setLoading(true);
+        try {
+            const data = await lessonPlanCoordinatorAPI.getChildren(centerId);
             setChildren(data.children || []);
         } catch (err) {
             setError('Failed to load children');
         } finally {
             setLoading(false);
         }
+    };
+
+    const loadClassrooms = async (centerId) => {
+        setLoading(true);
+        try {
+            const data = await lessonPlanCoordinatorAPI.getClassrooms(centerId);
+            setClassrooms(data.classrooms || []);
+        } catch (err) {
+            setError('Failed to load classrooms');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePlanTypeChange = (event) => {
+        setPlanType(event.target.value);
+        // Reset selections when switching plan type
+        setSelectedChild('');
+        setSelectedClassroom('');
+    };
+
+    const handleCenterChange = (event) => {
+        setSelectedCenter(event.target.value);
+        // Reset child/classroom selection when center changes
+        setSelectedChild('');
+        setSelectedClassroom('');
     };
 
     const handleAddActivity = () => {
@@ -111,8 +168,18 @@ const LessonPlanCreator = ({ onSuccess, onCancel }) => {
 
     const handleSubmit = async () => {
         // Validation
-        if (!selectedChild) {
+        if (!selectedCenter) {
+            setError('Please select a center');
+            return;
+        }
+
+        if (planType === 'child' && !selectedChild) {
             setError('Please select a child');
+            return;
+        }
+
+        if (planType === 'classroom' && !selectedClassroom) {
+            setError('Please select a classroom');
             return;
         }
 
@@ -137,17 +204,22 @@ const LessonPlanCreator = ({ onSuccess, onCancel }) => {
         setError(null);
 
         try {
-            const child = children.find(c => c.id === selectedChild);
-
             const planData = {
-                childId: selectedChild,
-                centerId: child.center_id,
-                classroomId: child.classroom_id,
+                centerId: selectedCenter,
                 weekStartDate,
                 overallObjectives,
                 specialNotes,
                 activities
             };
+
+            // Add either childId OR classroomId based on plan type
+            if (planType === 'child') {
+                const child = children.find(c => c.id === selectedChild);
+                planData.childId = selectedChild;
+                planData.classroomId = child?.classroom_id; // Include classroom if child has one
+            } else {
+                planData.classroomId = selectedClassroom;
+            }
 
             await lessonPlanCoordinatorAPI.createPlan(planData);
             onSuccess();
@@ -175,27 +247,75 @@ const LessonPlanCreator = ({ onSuccess, onCancel }) => {
             )}
 
             <Grid container spacing={3}>
-                {/* Child and Week Selection */}
+                {/* Plan Type Selection */}
+                <Grid item xs={12}>
+                    <FormControl component="fieldset">
+                        <FormLabel component="legend">Create Lesson Plan For:</FormLabel>
+                        <RadioGroup row value={planType} onChange={handlePlanTypeChange}>
+                            <FormControlLabel value="child" control={<Radio />} label="Individual Child" />
+                            <FormControlLabel value="classroom" control={<Radio />} label="Entire Classroom" />
+                        </RadioGroup>
+                    </FormControl>
+                </Grid>
+
+                {/* Center Selection */}
                 <Grid item xs={12} md={6}>
-                    <FormControl fullWidth>
-                        <InputLabel>Select Child *</InputLabel>
+                    <FormControl fullWidth required>
+                        <InputLabel>Select Center *</InputLabel>
                         <Select
-                            value={selectedChild}
-                            onChange={(e) => setSelectedChild(e.target.value)}
-                            label="Select Child *"
+                            value={selectedCenter}
+                            onChange={handleCenterChange}
+                            label="Select Center *"
                         >
-                            {children.map((child) => (
-                                <MenuItem key={child.id} value={child.id}>
-                                    {child.first_name} {child.last_name} - {child.classroom_name} ({child.age_years}y {child.age_months}m)
+                            {centers.map((center) => (
+                                <MenuItem key={center.id} value={center.id}>
+                                    {center.name}
                                 </MenuItem>
                             ))}
                         </Select>
                     </FormControl>
                 </Grid>
 
+                {/* Child or Classroom Selection - Conditional */}
+                <Grid item xs={12} md={6}>
+                    {planType === 'child' ? (
+                        <FormControl fullWidth required disabled={!selectedCenter}>
+                            <InputLabel>Select Child *</InputLabel>
+                            <Select
+                                value={selectedChild}
+                                onChange={(e) => setSelectedChild(e.target.value)}
+                                label="Select Child *"
+                            >
+                                {children.map((child) => (
+                                    <MenuItem key={child.id} value={child.id}>
+                                        {child.first_name} {child.last_name} - {child.classroom_name} ({child.age_years}y {child.age_months}m)
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    ) : (
+                        <FormControl fullWidth required disabled={!selectedCenter}>
+                            <InputLabel>Select Classroom *</InputLabel>
+                            <Select
+                                value={selectedClassroom}
+                                onChange={(e) => setSelectedClassroom(e.target.value)}
+                                label="Select Classroom *"
+                            >
+                                {classrooms.map((classroom) => (
+                                    <MenuItem key={classroom.id} value={classroom.id}>
+                                        {classroom.name} ({classroom.child_count} children)
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    )}
+                </Grid>
+
+                {/* Week Start Date */}
                 <Grid item xs={12} md={6}>
                     <TextField
                         fullWidth
+                        required
                         label="Week Start Date (Monday) *"
                         type="date"
                         value={weekStartDate}
@@ -429,7 +549,14 @@ const LessonPlanCreator = ({ onSuccess, onCancel }) => {
                             variant="contained"
                             color="primary"
                             onClick={handleSubmit}
-                            disabled={submitting || !selectedChild || !weekStartDate || activities.length === 0}
+                            disabled={
+                                submitting ||
+                                !selectedCenter ||
+                                !weekStartDate ||
+                                activities.length === 0 ||
+                                (planType === 'child' && !selectedChild) ||
+                                (planType === 'classroom' && !selectedClassroom)
+                            }
                         >
                             {submitting ? <CircularProgress size={24} /> : 'Create Lesson Plan'}
                         </Button>

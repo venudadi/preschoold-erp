@@ -103,8 +103,74 @@ router.get('/coordinator/children', protect, async (req, res) => {
 });
 
 /**
+ * GET /api/lesson-plans/coordinator/centers
+ * Get all active centers for filtering
+ */
+router.get('/coordinator/centers', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'academic_coordinator') {
+            return res.status(403).json({ message: 'Access denied. Academic coordinator only.' });
+        }
+
+        const [centers] = await pool.query(`
+            SELECT id, name, is_active
+            FROM centers
+            WHERE is_active = true
+            ORDER BY name
+        `);
+
+        res.json({ centers });
+    } catch (error) {
+        console.error('Get centers error:', error);
+        res.status(500).json({ message: 'Server error fetching centers' });
+    }
+});
+
+/**
+ * GET /api/lesson-plans/coordinator/classrooms
+ * Get all classrooms, optionally filtered by center
+ */
+router.get('/coordinator/classrooms', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'academic_coordinator') {
+            return res.status(403).json({ message: 'Access denied. Academic coordinator only.' });
+        }
+
+        const { centerId } = req.query;
+
+        let query = `
+            SELECT
+                cl.id,
+                cl.name,
+                cl.center_id,
+                ct.name as center_name,
+                COUNT(DISTINCT c.id) as child_count
+            FROM classrooms cl
+            LEFT JOIN centers ct ON cl.center_id = ct.id
+            LEFT JOIN children c ON c.classroom_id = cl.id AND c.is_active = true
+            WHERE 1=1
+        `;
+
+        const params = [];
+        if (centerId) {
+            query += ' AND cl.center_id = ?';
+            params.push(centerId);
+        }
+
+        query += ' GROUP BY cl.id, cl.name, cl.center_id, ct.name ORDER BY ct.name, cl.name';
+
+        const [classrooms] = await pool.query(query, params);
+
+        res.json({ classrooms });
+    } catch (error) {
+        console.error('Get classrooms error:', error);
+        res.status(500).json({ message: 'Server error fetching classrooms' });
+    }
+});
+
+/**
  * POST /api/lesson-plans/coordinator/create
- * Create a new lesson plan for a child
+ * Create a new lesson plan for a child or classroom
  */
 router.post('/coordinator/create', protect, async (req, res) => {
     const connection = await pool.getConnection();
@@ -115,17 +181,25 @@ router.post('/coordinator/create', protect, async (req, res) => {
 
         const {
             childId,
-            centerId,
             classroomId,
+            centerId,
             weekStartDate,
             overallObjectives,
             specialNotes,
             activities // Array of activity objects
         } = req.body;
 
-        // Validation
-        if (!childId || !centerId || !weekStartDate) {
-            return res.status(400).json({ message: 'Child ID, Center ID, and week start date are required' });
+        // Validation: Must provide either childId OR classroomId (not both, not neither)
+        if (!centerId || !weekStartDate) {
+            return res.status(400).json({ message: 'Center ID and week start date are required' });
+        }
+
+        if (!childId && !classroomId) {
+            return res.status(400).json({ message: 'Either child ID or classroom ID must be provided' });
+        }
+
+        if (childId && classroomId) {
+            return res.status(400).json({ message: 'Cannot create lesson plan for both child and classroom. Please select one.' });
         }
 
         await connection.beginTransaction();
@@ -135,16 +209,25 @@ router.post('/coordinator/create', protect, async (req, res) => {
         const weekNumber = getWeekNumber(weekStartDate);
         const academicYear = new Date(weekStartDate).getFullYear().toString();
 
-        // Check if lesson plan already exists for this child and week
-        const [existing] = await connection.query(
-            'SELECT id FROM lesson_plans WHERE child_id = ? AND week_start_date = ?',
-            [childId, weekStart]
-        );
+        // Check if lesson plan already exists for this child/classroom and week
+        let existingQuery, existingParams, existingMessage;
+
+        if (childId) {
+            existingQuery = 'SELECT id FROM lesson_plans WHERE child_id = ? AND week_start_date = ?';
+            existingParams = [childId, weekStart];
+            existingMessage = 'Lesson plan already exists for this child and week';
+        } else {
+            existingQuery = 'SELECT id FROM lesson_plans WHERE classroom_id = ? AND week_start_date = ?';
+            existingParams = [classroomId, weekStart];
+            existingMessage = 'Lesson plan already exists for this classroom and week';
+        }
+
+        const [existing] = await connection.query(existingQuery, existingParams);
 
         if (existing.length > 0) {
             await connection.rollback();
             return res.status(409).json({
-                message: 'Lesson plan already exists for this child and week',
+                message: existingMessage,
                 existingPlanId: existing[0].id
             });
         }

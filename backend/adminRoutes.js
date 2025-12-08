@@ -121,8 +121,9 @@ router.post(
 // URL: GET /api/admin/children
 // Retrieves a list of all enrolled children.
 router.get('/children', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
-        return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
+    const allowedRoles = ['admin', 'super_admin', 'center_director', 'owner', 'academic_coordinator'];
+    if (!allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators and coordinators.' });
     }
 
     try {
@@ -370,8 +371,9 @@ router.post('/classrooms', protect, async (req, res) => {
 // URL: GET /api/admin/classrooms
 // Retrieves a list of all classrooms.
 router.get('/classrooms', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
-        return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
+    const allowedRoles = ['admin', 'super_admin', 'center_director', 'owner', 'academic_coordinator'];
+    if (!allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators and coordinators.' });
     }
 
     try {

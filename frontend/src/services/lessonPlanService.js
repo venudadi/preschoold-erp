@@ -23,6 +23,28 @@ const getAuthHeaders = () => {
 
 export const lessonPlanCoordinatorAPI = {
     /**
+     * Get all active centers
+     */
+    async getCenters() {
+        const response = await axios.get(`${apiBase}/lesson-plans/coordinator/centers`, {
+            headers: getAuthHeaders()
+        });
+        return response.data;
+    },
+
+    /**
+     * Get all classrooms, optionally filtered by center
+     */
+    async getClassrooms(centerId = null) {
+        const params = centerId ? { centerId } : {};
+        const response = await axios.get(`${apiBase}/lesson-plans/coordinator/classrooms`, {
+            params,
+            headers: getAuthHeaders()
+        });
+        return response.data;
+    },
+
+    /**
      * Get all active children for creating lesson plans
      */
     async getChildren(centerId = null) {
