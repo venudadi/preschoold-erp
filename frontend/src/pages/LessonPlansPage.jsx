@@ -1,12 +1,8 @@
 import React from 'react';
-import LessonPlanList from '../components/LessonPlanList';
+import LessonPlansRouter from '../components/LessonPlans/LessonPlansRouter';
 
 const LessonPlansPage = () => {
-  return (
-    <div style={{ padding: 16 }}>
-      <LessonPlanList />
-    </div>
-  );
+  return <LessonPlansRouter />;
 };
 
 export default LessonPlansPage;
