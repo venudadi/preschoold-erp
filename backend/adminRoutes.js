@@ -16,7 +16,7 @@ const checkAdminAccess = (req, res, next) => {
         return next();
     }
     // admin and owner can only access their assigned center
-    if ((role === 'admin' || role === 'owner') && req.user.center_id) {
+    if (['admin', 'owner', 'center_director', 'academic_coordinator'].includes(role) && req.user.center_id) {
         const centerId = req.params.centerId || req.query.centerId || req.body.centerId;
         if (req.user.center_id === centerId || !centerId) {
             return next();
@@ -24,7 +24,7 @@ const checkAdminAccess = (req, res, next) => {
     }
     // For general operations without specific center ID requirement
     if (!req.params.centerId && !req.query.centerId && !req.body.centerId) {
-        if (role === 'admin' || role === 'owner') {
+        if (['admin', 'owner', 'center_director', 'academic_coordinator'].includes(role)) {
             return next();
         }
     }
@@ -346,7 +346,7 @@ router.get('/children/:id', protect, async (req, res) => {
 // URL: POST /api/admin/classrooms
 // Creates a new classroom.
 router.post('/classrooms', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
+    if (!['admin', 'owner', 'super_admin', 'center_director', 'academic_coordinator'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
     }
 
@@ -392,7 +392,7 @@ router.get('/classrooms', protect, async (req, res) => {
 // URL: GET /api/admin/staff
 // Retrieves a list of all staff members (users who are not parents).
 router.get('/staff', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
+    if (!['admin', 'owner', 'super_admin', 'center_director', 'academic_coordinator'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
     }
 
@@ -409,7 +409,7 @@ router.get('/staff', protect, async (req, res) => {
 // URL: POST /api/admin/assign-teacher
 // Assigns a teacher to a specific classroom.
 router.post('/assign-teacher', protect, async (req, res) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'owner' && req.user.role !== 'super_admin') {
+    if (!['admin', 'owner', 'super_admin', 'center_director', 'academic_coordinator'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
     }
 

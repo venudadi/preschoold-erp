@@ -39,11 +39,11 @@ router.get('/', authenticateToken, async (req, res) => {
         }
 
         // For non-super admins, only show students from their centers
-        if (!req.user.is_super_admin) {
-            query += ` AND s.center_id IN (
+        if (req.user.role !== 'super_admin') {
+            query += ` AND (s.center_id = ? OR s.center_id IN (
                 SELECT center_id FROM user_centers WHERE user_id = ?
-            )`;
-            params.push(req.user.id);
+            ))`;
+            params.push(req.user.center_id, req.user.id);
         }
 
         query += ` ORDER BY s.created_at DESC`;
@@ -313,11 +313,11 @@ router.get('/paused', authenticateToken, async (req, res) => {
         }
 
         // For non-super admins, only show students from their centers
-        if (!req.user.is_super_admin) {
-            query += ` AND s.center_id IN (
+        if (req.user.role !== 'super_admin') {
+            query += ` AND (s.center_id = ? OR s.center_id IN (
                 SELECT center_id FROM user_centers WHERE user_id = ?
-            )`;
-            params.push(req.user.id);
+            ))`;
+            params.push(req.user.center_id, req.user.id);
         }
 
         query += ` ORDER BY s.pause_start_date DESC`;

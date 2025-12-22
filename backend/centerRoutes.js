@@ -21,7 +21,7 @@ const validateCenterAccess = async (req, res, next) => {
     if (role === 'super_admin') {
         // Superadmin has access to all centers
         next();
-    } else if (role === 'admin' || role === 'owner') {
+    } else if (['admin', 'owner', 'center_director', 'academic_coordinator'].includes(role)) {
         // Regular users can only access their assigned center
         if (!requestedCenterId || requestedCenterId === userCenterId) {
             next();
