@@ -27,7 +27,7 @@ router.get('/procedures', async (req, res) => {
 });
 
 // Create procedure (Director, Admin, Academic Coordinator)
-router.post('/procedures', requireRole(['center_director', 'admin', 'academic_coordinator', 'owner', 'super_admin']), async (req, res) => {
+router.post('/procedures', requireRole(['center_director', 'admin', 'owner', 'super_admin']), async (req, res) => {
     try {
         const { title, description, steps, category } = req.body;
         const id = uuidv4();
@@ -47,7 +47,7 @@ router.post('/procedures', requireRole(['center_director', 'admin', 'academic_co
 });
 
 // Update procedure
-router.put('/procedures/:id', requireRole(['center_director', 'admin', 'academic_coordinator', 'owner', 'super_admin']), async (req, res) => {
+router.put('/procedures/:id', requireRole(['center_director', 'admin', 'owner', 'super_admin']), async (req, res) => {
     try {
         const { title, description, steps, category } = req.body;
         const { id } = req.params;
@@ -99,7 +99,7 @@ router.get('/drills', async (req, res) => {
 });
 
 // Log a drill
-router.post('/drills', requireRole(['center_director', 'admin', 'academic_coordinator', 'owner', 'super_admin']), async (req, res) => {
+router.post('/drills', requireRole(['center_director', 'admin', 'owner', 'super_admin']), async (req, res) => {
     try {
         const { drill_type, drill_date, duration_minutes, participants_count, notes, success_rating } = req.body;
         const id = uuidv4();

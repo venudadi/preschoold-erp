@@ -223,6 +223,10 @@ export const ROLE_PERMISSIONS = {
         FEATURES.PROGRAM_SETTINGS,
         FEATURES.DOCUMENT_MANAGEMENT,
         FEATURES.DOCUMENT_UPLOAD,
+        // Emergency & Incident Management
+        FEATURES.INCIDENT_MANAGEMENT,
+        FEATURES.EMERGENCY_RESPONSE,
+        FEATURES.SAFETY_REPORTS,
         // Lesson Planning - Admin forwards plans and feedback
         FEATURES.LESSON_PLAN_VIEW,
         FEATURES.LESSON_PLAN_FORWARD
@@ -241,10 +245,7 @@ export const ROLE_PERMISSIONS = {
         // Lesson Planning - Create and manage lesson plans
         FEATURES.LESSON_PLAN_CREATE,
         FEATURES.LESSON_PLAN_VIEW,
-        FEATURES.LESSON_PLAN_MANAGE,
-        // Emergency Management
-        FEATURES.INCIDENT_MANAGEMENT,
-        FEATURES.EMERGENCY_RESPONSE
+        FEATURES.LESSON_PLAN_MANAGE
     ],
     
     [ROLES.TEACHER]: [
