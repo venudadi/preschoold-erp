@@ -241,7 +241,10 @@ export const ROLE_PERMISSIONS = {
         // Lesson Planning - Create and manage lesson plans
         FEATURES.LESSON_PLAN_CREATE,
         FEATURES.LESSON_PLAN_VIEW,
-        FEATURES.LESSON_PLAN_MANAGE
+        FEATURES.LESSON_PLAN_MANAGE,
+        // Emergency Management
+        FEATURES.INCIDENT_MANAGEMENT,
+        FEATURES.EMERGENCY_RESPONSE
     ],
     
     [ROLES.TEACHER]: [

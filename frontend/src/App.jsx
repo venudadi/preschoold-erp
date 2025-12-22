@@ -30,7 +30,8 @@ import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import Setup2FAPage from './pages/Setup2FAPage.jsx';
 import Verify2FAPage from './pages/Verify2FAPage.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
-import { Typography } from '@mui/material';
+import AttendanceManagementPage from './pages/AttendanceManagementPage.jsx';
+import EmergencyManagementPage from './pages/EmergencyManagementPage.jsx';
 
 function App() {
   return (
@@ -68,9 +69,9 @@ function App() {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="children" element={<ChildrenManagementPage />} />
           <Route path="classrooms" element={<ClassroomManagementPage />} />
-          <Route path="attendance" element={<Typography variant="h4">Attendance Management (Coming Soon)</Typography>} />
-          <Route path="enquiries" element={<EnquiryManagementPage />} /> {/* <-- ADD THIS ROUTE */}
-          <Route path="billing" element={<BillingManagementPage />} /> {/* <-- ADD THIS ROUTE */}
+          <Route path="attendance" element={<AttendanceManagementPage />} />
+          <Route path="enquiries" element={<EnquiryManagementPage />} /> 
+          <Route path="billing" element={<BillingManagementPage />} /> 
           <Route path="reports" element={<Typography variant="h4">Reports Page (Coming Soon)</Typography>} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="documents" element={<DocumentManagementPage />} />
@@ -87,6 +88,7 @@ function App() {
           <Route path="admission-approvals" element={<AdmissionApprovalsPage />} />
           <Route path="main-vendors" element={<MainVendorManagementPage />} />
           <Route path="receipts" element={<ReceiptManagementPage />} />
+          <Route path="incidents" element={<EmergencyManagementPage />} />
         </Route>
       </Routes>
       </Router>
