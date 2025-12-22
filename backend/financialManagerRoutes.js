@@ -26,9 +26,9 @@ router.get('/dashboard', financialManagerOrAbove, async (req, res) => {
                 COUNT(CASE WHEN fo.status = 'open' THEN 1 END) as oversightItems,
                 SUM(COALESCE(bal.approval_limit, 0)) as totalBudget
             FROM centers c
-            LEFT JOIN budget_approvals ba ON ba.center_id COLLATE utf8mb4_0900_ai_ci = c.id
-            LEFT JOIN financial_oversight fo ON fo.center_id COLLATE utf8mb4_0900_ai_ci = c.id
-            LEFT JOIN budget_approval_limits bal ON bal.center_id COLLATE utf8mb4_0900_ai_ci = c.id AND bal.is_active = TRUE
+            LEFT JOIN budget_approvals ba ON ba.center_id COLLATE utf8mb4_unicode_ci = c.id
+            LEFT JOIN financial_oversight fo ON fo.center_id COLLATE utf8mb4_unicode_ci = c.id
+            LEFT JOIN budget_approval_limits bal ON bal.center_id COLLATE utf8mb4_unicode_ci = c.id AND bal.is_active = TRUE
         `);
 
         // Get budget limits

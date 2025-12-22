@@ -2,7 +2,6 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import compression from 'compression';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import pool from './db.js';
@@ -10,12 +9,19 @@ import { globalErrorHandler } from './utils/errorHandler.js';
 import { initializeAllTables } from './utils/dbTableValidator.js';
 import { protect } from './authMiddleware.js';
 import { requireRole } from './middleware/security.js';
+import {
+    compressionMiddleware,
+    apiLimiter,
+    authLimiter,
+    performanceMonitor,
+    requestLogger,
+    errorTracker,
+    healthCheck
+} from './optimization_package.js';
 
 const app = express();
 
 // Trust proxy - required for DigitalOcean/Heroku/AWS etc
-// Trust only the first proxy (DigitalOcean's load balancer)
-// This prevents IP spoofing while allowing rate limiting to work correctly
 app.set('trust proxy', 1);
 
 const server = createServer(app);
@@ -80,10 +86,8 @@ import companyRoutes from './companyRoutes.js';
 // Production-ready CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
 
-    // Build allowed list (normalize values)
     const envOrigins = (process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL || '')
       .split(',')
       .map(o => o.trim())
@@ -101,13 +105,10 @@ const corsOptions = {
       ? envOrigins
       : Array.from(new Set([...envOrigins, ...defaultDevOrigins]));
 
-    // Normalize incoming origin (remove trailing slash)
     const normalizedOrigin = origin.replace(/\/$/, '');
 
-    // Quick exact-match check
     if (allowedOrigins.includes(normalizedOrigin)) return callback(null, true);
 
-    // Allow localhost on configured dev ports as a fallback (handles variations like http://127.0.0.1:5174)
     try {
       const url = new URL(normalizedOrigin);
       if ((url.hostname === 'localhost' || url.hostname === '127.0.0.1') && /^(3000|3001|517[3-5])$/.test(url.port)) {
@@ -128,19 +129,10 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Compression middleware for better performance
-app.use(compression({
-  level: 6, // Compression level (0-9)
-  threshold: 1024, // Only compress responses > 1KB
-  filter: (req, res) => {
-    // Don't compress if the request includes a Cache-Control: no-transform directive
-    if (req.headers['cache-control'] && req.headers['cache-control'].includes('no-transform')) {
-      return false;
-    }
-    // Compress everything else
-    return compression.filter(req, res);
-  }
-}));
+// Optimization Middlewares
+app.use(compressionMiddleware);
+app.use(performanceMonitor);
+app.use(requestLogger);
 
 // Security headers
 app.use((req, res, next) => {
@@ -150,7 +142,6 @@ app.use((req, res, next) => {
   res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-  // Performance-related headers
   if (process.env.NODE_ENV === 'production') {
     res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.header('Pragma', 'no-cache');
@@ -164,13 +155,22 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// --- ROUTES (Each one should only be listed once) ---
-// Note: /api prefix handled by DigitalOcean routing, not needed in route definitions
-app.use('/auth', authRoutes);
-app.use('/admin', adminRoutes);
+// --- API ROUTER ---
+const apiRouter = express.Router();
 
-// Create specific route handlers for children and classrooms endpoints
-app.get('/children', protect, async (req, res) => {
+// Rate limiting
+apiRouter.use(apiLimiter);
+apiRouter.use('/auth/login', authLimiter);
+
+// Health check
+apiRouter.get('/health', healthCheck);
+
+// Routes
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/admin', adminRoutes);
+
+// Explicit route handlers
+apiRouter.get('/children', protect, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT * FROM children WHERE center_id = ? ORDER BY first_name, last_name`,
@@ -183,7 +183,7 @@ app.get('/children', protect, async (req, res) => {
   }
 });
 
-app.get('/classrooms', protect, async (req, res) => {
+apiRouter.get('/classrooms', protect, async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT * FROM classrooms WHERE center_id = ? ORDER BY name`,
@@ -196,16 +196,15 @@ app.get('/classrooms', protect, async (req, res) => {
   }
 });
 
-app.use('/enquiries', enquiryRoutes);
-app.use('/settings', settingsRoutes);
-app.use('/admissions', admissionRoutes);
-app.use('/invoices', invoiceRoutes);
-app.use('/invoices/requests', invoiceRequestRoutes);
-app.use('/centers', centerRoutes);
-app.use('/analytics', analyticsRoutes);
+apiRouter.use('/enquiries', enquiryRoutes);
+apiRouter.use('/settings', settingsRoutes);
+apiRouter.use('/admissions', admissionRoutes);
+apiRouter.use('/invoices', invoiceRoutes);
+apiRouter.use('/invoices/requests', invoiceRequestRoutes);
+apiRouter.use('/centers', centerRoutes);
+apiRouter.use('/analytics', analyticsRoutes);
 
-// Create explicit route handler for staff endpoint
-app.get('/staff', protect, requireRole(['super_admin', 'owner', 'center_director', 'admin', 'academic_coordinator', 'teacher']), async (req, res) => {
+apiRouter.get('/staff', protect, requireRole(['super_admin', 'owner', 'center_director', 'admin', 'academic_coordinator', 'teacher']), async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT u.id, u.email, u.full_name, u.role, u.is_active
@@ -221,8 +220,7 @@ app.get('/staff', protect, requireRole(['super_admin', 'owner', 'center_director
   }
 });
 
-// Create explicit route handler for attendance endpoint
-app.get('/attendance', protect, async (req, res) => {
+apiRouter.get('/attendance', protect, async (req, res) => {
   try {
     const date = req.query.date || new Date().toISOString().split('T')[0];
     const [rows] = await pool.query(
@@ -240,47 +238,48 @@ app.get('/attendance', protect, async (req, res) => {
   }
 });
 
-// Original routes kept for more complex operations
-app.use('/attendance', attendanceRoutes);
-app.use('/staff', staffRoutes);
-app.use('/documents', documentRoutes);
-app.use('/fee-structures', feeStructureRoutes);
-app.use('/students', studentRoutes);
-app.use('/exits', exitRoutes);
-app.use('/owners', ownerRoutes);
-app.use('/expenses', expenseRoutes);
-app.use('/lesson-plans', lessonPlanRoutes);
-app.use('/assignments', assignmentRoutes);
-app.use('/messaging', messagingRoutes);
-app.use('/parent', parentModuleRoutes);
-app.use('/observation-logs', observationLogRoutes);
-app.use('/digital-portfolio', digitalPortfolioRoutes);
-app.use('/classroom-announcements', classroomAnnouncementRoutes);
-app.use('/admin-class/promotion', adminClassPromotionRoutes);
-app.use('/center-director', centerDirectorRoutes);
-app.use('/financial-manager', financialManagerRoutes);
-app.use('/health', healthRoutes);
-// Also expose health check at /api/health for DigitalOcean health checks (direct container access)
-app.use('/api/health', healthRoutes);
-app.use('/auth', passwordResetRoutes);
-app.use('/auth', twoFactorRoutes);
-app.use('/claude', claudeRoutes);
-app.use('/debug', debugRoutes);
-app.use('/daily-activities', dailyActivityRoutes);
-app.use('/main-vendors', mainVendorRoutes);
-app.use('/receipts', receiptRoutes);
-app.use('/companies', companyRoutes);
+apiRouter.use('/attendance', attendanceRoutes);
+apiRouter.use('/staff', staffRoutes);
+apiRouter.use('/documents', documentRoutes);
+apiRouter.use('/fee-structures', feeStructureRoutes);
+apiRouter.use('/students', studentRoutes);
+apiRouter.use('/exits', exitRoutes);
+apiRouter.use('/owners', ownerRoutes);
+apiRouter.use('/expenses', expenseRoutes);
+apiRouter.use('/lesson-plans', lessonPlanRoutes);
+apiRouter.use('/assignments', assignmentRoutes);
+apiRouter.use('/messaging', messagingRoutes);
+apiRouter.use('/parent', parentModuleRoutes);
+apiRouter.use('/observation-logs', observationLogRoutes);
+apiRouter.use('/digital-portfolio', digitalPortfolioRoutes);
+apiRouter.use('/classroom-announcements', classroomAnnouncementRoutes);
+apiRouter.use('/admin-class/promotion', adminClassPromotionRoutes);
+apiRouter.use('/center-director', centerDirectorRoutes);
+apiRouter.use('/financial-manager', financialManagerRoutes);
+apiRouter.use('/health', healthRoutes); // Redundant but harmless, specific handler above takes precedence if mounted correctly, but healthRoutes might have more
+apiRouter.use('/auth', passwordResetRoutes);
+apiRouter.use('/auth', twoFactorRoutes);
+apiRouter.use('/claude', claudeRoutes);
+apiRouter.use('/debug', debugRoutes);
+apiRouter.use('/daily-activities', dailyActivityRoutes);
+apiRouter.use('/main-vendors', mainVendorRoutes);
+apiRouter.use('/receipts', receiptRoutes);
+apiRouter.use('/companies', companyRoutes);
+
+// Mount API router
+app.use('/api', apiRouter);
+// Also mount at root for backward compatibility with clients not sending /api
+app.use('/', apiRouter);
+
 // --- WEBSOCKET CONFIGURATION ---
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
 
-  // Join center-specific rooms for targeted updates
   socket.on('join-center', (centerId) => {
     socket.join(`center-${centerId}`);
     console.log(`Client ${socket.id} joined center room: center-${centerId}`);
   });
 
-  // Handle real-time dashboard subscriptions
   socket.on('subscribe-dashboard', (data) => {
     const { centerId, userId } = data;
     socket.join(`dashboard-${centerId}`);
@@ -292,12 +291,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// Make io available globally for use in routes
 global.io = io;
 
 // --- ERROR HANDLING MIDDLEWARE ---
-// This must be AFTER all routes
 app.use(globalErrorHandler);
+app.use(errorTracker);
 
 // --- 404 HANDLER ---
 app.use('*', (req, res) => {
@@ -314,20 +312,18 @@ app.use('*', (req, res) => {
 // --- DATABASE INITIALIZATION ---
 async function initializeServer() {
   try {
-    // Test database connection
     const connection = await pool.getConnection();
     console.log('✅ Database connected successfully!');
     connection.release();
     
-    // Initialize all required tables
     await initializeAllTables();
     
-    // Start the server
     server.listen(PORT, () => {
       console.log(`✅ Server is running on port ${PORT}`);
       console.log(`🔌 WebSocket server ready for real-time updates`);
       console.log(`🛡️  Global error handling enabled`);
       console.log(`📊 Database tables validated and ready`);
+      console.log(`🚀 Optimization package active`);
     });
     
   } catch (error) {
@@ -336,5 +332,4 @@ async function initializeServer() {
   }
 }
 
-// Initialize server
 initializeServer();
