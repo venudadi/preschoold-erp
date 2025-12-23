@@ -29,7 +29,7 @@ class EmailService {
                 secure: smtpPort === 465, // true for 465 (SSL), false for 587 (TLS)
                 auth: {
                     user: process.env.SMTP_USER,
-                    pass: process.env.SMTP_PASS
+                    pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD
                 },
                 tls: {
                     rejectUnauthorized: false
@@ -37,7 +37,7 @@ class EmailService {
             });
 
             // Test connection
-            if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+            if (process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD)) {
                 await this.transporter.verify();
                 this.isConfigured = true;
                 console.log('✅ Email service configured successfully');
