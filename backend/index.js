@@ -82,6 +82,7 @@ import mainVendorRoutes from './mainVendorRoutes.js';
 import receiptRoutes from './receiptRoutes.js';
 import companyRoutes from './companyRoutes.js';
 import emergencyRoutes from './emergencyRoutes.js';
+import systemSettingsRoutes from './routes/systemSettingsRoutes.js';
 
 // --- MIDDLEWARE ---
 // Production-ready CORS configuration
@@ -267,6 +268,7 @@ apiRouter.use('/main-vendors', mainVendorRoutes);
 apiRouter.use('/receipts', receiptRoutes);
 apiRouter.use('/companies', companyRoutes);
 apiRouter.use('/emergency', emergencyRoutes);
+apiRouter.use('/settings/system', systemSettingsRoutes);
 
 // Mount API router
 app.use('/api', apiRouter);

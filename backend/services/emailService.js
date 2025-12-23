@@ -7,6 +7,7 @@ import nodemailer from 'nodemailer';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getSystemSettings } from '../utils/settingsService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,21 +16,41 @@ class EmailService {
     constructor() {
         this.transporter = null;
         this.isConfigured = false;
-        this.init();
+        // Don't auto-init in constructor to allow async fetch, call init manually or lazy load
+        this.initPromise = this.init(); 
     }
 
     async init() {
         try {
-            const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
+            // 1. Try to get settings from DB
+            const dbSettings = await getSystemSettings();
+            
+            let host, port, user, pass, secure;
+
+            if (dbSettings && dbSettings.smtp_host) {
+                console.log('📧 Loading email configuration from Database...');
+                host = dbSettings.smtp_host;
+                port = parseInt(dbSettings.smtp_port) || 587;
+                user = dbSettings.smtp_user;
+                pass = dbSettings.smtp_pass;
+                secure = dbSettings.smtp_secure === 'true';
+            } else {
+                console.log('📧 Loading email configuration from Environment (.env)...');
+                host = process.env.SMTP_HOST || 'smtp.gmail.com';
+                port = parseInt(process.env.SMTP_PORT) || 587;
+                user = process.env.SMTP_USER;
+                pass = process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+                secure = port === 465;
+            }
 
             // Configure SMTP transporter
             this.transporter = nodemailer.createTransport({
-                host: process.env.SMTP_HOST || 'smtp.gmail.com',
-                port: smtpPort,
-                secure: smtpPort === 465, // true for 465 (SSL), false for 587 (TLS)
+                host: host,
+                port: port,
+                secure: secure, 
                 auth: {
-                    user: process.env.SMTP_USER,
-                    pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD
+                    user: user,
+                    pass: pass
                 },
                 tls: {
                     rejectUnauthorized: false
@@ -37,10 +58,10 @@ class EmailService {
             });
 
             // Test connection
-            if (process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD)) {
+            if (user && pass) {
                 await this.transporter.verify();
                 this.isConfigured = true;
-                console.log('✅ Email service configured successfully');
+                console.log(`✅ Email service configured successfully (Host: ${host})`);
             } else {
                 console.warn('⚠️ Email service not configured - missing SMTP credentials');
             }
@@ -51,7 +72,15 @@ class EmailService {
         }
     }
 
+    async ensureInitialized() {
+        if (!this.transporter) {
+            await this.initPromise;
+        }
+    }
+
     async sendPasswordResetCode(email, firstName, challengeCode, expirationMinutes = 15) {
+        await this.ensureInitialized();
+        
         if (!this.isConfigured) {
             console.error('Email service not configured');
             return { success: false, error: 'Email service not available' };
@@ -96,6 +125,8 @@ class EmailService {
     }
 
     async sendPasswordResetConfirmation(email, firstName) {
+        await this.ensureInitialized();
+
         if (!this.isConfigured) {
             console.error('Email service not configured');
             return { success: false, error: 'Email service not available' };
