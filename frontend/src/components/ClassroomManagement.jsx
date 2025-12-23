@@ -12,6 +12,10 @@ const ClassroomList = () => {
     const [newClassName, setNewClassName] = useState('');
     const [newClassDescription, setNewClassDescription] = useState('');
 
+    // Get user role
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const isAcademicCoordinator = user.role === 'academic_coordinator';
+
     const fetchClassrooms = async () => {
         setLoading(true);
         try {
@@ -54,34 +58,36 @@ const ClassroomList = () => {
                 Manage Classrooms
             </Typography>
 
-            {/* Add New Classroom Form */}
-            <Box component="form" onSubmit={handleCreateClassroom} sx={{ mb: 4, p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
-                <Typography variant="h6">Add New Classroom</Typography>
-                <TextField
-                    label="Classroom Name"
-                    variant="outlined"
-                    fullWidth
-                    required
-                    value={newClassName}
-                    onChange={(e) => setNewClassName(e.target.value)}
-                    sx={{ mt: 2 }}
-                />
-                <TextField
-                    label="Description"
-                    variant="outlined"
-                    fullWidth
-                    multiline
-                    rows={2}
-                    value={newClassDescription}
-                    onChange={(e) => setNewClassDescription(e.target.value)}
-                    sx={{ mt: 2 }}
-                />
-                <Button type="submit" variant="contained" sx={{ mt: 2 }}>
-                    Create Classroom
-                </Button>
-                {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-                {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
-            </Box>
+            {/* Add New Classroom Form - Hidden for Academic Coordinators */}
+            {!isAcademicCoordinator && (
+                <Box component="form" onSubmit={handleCreateClassroom} sx={{ mb: 4, p: 2, border: '1px solid #ccc', borderRadius: 1 }}>
+                    <Typography variant="h6">Add New Classroom</Typography>
+                    <TextField
+                        label="Classroom Name"
+                        variant="outlined"
+                        fullWidth
+                        required
+                        value={newClassName}
+                        onChange={(e) => setNewClassName(e.target.value)}
+                        sx={{ mt: 2 }}
+                    />
+                    <TextField
+                        label="Description"
+                        variant="outlined"
+                        fullWidth
+                        multiline
+                        rows={2}
+                        value={newClassDescription}
+                        onChange={(e) => setNewClassDescription(e.target.value)}
+                        sx={{ mt: 2 }}
+                    />
+                    <Button type="submit" variant="contained" sx={{ mt: 2 }}>
+                        Create Classroom
+                    </Button>
+                    {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+                    {success && <Alert severity="success" sx={{ mt: 2 }}>{success}</Alert>}
+                </Box>
+            )}
 
             {/* Existing Classrooms Table */}
             <TableContainer component={Paper}>

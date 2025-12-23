@@ -32,6 +32,10 @@ const ChildList = () => {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
     const [profileChildId, setProfileChildId] = useState(null);
 
+    // Get user role
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const isAcademicCoordinator = user.role === 'academic_coordinator';
+
     useEffect(() => {
         fetchChildren();
     }, [statusFilter]); // Re-fetch when status filter changes
@@ -232,7 +236,7 @@ const ChildList = () => {
                                                             <Visibility />
                                                         </IconButton>
                                                     </Tooltip>
-                                                    {child.status !== 'paused' && child.status !== 'left' && (
+                                                    {!isAcademicCoordinator && child.status !== 'paused' && child.status !== 'left' && (
                                                         <>
                                                             <Tooltip title="Pause Student">
                                                                 <IconButton
@@ -266,7 +270,7 @@ const ChildList = () => {
                                                             </Button>
                                                         </>
                                                     )}
-                                                    {child.status === 'paused' && (
+                                                    {!isAcademicCoordinator && child.status === 'paused' && (
                                                         <>
                                                             <Tooltip title="Resume Student">
                                                                 <IconButton
