@@ -51,6 +51,90 @@ const recordWorkflowAction = async (connection, lessonPlanId, action, performedB
 };
 
 // ============================================================================
+// TEMPLATE ROUTES
+// ============================================================================
+
+/**
+ * POST /api/lesson-plans/templates/create
+ * Create a new lesson plan template
+ */
+router.post('/templates/create', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'academic_coordinator') {
+            return res.status(403).json({ message: 'Access denied. Academic coordinator only.' });
+        }
+
+        const { name, description, ageGroup, theme, activities } = req.body;
+
+        if (!name || !activities) {
+            return res.status(400).json({ message: 'Name and activities are required' });
+        }
+
+        const templateId = uuidv4();
+        await pool.query(
+            `INSERT INTO lesson_plan_templates
+             (id, name, description, age_group, theme, activities, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [templateId, name, description, ageGroup, theme, JSON.stringify(activities), req.user.userId]
+        );
+
+        res.status(201).json({ message: 'Template created successfully', templateId });
+    } catch (error) {
+        console.error('Create template error:', error);
+        res.status(500).json({ message: 'Server error creating template' });
+    }
+});
+
+/**
+ * GET /api/lesson-plans/templates
+ * Get all templates created by the coordinator
+ */
+router.get('/templates', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'academic_coordinator') {
+            return res.status(403).json({ message: 'Access denied. Academic coordinator only.' });
+        }
+
+        const [templates] = await pool.query(
+            'SELECT * FROM lesson_plan_templates WHERE created_by = ? ORDER BY created_at DESC',
+            [req.user.userId]
+        );
+
+        res.json({ templates });
+    } catch (error) {
+        console.error('Get templates error:', error);
+        res.status(500).json({ message: 'Server error fetching templates' });
+    }
+});
+
+/**
+ * GET /api/lesson-plans/templates/:id
+ * Get a specific template
+ */
+router.get('/templates/:id', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'academic_coordinator') {
+            return res.status(403).json({ message: 'Access denied. Academic coordinator only.' });
+        }
+
+        const { id } = req.params;
+        const [templates] = await pool.query(
+            'SELECT * FROM lesson_plan_templates WHERE id = ? AND created_by = ?',
+            [id, req.user.userId]
+        );
+
+        if (templates.length === 0) {
+            return res.status(404).json({ message: 'Template not found' });
+        }
+
+        res.json({ template: templates[0] });
+    } catch (error) {
+        console.error('Get template error:', error);
+        res.status(500).json({ message: 'Server error fetching template' });
+    }
+});
+
+// ============================================================================
 // ACADEMIC COORDINATOR ROUTES
 // ============================================================================
 
@@ -164,6 +248,83 @@ router.get('/coordinator/classrooms', protect, async (req, res) => {
     } catch (error) {
         console.error('Get classrooms error:', error);
         res.status(500).json({ message: 'Server error fetching classrooms' });
+    }
+});
+
+/**
+ * GET /api/lesson-plans/coordinator/analytics
+ * Get analytics on lesson plan engagement and performance
+ */
+router.get('/coordinator/analytics', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'academic_coordinator') {
+            return res.status(403).json({ message: 'Access denied. Academic coordinator only.' });
+        }
+
+        const { startDate, endDate, centerId } = req.query;
+
+        // Base query conditions
+        let whereClause = 'WHERE 1=1';
+        const params = [];
+
+        if (startDate) {
+            whereClause += ' AND f.created_at >= ?';
+            params.push(startDate);
+        }
+        if (endDate) {
+            whereClause += ' AND f.created_at <= ?';
+            params.push(endDate);
+        }
+        if (centerId) {
+            whereClause += ' AND lp.center_id = ?';
+            params.push(centerId);
+        }
+
+        // 1. Engagement by Category
+        const [engagementByCategory] = await pool.query(`
+            SELECT
+                a.category,
+                COUNT(f.id) as feedback_count,
+                AVG(CASE
+                    WHEN f.child_engagement = 'high' THEN 3
+                    WHEN f.child_engagement = 'medium' THEN 2
+                    WHEN f.child_engagement = 'low' THEN 1
+                    ELSE 0
+                END) as avg_engagement_score,
+                AVG(CASE
+                    WHEN f.rating = 'excellent' THEN 5
+                    WHEN f.rating = 'good' THEN 4
+                    WHEN f.rating = 'average' THEN 3
+                    WHEN f.rating = 'poor' THEN 1
+                    ELSE 0
+                END) as avg_rating
+            FROM lesson_plan_feedback f
+            JOIN lesson_plan_activities a ON f.activity_id = a.id
+            JOIN lesson_plans lp ON f.lesson_plan_id = lp.id
+            ${whereClause}
+            GROUP BY a.category
+            ORDER BY avg_engagement_score DESC
+        `, params);
+
+        // 2. Completion Rates
+        const [completionRates] = await pool.query(`
+            SELECT
+                f.completion_status,
+                COUNT(*) as count,
+                ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) as percentage
+            FROM lesson_plan_feedback f
+            JOIN lesson_plans lp ON f.lesson_plan_id = lp.id
+            ${whereClause}
+            GROUP BY f.completion_status
+        `, params);
+
+        res.json({
+            engagementByCategory,
+            completionRates
+        });
+    } catch (error) {
+        console.error('Get analytics error:', error);
+        res.status(500).json({ message: 'Server error fetching analytics' });
     }
 });
 
@@ -343,6 +504,112 @@ router.get('/coordinator/plans', protect, async (req, res) => {
 });
 
 /**
+ * POST /api/lesson-plans/coordinator/:id/clone
+ * Clone an existing lesson plan to a new week
+ */
+router.post('/coordinator/:id/clone', protect, async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        if (req.user.role !== 'academic_coordinator') {
+            return res.status(403).json({ message: 'Access denied. Academic coordinator only.' });
+        }
+
+        const { id } = req.params;
+        const { weekStartDate } = req.body;
+
+        if (!weekStartDate) {
+            return res.status(400).json({ message: 'New week start date is required' });
+        }
+
+        await connection.beginTransaction();
+
+        // 1. Get original plan
+        const [originalPlans] = await connection.query(
+            'SELECT * FROM lesson_plans WHERE id = ? AND created_by = ?',
+            [id, req.user.userId]
+        );
+
+        if (originalPlans.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ message: 'Original lesson plan not found' });
+        }
+
+        const original = originalPlans[0];
+
+        // 2. Calculate new week details
+        const { weekStart, weekEnd } = getWeekDates(weekStartDate);
+        const weekNumber = getWeekNumber(weekStartDate);
+        const academicYear = new Date(weekStartDate).getFullYear().toString();
+
+        // 3. Check for existing plan in target week
+        let existingQuery, existingParams;
+        if (original.child_id) {
+            existingQuery = 'SELECT id FROM lesson_plans WHERE child_id = ? AND week_start_date = ?';
+            existingParams = [original.child_id, weekStart];
+        } else {
+            existingQuery = 'SELECT id FROM lesson_plans WHERE classroom_id = ? AND week_start_date = ?';
+            existingParams = [original.classroom_id, weekStart];
+        }
+
+        const [existing] = await connection.query(existingQuery, existingParams);
+        if (existing.length > 0) {
+            await connection.rollback();
+            return res.status(409).json({ message: 'A lesson plan already exists for the target week' });
+        }
+
+        // 4. Create new plan
+        const newPlanId = uuidv4();
+        await connection.query(
+            `INSERT INTO lesson_plans
+             (id, child_id, center_id, classroom_id, week_number, week_start_date, week_end_date,
+              academic_year, created_by, overall_objectives, special_notes, status, version)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', 1)`,
+            [newPlanId, original.child_id, original.center_id, original.classroom_id,
+             weekNumber, weekStart, weekEnd, academicYear, req.user.userId,
+             original.overall_objectives, original.special_notes]
+        );
+
+        // 5. Clone activities
+        const [activities] = await connection.query(
+            'SELECT * FROM lesson_plan_activities WHERE lesson_plan_id = ?',
+            [id]
+        );
+
+        for (const activity of activities) {
+            const newActivityId = uuidv4();
+            await connection.query(
+                `INSERT INTO lesson_plan_activities
+                 (id, lesson_plan_id, category, day_of_week, activity_title, activity_description,
+                  learning_outcomes, materials_needed, duration_minutes, instructions, adaptations)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [newActivityId, newPlanId, activity.category, activity.day_of_week,
+                 activity.activity_title, activity.activity_description, activity.learning_outcomes,
+                 activity.materials_needed, activity.duration_minutes, activity.instructions,
+                 activity.adaptations]
+            );
+        }
+
+        // 6. Record workflow
+        await recordWorkflowAction(connection, newPlanId, 'created_from_clone', req.user.userId, 'academic_coordinator');
+
+        await connection.commit();
+
+        res.status(201).json({
+            message: 'Lesson plan cloned successfully',
+            lessonPlanId: newPlanId,
+            weekStart
+        });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Clone lesson plan error:', error);
+        res.status(500).json({ message: 'Server error cloning lesson plan' });
+    } finally {
+        connection.release();
+    }
+});
+
+/**
  * PUT /api/lesson-plans/coordinator/:id/submit
  * Submit lesson plan (changes status from draft to submitted)
  */
@@ -379,18 +646,66 @@ router.put('/coordinator/:id/submit', protect, async (req, res) => {
             return res.status(400).json({ message: 'Cannot submit lesson plan without activities' });
         }
 
-        // Update status
-        await connection.query(
-            'UPDATE lesson_plans SET status = ?, updated_at = NOW() WHERE id = ?',
-            ['submitted', id]
-        );
+        // AUTO-FORWARDING LOGIC
+        // Check if there is a teacher assigned to this classroom (if it's a classroom plan)
+        // or the child's classroom (if it's a child plan)
+        let teacherIdToForward = null;
+        let classroomIdToCheck = plans[0].classroom_id;
 
-        // Record workflow action
-        await recordWorkflowAction(connection, id, 'submitted_by_coordinator', req.user.userId, 'academic_coordinator');
+        if (!classroomIdToCheck && plans[0].child_id) {
+            // Get classroom from child
+            const [childInfo] = await connection.query(
+                'SELECT classroom_id FROM children WHERE id = ?',
+                [plans[0].child_id]
+            );
+            if (childInfo.length > 0) {
+                classroomIdToCheck = childInfo[0].classroom_id;
+            }
+        }
 
-        await connection.commit();
+        if (classroomIdToCheck) {
+            const [classroomInfo] = await connection.query(
+                'SELECT teacher_id FROM classrooms WHERE id = ?',
+                [classroomIdToCheck]
+            );
+            if (classroomInfo.length > 0 && classroomInfo[0].teacher_id) {
+                teacherIdToForward = classroomInfo[0].teacher_id;
+            }
+        }
 
-        res.json({ message: 'Lesson plan submitted successfully' });
+        if (teacherIdToForward) {
+            // Auto-forward to teacher
+            await connection.query(
+                'UPDATE lesson_plans SET status = ?, updated_at = NOW() WHERE id = ?',
+                ['forwarded_to_teacher', id]
+            );
+
+            const assignmentId = uuidv4();
+            await connection.query(
+                `INSERT INTO lesson_plan_assignments
+                 (id, lesson_plan_id, teacher_id, assigned_by, status)
+                 VALUES (?, ?, ?, ?, 'pending')`,
+                [assignmentId, id, teacherIdToForward, req.user.userId]
+            );
+
+            await recordWorkflowAction(connection, id, 'submitted_by_coordinator', req.user.userId, 'academic_coordinator');
+            await recordWorkflowAction(connection, id, 'auto_forwarded_to_teacher', 'system', 'system', teacherIdToForward);
+            await recordWorkflowAction(connection, id, 'assigned_to_teacher', 'system', 'system', teacherIdToForward);
+
+            await connection.commit();
+            res.json({ message: 'Lesson plan submitted and auto-forwarded to teacher successfully' });
+        } else {
+            // Standard submission (needs admin review)
+            await connection.query(
+                'UPDATE lesson_plans SET status = ?, updated_at = NOW() WHERE id = ?',
+                ['submitted', id]
+            );
+
+            await recordWorkflowAction(connection, id, 'submitted_by_coordinator', req.user.userId, 'academic_coordinator');
+
+            await connection.commit();
+            res.json({ message: 'Lesson plan submitted successfully (pending admin review)' });
+        }
     } catch (error) {
         await connection.rollback();
         console.error('Submit lesson plan error:', error);
@@ -667,6 +982,59 @@ router.post('/admin/:id/forward-feedback', protect, async (req, res) => {
 // ============================================================================
 // TEACHER ROUTES
 // ============================================================================
+
+/**
+ * GET /api/lesson-plans/teacher/today
+ * Get activities for the current day
+ */
+router.get('/teacher/today', protect, async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({ message: 'Access denied. Teacher only.' });
+        }
+
+        const today = new Date();
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const dayName = days[today.getDay()];
+        const todayStr = today.toISOString().split('T')[0];
+
+        // Find assigned plans that cover today's date
+        // Logic: lesson_plans.week_start_date <= today <= lesson_plans.week_end_date
+        // AND lesson_plan_activities.day_of_week matches today
+
+        const [activities] = await pool.query(
+            `SELECT
+                lpa.*,
+                lp.id as lesson_plan_id,
+                lp.week_start_date,
+                c.first_name as child_first_name,
+                c.last_name as child_last_name,
+                cl.name as classroom_name,
+                (SELECT COUNT(*) FROM lesson_plan_feedback f WHERE f.activity_id = lpa.id AND f.teacher_id = ?) as has_feedback
+             FROM lesson_plan_activities lpa
+             JOIN lesson_plans lp ON lpa.lesson_plan_id = lp.id
+             JOIN lesson_plan_assignments assignments ON lp.id = assignments.lesson_plan_id
+             JOIN children c ON lp.child_id = c.id
+             LEFT JOIN classrooms cl ON lp.classroom_id = cl.id
+             WHERE assignments.teacher_id = ?
+               AND assignments.status IN ('pending', 'acknowledged', 'completed')
+               AND lp.week_start_date <= ?
+               AND lp.week_end_date >= ?
+               AND lpa.day_of_week = ?
+             ORDER BY lp.week_start_date DESC, lpa.category`,
+            [req.user.userId, req.user.userId, todayStr, todayStr, dayName]
+        );
+
+        res.json({
+            date: todayStr,
+            dayOfWeek: dayName,
+            activities
+        });
+    } catch (error) {
+        console.error('Get teacher today activities error:', error);
+        res.status(500).json({ message: 'Server error fetching today activities' });
+    }
+});
 
 /**
  * GET /api/lesson-plans/teacher/assigned
