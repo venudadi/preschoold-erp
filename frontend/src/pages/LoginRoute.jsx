@@ -17,7 +17,7 @@ const LoginRoute = () => {
         return;
       }
       try {
-        await api.get('/auth/verify');
+        await api.get('/auth/verify', { timeout: 3000 });
         setShouldRedirect(true);
       } catch {
         // tokens invalid; stay on login

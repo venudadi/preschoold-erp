@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Typography } from '@mui/material';
 import LoginRoute from './pages/LoginRoute.jsx';
 import AutoLogin from './pages/AutoLogin.jsx';
 import DashboardLayout from './components/DashboardLayout.jsx';
