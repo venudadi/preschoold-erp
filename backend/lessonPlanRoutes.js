@@ -72,7 +72,6 @@ router.get('/coordinator/children', protect, async (req, res) => {
                 c.first_name,
                 c.last_name,
                 c.date_of_birth,
-                c.admission_date,
                 cl.id as classroom_id,
                 cl.name as classroom_name,
                 ct.name as center_name,
