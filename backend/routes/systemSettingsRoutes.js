@@ -52,7 +52,14 @@ router.put('/email', protect, requireRole(['super_admin', 'owner']), async (req,
         }
 
         // Re-initialize email service with new settings
-        await emailService.init();
+        const initResult = await emailService.init();
+
+        if (!initResult.success) {
+            return res.status(400).json({ 
+                message: 'Settings saved, but email service failed to connect. Please check your credentials.',
+                error: initResult.error 
+            });
+        }
 
         res.json({ message: 'Email settings updated successfully' });
     } catch (error) {

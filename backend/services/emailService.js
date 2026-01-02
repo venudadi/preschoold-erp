@@ -62,13 +62,16 @@ class EmailService {
                 await this.transporter.verify();
                 this.isConfigured = true;
                 console.log(`✅ Email service configured successfully (Host: ${host})`);
+                return { success: true };
             } else {
                 console.warn('⚠️ Email service not configured - missing SMTP credentials');
+                return { success: false, error: 'Missing SMTP credentials' };
             }
 
         } catch (error) {
             console.error('❌ Email service configuration failed:', error.message);
             this.isConfigured = false;
+            return { success: false, error: error.message };
         }
     }
 
