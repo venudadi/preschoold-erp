@@ -15,7 +15,7 @@ const router = express.Router();
 router.get('/email', protect, requireRole(['super_admin', 'owner']), async (req, res) => {
     try {
         const [rows] = await pool.query(
-            'SELECT setting_key, setting_value, is_encrypted, description, updated_at FROM system_settings WHERE setting_key LIKE "smtp_%" OR setting_key LIKE "from_%"'
+            "SELECT setting_key, setting_value, is_encrypted, description, updated_at FROM system_settings WHERE setting_key LIKE 'smtp_%' OR setting_key LIKE 'from_%'"
         );
         
         // Don't send encrypted passwords back to frontend, just a placeholder
